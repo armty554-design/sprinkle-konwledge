@@ -950,11 +950,11 @@
             <!-- สเต็ปที่ 1: ค้นหารหัสพนักงานเพื่อสมัคร -->
             <div id="regStepSearch" class="space-y-4">
                 <div class="p-3.5 bg-blue-50 border border-blue-200 rounded-2xl text-xs sm:text-sm text-blue-900 font-bold leading-relaxed text-left">
-                    💡 หากคุณมีรหัสพนักงานหรือรหัสผู้ประกอบการในระบบอยู่แล้ว กรุณากรอกรหัสเพื่อค้นหาและตั้งรหัสผ่านเพื่อเข้าใช้งานได้ทันทีครับ
+                    💡 หากคุณมีรหัสพนักงานหรือรหัสพี่สปริงเคิลในระบบอยู่แล้ว กรุณากรอกรหัสเพื่อค้นหาและตั้งรหัสผ่านเพื่อเข้าใช้งานได้ทันทีครับ
                 </div>
                 
                 <div class="text-left space-y-2">
-                    <label class="block text-sm sm:text-base font-bold text-gray-800">🔍 ระบุรหัสพนักงาน / รหัสผู้ประกอบการ</label>
+                    <label class="block text-sm sm:text-base font-bold text-gray-800">🔍 ระบุรหัสพนักงาน / รหัสพี่สปริงเคิล</label>
                     <div class="flex gap-2">
                         <input type="text" id="regSearchEmpIdInput" placeholder="เช่น 171938 หรือ OP101" 
                                onkeypress="if(event.key==='Enter') searchEmployeeForRegistration()"
@@ -1018,7 +1018,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">3. เบอร์รถ (สำหรับผู้ประกอบการ/รถส่งน้ำ - หากไม่มีกรอก -)</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">3. เบอร์รถ (สำหรับพี่สปริงเคิล/รถส่งน้ำ - หากไม่มีกรอก -)</label>
                         <input type="text" id="regExistingCarNumber" placeholder="กรอกเบอร์รถ หรือใส่ -" class="w-full p-3 border-2 border-gray-200 rounded-xl text-sm font-bold outline-none focus:border-blue-500 bg-white">
                     </div>
 
@@ -1056,7 +1056,7 @@
 
                 <!-- 1. รหัสพนักงาน -->
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">1. รหัสพนักงาน / รหัสผู้ประกอบการ <span class="text-red-500">*</span></label>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">1. รหัสพนักงาน / รหัสพี่สปริงเคิล <span class="text-red-500">*</span></label>
                     <input type="text" id="regEmpId" placeholder="เช่น 171938 หรือ OP101" class="w-full p-3 border-2 border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500 bg-white font-bold">
                 </div>
 
@@ -1083,7 +1083,7 @@
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">3. ตำแหน่ง (ดรอปดาวน์) <span class="text-red-500">*</span></label>
                         <select id="regRoleSelect" onchange="toggleRegCustomRole()" class="w-full p-3 border-2 border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500 bg-white font-bold">
-                            <option value="ผู้ประกอบการ">ผู้ประกอบการ</option>
+                            <option value="พี่สปริงเคิล">พี่สปริงเคิล</option>
                             <option value="custom">อื่นๆ (ระบุเอง)</option>
                         </select>
                         <input type="text" id="regCustomRoleInput" placeholder="ระบุตำแหน่งของคุณ" class="w-full p-2.5 border-2 border-gray-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white font-bold mt-1.5 hidden">
@@ -1302,7 +1302,7 @@
                         <span>📢</span> <span>รวมภาพสื่อประชาสัมพันธ์</span>
                     </button>
                     <button type="button" onclick="openAudienceFolder('operator')" class="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 active:scale-95">
-                        <span>🏢</span> <span>แฟ้มผู้ประกอบการ</span>
+                        <span>🚛</span> <span>แฟ้มพี่สปริงเคิล</span>
                     </button>
                 </div>
 
@@ -1471,40 +1471,45 @@
                 <div class="space-y-1.5">
                     <div class="flex items-center gap-2 flex-wrap">
                         <h2 class="text-2xl sm:text-3xl font-extrabold text-blue-950 flex items-center gap-2">📈 แนะนำ & จัดอันดับ</h2>
-                        <span id="recommendStartDateBadge" class="bg-blue-50 text-blue-800 border border-blue-200 text-xs font-bold px-3 py-1 rounded-full inline-flex items-center gap-1.5 shadow-2xs">
-                            <span>🗓️</span> <span id="recommendStartDateText">เริ่มเก็บสถิติตั้งแต่วันที่: กำลังโหลด...</span>
+                        <span id="recommendStartDateBadge" class="bg-blue-50 text-blue-800 border border-blue-200 text-sm sm:text-base font-extrabold px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full inline-flex items-center gap-2 shadow-2xs">
+                            <span class="text-base sm:text-lg">🗓️</span> <span id="recommendStartDateText">เริ่มเก็บสถิติตั้งแต่วันที่: กำลังโหลด...</span>
                         </span>
                     </div>
                     <p class="text-gray-500 text-sm sm:text-base font-semibold">รายงานสถิติการเรียนรู้ยอดนิยม และอันดับการเข้าใช้งานระบบของบุคลากรและสาขา</p>
                 </div>
-                <button onclick="refreshRecommendData()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-5 py-2.5 rounded-2xl font-extrabold text-sm transition-all active:scale-95 flex items-center gap-2 border border-blue-200 shadow-sm shrink-0">
-                    🔄 รีเฟรชสถิติ
-                </button>
+                <div class="flex items-center gap-2 flex-wrap shrink-0">
+                    <button id="recommendAutoRotateToggleBtn" onclick="toggleRecommendAutoRotate()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2.5 rounded-2xl font-extrabold text-sm transition-all active:scale-95 flex items-center gap-2 border border-indigo-200 shadow-sm shrink-0">
+                        <span id="recommendAutoRotateIcon">⏸️</span> <span id="recommendAutoRotateLabel">สลับสถิติอัตโนมัติ (เปิด)</span>
+                    </button>
+                    <button onclick="refreshRecommendData()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 sm:px-5 py-2.5 rounded-2xl font-extrabold text-sm transition-all active:scale-95 flex items-center gap-2 border border-blue-200 shadow-sm shrink-0">
+                        🔄 รีเฟรชสถิติ
+                    </button>
+                </div>
             </div>
 
-            <!-- แท็บหลักเลือกจัดอันดับแยกกลุ่ม (หน้ารวม / พนักงาน / ผู้ประกอบการ) -->
+            <!-- แท็บหลักเลือกจัดอันดับแยกกลุ่ม (หน้ารวม / สมาชิก พนักงาน / สมาชิกพี่สปริงเคิล) -->
             <div class="flex gap-2 bg-gray-100 bg-opacity-80 p-1.5 rounded-2xl border border-gray-200 shadow-inner">
-                <button onclick="setRecommendSubTab('all')" id="recommendTabAll" 
+                <button onclick="setRecommendSubTab('all', true)" id="recommendTabAll" 
                         class="flex-1 py-3 px-3 sm:px-4 rounded-xl text-sm sm:text-base font-extrabold text-center transition-all bg-blue-600 text-white shadow-md transform scale-[1.01]">
                     📊 ทุกตำแหน่ง (รวมทั้งหมด)
                 </button>
-                <button onclick="setRecommendSubTab('employee')" id="recommendTabEmployee" 
+                <button onclick="setRecommendSubTab('employee', true)" id="recommendTabEmployee" 
                         class="flex-1 py-3 px-3 sm:px-4 rounded-xl text-sm sm:text-base font-extrabold text-center transition-all bg-transparent text-gray-500 hover:text-blue-600 hover:bg-white hover:bg-opacity-60">
-                    👥 พนักงานทั่วไป
+                    👥 สมาชิก พนักงาน
                 </button>
-                <button onclick="setRecommendSubTab('operator')" id="recommendTabOperator" 
+                <button onclick="setRecommendSubTab('operator', true)" id="recommendTabOperator" 
                         class="flex-1 py-3 px-3 sm:px-4 rounded-xl text-sm sm:text-base font-extrabold text-center transition-all bg-transparent text-gray-500 hover:text-blue-600 hover:bg-white hover:bg-opacity-60">
-                    💼 ผู้ประกอบการ
+                    🚛 สมาชิกพี่สปริงเคิล
                 </button>
             </div>
 
             <!-- สรุปยอดผู้เข้าชมและภาพรวมการเรียนรู้ทั้งหมด (Total System Overview Stats) -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5" id="recommendOverviewStatsBar">
-                <div class="bg-white p-4 rounded-2xl border border-blue-100 shadow-xs flex items-center gap-3">
-                    <span class="text-3xl p-2.5 bg-blue-50 text-blue-600 rounded-xl">📖</span>
+                <div class="bg-white p-4 rounded-2xl border border-amber-100 shadow-xs flex items-center gap-3">
+                    <span class="text-3xl p-2.5 bg-amber-50 text-amber-600 rounded-xl">🏢</span>
                     <div class="min-w-0">
-                        <span class="text-xs text-gray-500 font-bold block truncate">ยอดเปิดอ่านทั้งหมด</span>
-                        <span id="statTotalViews" class="text-xl sm:text-2xl font-extrabold text-blue-950">0 ครั้ง</span>
+                        <span class="text-xs text-gray-500 font-bold block truncate">บุคลากรในระบบ</span>
+                        <span id="statTotalEmployees" class="text-xl sm:text-2xl font-extrabold text-amber-950">0 คน</span>
                     </div>
                 </div>
                 <div class="bg-white p-4 rounded-2xl border border-indigo-100 shadow-xs flex items-center gap-3">
@@ -1521,11 +1526,11 @@
                         <span id="statTopicsViewed" class="text-xl sm:text-2xl font-extrabold text-emerald-950">0 เรื่อง</span>
                     </div>
                 </div>
-                <div class="bg-white p-4 rounded-2xl border border-amber-100 shadow-xs flex items-center gap-3">
-                    <span class="text-3xl p-2.5 bg-amber-50 text-amber-600 rounded-xl">🏢</span>
+                <div class="bg-white p-4 rounded-2xl border border-blue-100 shadow-xs flex items-center gap-3">
+                    <span class="text-3xl p-2.5 bg-blue-50 text-blue-600 rounded-xl">📖</span>
                     <div class="min-w-0">
-                        <span class="text-xs text-gray-500 font-bold block truncate">บุคลากรในระบบ</span>
-                        <span id="statTotalEmployees" class="text-xl sm:text-2xl font-extrabold text-amber-950">0 คน</span>
+                        <span class="text-xs text-gray-500 font-bold block truncate">ยอดเปิดอ่านทั้งหมด</span>
+                        <span id="statTotalViews" class="text-xl sm:text-2xl font-extrabold text-blue-950">0 ครั้ง</span>
                     </div>
                 </div>
             </div>
@@ -1572,15 +1577,15 @@
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-xs font-extrabold bg-emerald-100 text-emerald-900 px-2.5 py-1 rounded-full flex items-center gap-1">
-                                <span>🏢</span> อันดับ 1 สาขาใช้งานสูงสุด
+                                <span>🏢</span> อันดับ 1 สาขาเข้าอ่านสูงสุด
                             </span>
                             <span class="text-2xl">🥇</span>
                         </div>
                         <h4 id="highlightTopBranchName" class="text-base font-bold text-emerald-950 mt-2">กำลังโหลด...</h4>
-                        <p class="text-xs text-gray-600 font-semibold mt-1">สถิติการล็อกอินใช้งานระบบภาพรวม</p>
+                        <p class="text-xs text-gray-600 font-semibold mt-1">สถิติการเข้าอ่านคู่มือภาพรวม</p>
                     </div>
                     <div class="mt-4 bg-white bg-opacity-80 p-2.5 rounded-xl border border-emerald-100 flex items-center justify-between text-xs">
-                        <span class="text-gray-500 font-bold">ยอดล็อกอินรวม</span>
+                        <span class="text-gray-500 font-bold">ยอดเข้าอ่านรวม</span>
                         <span id="highlightTopBranchLogins" class="font-extrabold text-emerald-700">- ครั้ง</span>
                     </div>
                 </div>
@@ -1651,7 +1656,7 @@
                                         <th class="p-3 border-b font-bold w-36">หมวดหมู่</th>
                                         <th class="p-3 border-b font-bold">หัวข้อเรื่องคู่มือ</th>
                                         <th class="p-3 border-b font-bold text-center w-28">ยอดดู (ครั้ง)</th>
-                                        <th class="p-3 border-b font-bold text-center w-24">เปิดอ่าน</th>
+                                        <th class="p-3 border-b font-bold text-center w-24">ประวัติ</th>
                                     </tr>
                                 </thead>
                                 <tbody id="recommendTop20TableBody">
@@ -1669,11 +1674,11 @@
                     </div>
                 </div>
 
-                <!-- ฝั่งขวา (1 คอลัมน์): สถิติอันดับสาขาที่เข้าใช้ระบบ -->
+                <!-- ฝั่งขวา (1 คอลัมน์): สถิติอันดับสาขาที่เข้าอ่าน -->
                 <div class="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border border-gray-150 flex flex-col self-start lg:sticky lg:top-24">
                     <div class="border-b pb-3 mb-4">
-                        <h3 class="text-xl sm:text-2xl font-extrabold text-blue-950 flex items-center gap-2">🏢 อันดับสาขาที่เข้าใช้ระบบ</h3>
-                        <p class="text-gray-500 text-xs sm:text-sm font-semibold">จัดอันดับตามจำนวนครั้งในการล็อกอินเข้าใช้งาน</p>
+                        <h3 class="text-xl sm:text-2xl font-extrabold text-blue-950 flex items-center gap-2">🏢 อันดับสาขาที่เข้าอ่าน</h3>
+                        <p class="text-gray-500 text-xs sm:text-sm font-semibold">จัดอันดับตามจำนวนครั้งในการเข้าอ่านคู่มือ</p>
                     </div>
                     
                     <div id="branchRankingsContainer" class="space-y-3 overflow-y-auto flex-1 pr-1" style="max-height: 650px;">
@@ -1789,7 +1794,7 @@
                                 </label>
                                 <label class="inline-flex items-center gap-2 cursor-pointer font-extrabold text-gray-800 text-xs sm:text-sm select-none">
                                     <input type="checkbox" id="annAudienceOp" value="ผู้ประกอบการ" checked class="w-4 h-4 text-amber-600 rounded">
-                                    <span>🏢 ผปก.</span>
+                                    <span>🚛 พี่สปริงเคิล</span>
                                 </label>
                             </div>
                         </div>
@@ -2041,7 +2046,7 @@
                             </label>
                             <label class="inline-flex items-center gap-2.5 cursor-pointer font-bold text-gray-800 text-base">
                                 <input type="checkbox" id="knowledgeAudienceOp" value="ผู้ประกอบการ" checked class="w-5 h-5 text-blue-600 rounded">
-                                <span>🏢 ผู้ประกอบการ (ผปก.)</span>
+                                <span>🚛 พี่สปริงเคิล</span>
                             </label>
                         </div>
                     </div>
@@ -2254,7 +2259,7 @@
                         <span class="text-3xl">⏳</span>
                         <div>
                             <h4 class="text-xl sm:text-2xl font-extrabold text-amber-950">คำขอลงทะเบียนสมาชิกใหม่ (รออนุมัติ)</h4>
-                            <p class="text-xs font-bold text-amber-800">กดอนุมัติเพื่อให้พนักงาน/ผู้ประกอบการสามารถเข้าสู่ระบบได้</p>
+                            <p class="text-xs font-bold text-amber-800">กดอนุมัติเพื่อให้พนักงาน/พี่สปริงเคิลสามารถเข้าสู่ระบบได้</p>
                         </div>
                         <span id="pendingApprovalCountBadge" class="bg-amber-500 text-white text-xs font-extrabold px-3 py-1 rounded-full shadow-xs">0 รายการ</span>
                     </div>
@@ -2346,7 +2351,7 @@
                                     <input type="text" id="empBranchInput" placeholder="กรอกสาขาพนักงาน (เช่น กรุงเทพ, เชียงใหม่)" class="w-full p-4 border rounded-xl bg-white outline-none focus:border-blue-600 font-bold">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-1">เบอร์รถ (สำหรับผู้ประกอบการ คอลัมน์ I)</label>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">เบอร์รถ (สำหรับพี่สปริงเคิล คอลัมน์ I)</label>
                                     <input type="text" id="empCarNumberInput" placeholder="กรอกเบอร์รถ เช่น 101, B04 หรือทะเบียนรถ หรือใส่ -" class="w-full p-4 border rounded-xl bg-white outline-none focus:border-blue-600 font-bold">
                                 </div>
                                 <div>
@@ -2544,7 +2549,7 @@
                                 </label>
                                 <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-50 cursor-pointer transition-all">
                                     <input type="radio" name="broadcastAudience" value="ผู้ประกอบการ" onchange="updateAudienceEstimatePreview()" class="w-4 h-4 text-blue-600">
-                                    <span class="text-sm font-bold text-gray-800">🏢 เฉพาะผู้ประกอบการ (ผปก. Only)</span>
+                                    <span class="text-sm font-bold text-gray-800">🚛 เฉพาะพี่สปริงเคิล</span>
                                 </label>
                             </div>
                         </div>
@@ -2679,7 +2684,7 @@
                             <select id="historyFilterAudience" onchange="loadNotificationHistoryData()" class="p-2.5 border rounded-xl bg-white text-xs font-bold text-gray-700 outline-none">
                                 <option value="ทั้งหมด">👥 ทุกกลุ่มผู้รับ</option>
                                 <option value="พนักงาน">พนักงาน</option>
-                                <option value="ผู้ประกอบการ">ผู้ประกอบการ</option>
+                                <option value="ผู้ประกอบการ">พี่สปริงเคิล</option>
                             </select>
                             <select id="historyFilterBranch" onchange="loadNotificationHistoryData()" class="p-2.5 border rounded-xl bg-white text-xs font-bold text-gray-700 outline-none">
                                 <option value="ทุกสาขา">📍 ทุกสาขา</option>
@@ -2943,11 +2948,11 @@
         var uniqueCategories = [];
         var currentUser = { name: '', role: '', canEdit: false, canToggle: false, canAnswerQA: false };
 
-        // ฟังก์ชันตรวจสอบว่าเป็นผู้ประกอบการ (ผปก.) หรือไม่
+        // ฟังก์ชันตรวจสอบว่าเป็นสมาชิกพี่สปริงเคิล (ผปก.) หรือไม่
         function isUserOperator() {
             if (!currentUser || !currentUser.role) return false;
             var r = currentUser.role.toString().trim().toLowerCase();
-            return r === 'ผู้ประกอบการ' || r.indexOf('ผู้ประกอบการ') !== -1 || r.indexOf('ผปก') !== -1;
+            return r === 'ผู้ประกอบการ' || r.indexOf('ผู้ประกอบการ') !== -1 || r.indexOf('ผปก') !== -1 || r === 'พี่สปริงเคิล' || r.indexOf('พี่สปริงเคิล') !== -1;
         }
 
         // ฟังก์ชันตรวจสอบว่าเป็นผู้จัดการขึ้นไป (ผู้จัดการ หรือ แอดมิน) หรือไม่
@@ -2959,17 +2964,17 @@
 
         // ฟังก์ชันตรวจสอบความสอดคล้องของกลุ่มเป้าหมาย (Audience Match)
         // - พนักงาน/ผู้จัดการ/แอดมิน: เห็นเนื้อหาทั้งหมด
-        // - ผปก.: เห็นเฉพาะเนื้อหาที่ระบุถึงผู้ประกอบการ หรือทุกคน (และซ่อนรวมภาพสื่อประชาสัมพันธ์)
+        // - พี่สปริงเคิล (ผปก.): เห็นเฉพาะเนื้อหาที่ระบุถึงพี่สปริงเคิล/ผู้ประกอบการ หรือทุกคน (และซ่อนรวมภาพสื่อประชาสัมพันธ์)
         function isAudienceMatch(targetAudience, mainFolder) {
             var isOp = isUserOperator();
             if (isOp && mainFolder && (mainFolder === 'รวมภาพสื่อประชาสัมพันธ์' || mainFolder === 'แฟ้มประชาสัมพันธ์' || mainFolder === 'ประชาสัมพันธ์' || mainFolder.indexOf('ประชาสัมพันธ์') !== -1)) {
-                return false; // ซ่อนรวมภาพสื่อประชาสัมพันธ์จากตำแหน่งผู้ประกอบการ
+                return false; // ซ่อนรวมภาพสื่อประชาสัมพันธ์จากตำแหน่งพี่สปริงเคิล
             }
             if (!targetAudience || targetAudience === 'ทั้งหมด' || targetAudience.trim() === '') return true;
             if (!isOp) {
                 return true; // พนักงานให้เห็นหมด
             }
-            return targetAudience.indexOf('ผู้ประกอบการ') !== -1 || targetAudience.indexOf('ผปก') !== -1;
+            return targetAudience.indexOf('ผู้ประกอบการ') !== -1 || targetAudience.indexOf('ผปก') !== -1 || targetAudience.indexOf('พี่สปริงเคิล') !== -1;
         }
 
         // ดึงชุดข้อมูลความรู้ที่ผู้ใช้คนปัจจุบันมีสิทธิ์มองเห็น
@@ -3216,17 +3221,83 @@
             filterEmployeeTable(false);
         }
 
-        function setRecommendSubTab(tab) {
+        var recommendAutoRotateInterval = null;
+        var recommendAutoRotateActive = true;
+        var recommendTabCycle = ['all', 'employee', 'operator'];
+
+        function setRecommendSubTab(tab, isManual) {
             currentRecommendSubTab = tab;
             var btnAll = document.getElementById('recommendTabAll');
             var btnEmp = document.getElementById('recommendTabEmployee');
             var btnOp = document.getElementById('recommendTabOperator');
             
-            if (btnAll) btnAll.className = "flex-1 py-3 px-4 rounded-xl text-base font-extrabold text-center transition-all " + (tab === 'all' ? "bg-blue-600 text-white shadow-md transform scale-[1.01]" : "bg-transparent text-gray-500 hover:text-blue-600 hover:bg-white hover:bg-opacity-50");
-            if (btnEmp) btnEmp.className = "flex-1 py-3 px-4 rounded-xl text-base font-extrabold text-center transition-all " + (tab === 'employee' ? "bg-blue-600 text-white shadow-md transform scale-[1.01]" : "bg-transparent text-gray-500 hover:text-blue-600 hover:bg-white hover:bg-opacity-50");
-            if (btnOp) btnOp.className = "flex-1 py-3 px-4 rounded-xl text-base font-extrabold text-center transition-all " + (tab === 'operator' ? "bg-blue-600 text-white shadow-md transform scale-[1.01]" : "bg-transparent text-gray-500 hover:text-blue-600 hover:bg-white hover:bg-opacity-50");
+            if (btnAll) btnAll.className = "flex-1 py-3 px-3 sm:px-4 rounded-xl text-sm sm:text-base font-extrabold text-center transition-all " + (tab === 'all' ? "bg-blue-600 text-white shadow-md transform scale-[1.01]" : "bg-transparent text-gray-500 hover:text-blue-600 hover:bg-white hover:bg-opacity-60");
+            if (btnEmp) btnEmp.className = "flex-1 py-3 px-3 sm:px-4 rounded-xl text-sm sm:text-base font-extrabold text-center transition-all " + (tab === 'employee' ? "bg-blue-600 text-white shadow-md transform scale-[1.01]" : "bg-transparent text-gray-500 hover:text-blue-600 hover:bg-white hover:bg-opacity-60");
+            if (btnOp) btnOp.className = "flex-1 py-3 px-3 sm:px-4 rounded-xl text-sm sm:text-base font-extrabold text-center transition-all " + (tab === 'operator' ? "bg-blue-600 text-white shadow-md transform scale-[1.01]" : "bg-transparent text-gray-500 hover:text-blue-600 hover:bg-white hover:bg-opacity-60");
+            
+            if (isManual && recommendAutoRotateActive) {
+                initRecommendAutoRotate();
+            }
             
             renderRecommendPage();
+        }
+
+        function initRecommendAutoRotate() {
+            if (recommendAutoRotateInterval) {
+                clearInterval(recommendAutoRotateInterval);
+                recommendAutoRotateInterval = null;
+            }
+            if (!recommendAutoRotateActive) return;
+            
+            recommendAutoRotateInterval = setInterval(function() {
+                if (!recommendAutoRotateActive) return;
+                
+                var secRec = document.getElementById('sectionRecommend');
+                if (!secRec || secRec.classList.contains('hidden')) return;
+                
+                var empModal = document.getElementById('employeeViewHistoryModal');
+                var topicModal = document.getElementById('topicViewHistoryModal');
+                var searchInput = document.getElementById('recommendEmpSearchInput');
+                if ((empModal && !empModal.classList.contains('hidden')) || 
+                    (topicModal && !topicModal.classList.contains('hidden')) || 
+                    (searchInput && document.activeElement === searchInput)) {
+                    return;
+                }
+                
+                var curIdx = recommendTabCycle.indexOf(currentRecommendSubTab);
+                var nextIdx = (curIdx + 1) % recommendTabCycle.length;
+                setRecommendSubTab(recommendTabCycle[nextIdx], false);
+            }, 7000);
+        }
+
+        function toggleRecommendAutoRotate() {
+            recommendAutoRotateActive = !recommendAutoRotateActive;
+            updateRecommendAutoRotateBtnUI();
+            if (recommendAutoRotateActive) {
+                initRecommendAutoRotate();
+            } else {
+                if (recommendAutoRotateInterval) {
+                    clearInterval(recommendAutoRotateInterval);
+                    recommendAutoRotateInterval = null;
+                }
+            }
+        }
+
+        function updateRecommendAutoRotateBtnUI() {
+            var icon = document.getElementById('recommendAutoRotateIcon');
+            var label = document.getElementById('recommendAutoRotateLabel');
+            var btn = document.getElementById('recommendAutoRotateToggleBtn');
+            if (btn && icon && label) {
+                if (recommendAutoRotateActive) {
+                    icon.innerText = "⏸️";
+                    label.innerText = "สลับสถิติอัตโนมัติ (เปิด)";
+                    btn.className = "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2.5 rounded-2xl font-extrabold text-sm transition-all active:scale-95 flex items-center gap-2 border border-indigo-200 shadow-sm shrink-0";
+                } else {
+                    icon.innerText = "▶️";
+                    label.innerText = "สลับสถิติอัตโนมัติ (หยุด)";
+                    btn.className = "bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-2xl font-extrabold text-sm transition-all active:scale-95 flex items-center gap-2 border border-gray-300 shadow-sm shrink-0";
+                }
+            }
         }
 
         var activeTab = 'home';
@@ -3848,7 +3919,7 @@
             if (errEl) errEl.classList.add('hidden');
 
             if (!empId) {
-                return alert("⚠️ กรุณาระบุรหัสพนักงานหรือรหัสผู้ประกอบการเพื่อค้นหาครับ");
+                return alert("⚠️ กรุณาระบุรหัสพนักงานหรือรหัสพี่สปริงเคิลเพื่อค้นหาครับ");
             }
 
             showLoading("กำลังค้นหารหัสในระบบ...");
@@ -4016,7 +4087,7 @@
                     window._isLoadingRegistrationRoles = false;
                     console.error("loadRegistrationRoles error:", err);
                     if (!select.options || select.options.length <= 1) {
-                        populateRegRoleDropdown(["ผู้ประกอบการ", "พนักงาน", "ผู้จัดการ", "แอดมิน"]);
+                        populateRegRoleDropdown(["พี่สปริงเคิล", "พนักงาน", "ผู้จัดการ", "แอดมิน"]);
                     }
                 })
                 .getRegistrationRoles();
@@ -4030,20 +4101,21 @@
             var currentVal = select.value;
             select.innerHTML = "";
 
-            // นำ "ผู้ประกอบการ" ขึ้นมาไว้เป็นอันดับแรกเสมอ
+            // นำ "พี่สปริงเคิล" ขึ้นมาไว้เป็นอันดับแรกเสมอ
             var sortedRoles = [];
             for (var k = 0; k < roles.length; k++) {
                 var item = roles[k];
+                if (item === "ผู้ประกอบการ") item = "พี่สปริงเคิล";
                 if (item && item !== "custom" && sortedRoles.indexOf(item) === -1) {
                     sortedRoles.push(item);
                 }
             }
-            var opIndex = sortedRoles.indexOf("ผู้ประกอบการ");
+            var opIndex = sortedRoles.indexOf("พี่สปริงเคิล");
             if (opIndex > 0) {
                 sortedRoles.splice(opIndex, 1);
-                sortedRoles.unshift("ผู้ประกอบการ");
+                sortedRoles.unshift("พี่สปริงเคิล");
             } else if (opIndex === -1) {
-                sortedRoles.unshift("ผู้ประกอบการ");
+                sortedRoles.unshift("พี่สปริงเคิล");
             }
 
             var hasSelected = false;
@@ -4052,7 +4124,7 @@
                 var opt = document.createElement('option');
                 opt.value = r;
                 opt.textContent = r;
-                if (currentVal && currentVal === r) {
+                if (currentVal && (currentVal === r || (currentVal === "ผู้ประกอบการ" && r === "พี่สปริงเคิล"))) {
                     opt.selected = true;
                     hasSelected = true;
                 }
@@ -4070,7 +4142,7 @@
             select.appendChild(customOpt);
 
             if (!hasSelected) {
-                select.value = "ผู้ประกอบการ";
+                select.value = "พี่สปริงเคิล";
             }
 
             if (typeof toggleRegCustomRole === 'function') {
@@ -4158,8 +4230,8 @@
             if (errEl) errEl.classList.add('hidden');
             
             if (!empId) {
-                if (errEl) { errEl.innerText = "⚠️ กรุณากรอกรหัสพนักงาน / รหัสผู้ประกอบการ"; errEl.classList.remove('hidden'); }
-                return alert("⚠️ กรุณากรอกรหัสพนักงาน / รหัสผู้ประกอบการ");
+                if (errEl) { errEl.innerText = "⚠️ กรุณากรอกรหัสพนักงาน / รหัสพี่สปริงเคิล"; errEl.classList.remove('hidden'); }
+                return alert("⚠️ กรุณากรอกรหัสพนักงาน / รหัสพี่สปริงเคิล");
             }
             if (!name) {
                 if (errEl) { errEl.innerText = "⚠️ กรุณากรอกชื่อ-นามสกุล"; errEl.classList.remove('hidden'); }
@@ -4208,7 +4280,7 @@
                     // ล้างฟอร์มลงทะเบียน
                     document.getElementById('regEmpId').value = "";
                     document.getElementById('regNameInput').value = "";
-                    document.getElementById('regRoleSelect').value = "ผู้ประกอบการ";
+                    document.getElementById('regRoleSelect').value = "พี่สปริงเคิล";
                     document.getElementById('regCustomRoleInput').value = "";
                     document.getElementById('regCustomRoleInput').classList.add('hidden');
                     document.getElementById('regBranchInput').value = "";
@@ -5137,6 +5209,7 @@
                 document.getElementById('sectionRecommend').classList.remove('hidden');
                 document.getElementById('tabBtnRecommend').className = "flex-1 min-w-[160px] py-4 px-4 rounded-xl text-lg font-extrabold text-center transition-all flex items-center justify-center gap-2 bg-blue-600 text-white shadow-md transform scale-[1.01]";
                 renderRecommendPage();
+                initRecommendAutoRotate();
             } else if (tab === 'manage_home') {
                 document.getElementById('sectionManageHome').classList.remove('hidden');
                 document.getElementById('tabBtnManageHome').className = "flex-1 min-w-[150px] py-4 px-4 rounded-xl text-lg font-extrabold text-center transition-all flex items-center justify-center gap-2 bg-blue-600 text-white shadow-md transform scale-[1.01]";
@@ -5264,7 +5337,7 @@
         function isItemForOperator(item) {
             if (item.mainFolder === 'รวมภาพสื่อประชาสัมพันธ์' || item.mainFolder === 'แฟ้มประชาสัมพันธ์' || item.mainFolder === 'ประชาสัมพันธ์') return false;
             var aud = item.targetAudience || 'ทั้งหมด';
-            return (aud === 'ทั้งหมด' || aud.indexOf('ผู้ประกอบการ') !== -1 || aud.indexOf('ผปก') !== -1);
+            return (aud === 'ทั้งหมด' || aud.indexOf('ผู้ประกอบการ') !== -1 || aud.indexOf('ผปก') !== -1 || aud.indexOf('พี่สปริงเคิล') !== -1);
         }
 
         function isItemForPr(item) {
@@ -5330,7 +5403,7 @@
             var catTitle = document.getElementById('breadcrumbCategoryTitle');
             var backBtnCont = document.getElementById('breadcrumbBackBtnContainer');
 
-            var audLabel = (currentAudienceFolder === 'recent') ? 'แฟ้มล่าสุด' : ((currentAudienceFolder === 'operator') ? 'แฟ้มผู้ประกอบการ' : ((currentAudienceFolder === 'pr') ? 'รวมภาพสื่อประชาสัมพันธ์' : 'แฟ้มพนักงาน'));
+            var audLabel = (currentAudienceFolder === 'recent') ? 'แฟ้มล่าสุด' : ((currentAudienceFolder === 'operator') ? 'แฟ้มพี่สปริงเคิล' : ((currentAudienceFolder === 'pr') ? 'รวมภาพสื่อประชาสัมพันธ์' : 'แฟ้มพนักงาน'));
             var audIco = (currentAudienceFolder === 'recent') ? '⚡' : ((currentAudienceFolder === 'operator') ? '🏢' : ((currentAudienceFolder === 'pr') ? '📢' : '👥'));
             
 
@@ -5458,18 +5531,18 @@
         }
 
         
-        // ฟังก์ชันแจ้งเตือนกรณีผู้ประกอบการพยายามเข้าแฟ้มพนักงาน
+        // ฟังก์ชันแจ้งเตือนกรณีพี่สปริงเคิลพยายามเข้าแฟ้มพนักงาน
         function showOperatorLockedAlert() {
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     icon: 'warning',
                     title: 'เฉพาะพนักงานเท่านั้น 🔒',
-                    html: '<p class="text-sm text-gray-700 font-semibold mt-1">ท่านเข้าสู่ระบบในฐานะ <b>ผู้ประกอบการ (ผปก.)</b><br/>จึงสามารถเข้าถึงได้เฉพาะ <b>"แฟ้มผู้ประกอบการ"</b> เท่านั้นครับ</p>',
+                    html: '<p class="text-sm text-gray-700 font-semibold mt-1">ท่านเข้าสู่ระบบในฐานะ <b>พี่สปริงเคิล</b><br/>จึงสามารถเข้าถึงได้เฉพาะ <b>"แฟ้มพี่สปริงเคิล"</b> เท่านั้นครับ</p>',
                     confirmButtonText: 'ตกลง',
                     confirmButtonColor: '#d97706'
                 });
             } else {
-                alert('เฉพาะพนักงานเท่านั้น: ท่านเข้าสู่ระบบในฐานะผู้ประกอบการ (ผปก.) จึงสามารถเข้าถึงได้เฉพาะ "แฟ้มผู้ประกอบการ" เท่านั้นครับ');
+                alert('เฉพาะพนักงานเท่านั้น: ท่านเข้าสู่ระบบในฐานะพี่สปริงเคิล จึงสามารถเข้าถึงได้เฉพาะ "แฟ้มพี่สปริงเคิล" เท่านั้นครับ');
             }
         }
 
@@ -5479,7 +5552,7 @@
                 currentUser = { id: 'TEST01', name: 'ผู้ทดสอบระบบ (Local)', canEdit: true, canToggle: true, canAnswerQA: true };
             }
             currentUser.role = role;
-            if (role === 'ผู้ประกอบการ') {
+            if (role === 'ผู้ประกอบการ' || role === 'พี่สปริงเคิล') {
                 currentAudienceFolder = 'operator';
             } else {
                 currentAudienceFolder = 'employee';
@@ -5502,7 +5575,7 @@
             var barRole = document.getElementById('testBarCurrentRole');
             if (barRole) {
                 barRole.innerText = role;
-                barRole.className = role === 'ผู้ประกอบการ' ? 'font-black text-amber-400' : 'font-black text-blue-400';
+                barRole.className = (role === 'ผู้ประกอบการ' || role === 'พี่สปริงเคิล') ? 'font-black text-amber-400' : 'font-black text-blue-400';
             }
 
             switchTab('knowledge');
@@ -5515,9 +5588,9 @@
                     position: 'top-end',
                     icon: 'info',
                     title: 'สลับบทบาท: ' + role,
-                    html: role === 'ผู้ประกอบการ' 
+                    html: (role === 'ผู้ประกอบการ' || role === 'พี่สปริงเคิล')
                         ? '<span class="text-xs text-amber-600 font-bold">🔒 แฟ้มพนักงานถูกซ่อนไปแล้ว (แสดง 2 แฟ้ม)</span>'
-                        : '<span class="text-xs text-blue-600 font-bold">👥 แสดงครบทั้ง 3 แฟ้ม (พนักงาน, ผปก., ล่าสุด)</span>',
+                        : '<span class="text-xs text-blue-600 font-bold">👥 แสดงครบทั้ง 3 แฟ้ม (พนักงาน, พี่สปริงเคิล, ล่าสุด)</span>',
                     showConfirmButton: false,
                     timer: 2500,
                     timerProgressBar: true
@@ -6199,8 +6272,8 @@ function openAudienceFolder(aud) {
                             '<span class="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full">' + opFolderIndexLabel + '</span>' +
                             opSubBadge +
                         '</div>' +
-                        '<h3 class="text-xl sm:text-2xl font-extrabold text-amber-950 mt-1">แฟ้มผู้ประกอบการ</h3>' +
-                        '<span class="text-xs sm:text-sm text-amber-800 font-semibold block mt-0.5">' + (isOp ? 'ประกาศ ระเบียบ และข้อมูลสำหรับผู้ประกอบการ (ผปก.)' : 'ประกาศ ระเบียบ และข้อมูลผู้ประกอบการ (พนักงานเข้าศึกษาได้)') + '</span>' +
+                        '<h3 class="text-xl sm:text-2xl font-extrabold text-amber-950 mt-1">แฟ้มพี่สปริงเคิล</h3>' +
+                        '<span class="text-xs sm:text-sm text-amber-800 font-semibold block mt-0.5">' + (isOp ? 'ประกาศ ระเบียบ และข้อมูลสำหรับพี่สปริงเคิล' : 'ประกาศ ระเบียบ และข้อมูลพี่สปริงเคิล (พนักงานเข้าศึกษาได้)') + '</span>' +
                     '</div>' +
                     '<span class="text-xs font-extrabold bg-amber-100 text-amber-950 px-3 py-1.5 rounded-full border border-amber-300 shrink-0 shadow-2xs">' + opItems + ' เรื่อง</span>' +
                 '</div>' +
@@ -6229,7 +6302,7 @@ function openAudienceFolder(aud) {
                                     '<circle cx="11" cy="11" r="8"></circle>' +
                                     '<line x1="21" y1="21" x2="16.65" y2="16.65"></line>' +
                                 '</svg>' +
-                                '<input type="text" placeholder="ค้นหาคู่มือ ผปก...." class="sk-search-input" onkeydown="if(event.key===\'Enter\'){openAudienceFolder(\'operator\');}" />' +
+                                '<input type="text" placeholder="ค้นหาคู่มือพี่สปริงเคิล...." class="sk-search-input" onkeydown="if(event.key===\'Enter\'){openAudienceFolder(\'operator\');}" />' +
                             '</div>' +
 
                             '<!-- เอกสาร 5 แผ่น -->' +
@@ -6307,7 +6380,7 @@ function openAudienceFolder(aud) {
                         '<span class="text-[11px] font-normal text-gray-500 hidden sm:inline">(คลิกแฟ้มเพื่อคลี่ดู)</span>' +
                     '</span>' +
                     '<button onclick="openAudienceFolder(\'operator\')" class="sk-btn-operator w-full sm:w-auto px-6 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer" style="background-color: #d97706 !important; color: #ffffff !important;">' +
-                        '<span>เข้าสู่แฟ้มผู้ประกอบการ</span>' +
+                        '<span>เข้าสู่แฟ้มพี่สปริงเคิล</span>' +
                         '<span class="text-base leading-none">➔</span>' +
                     '</button>' +
                 '</div>' +
@@ -6410,9 +6483,9 @@ function openAudienceFolder(aud) {
             var headerTitle = document.getElementById('currentAudienceHeaderTitle');
             var headerMeta = document.getElementById('currentAudienceHeaderMeta');
 
-            if (headerIcon) headerIcon.innerText = isPrSelected ? '📢' : (isOpSelected ? '🏢' : '👥');
-            if (headerTitle) headerTitle.innerText = isPrSelected ? 'รวมภาพสื่อประชาสัมพันธ์ > หมวดหมู่หลัก' : (isOpSelected ? 'แฟ้มผู้ประกอบการ > หมวดหมู่หลัก' : 'แฟ้มพนักงาน > หมวดหมู่หลัก');
-            if (headerMeta) headerMeta.innerText = isPrSelected ? 'เลือกหมวดหมู่หลัก เช่น สื่อประชาสัมพันธ์, ข่าวสาร, กิจกรรม สำหรับพนักงาน' : (isOpSelected ? 'เลือกหมวดหมู่หลัก เช่น ประกาศ, ระเบียบ, นโยบาย สำหรับผู้ประกอบการ' : 'เลือกหมวดหมู่หลัก เช่น ประกาศ, ขั้นตอนการทำงาน, นโยบาย สำหรับพนักงาน');
+            if (headerIcon) headerIcon.innerText = isPrSelected ? '📢' : (isOpSelected ? '🚛' : '👥');
+            if (headerTitle) headerTitle.innerText = isPrSelected ? 'รวมภาพสื่อประชาสัมพันธ์ > หมวดหมู่หลัก' : (isOpSelected ? 'แฟ้มพี่สปริงเคิล > หมวดหมู่หลัก' : 'แฟ้มพนักงาน > หมวดหมู่หลัก');
+            if (headerMeta) headerMeta.innerText = isPrSelected ? 'เลือกหมวดหมู่หลัก เช่น สื่อประชาสัมพันธ์, ข่าวสาร, กิจกรรม สำหรับพนักงาน' : (isOpSelected ? 'เลือกหมวดหมู่หลัก เช่น ประกาศ, ระเบียบ, นโยบาย สำหรับพี่สปริงเคิล' : 'เลือกหมวดหมู่หลัก เช่น ประกาศ, ขั้นตอนการทำงาน, นโยบาย สำหรับพนักงาน');
 
             var searchInput = document.getElementById('mainCatSearchInput');
             var searchVal = (searchInput ? searchInput.value : "").trim().toLowerCase();
@@ -6469,9 +6542,9 @@ function openAudienceFolder(aud) {
             }
 
             var folderStyles = {
-                "ประกาศ": { bg: "from-sky-50 to-blue-50 hover:from-sky-100 hover:to-blue-100 border-sky-200 hover:border-sky-400", iconBg: "bg-blue-600", icon: "📢", badgeBg: "bg-blue-100 text-blue-900 border-blue-300", desc: isOpSelected ? "ประกาศ ข่าวสาร และข้อมูลสำคัญสำหรับผู้ประกอบการ" : "ข่าวสาร ประกาศสำคัญ และข้อมูลองค์กร" },
-                "ขั้นตอนการทำงาน": { bg: "from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border-emerald-200 hover:border-emerald-400", iconBg: "bg-emerald-600", icon: "📋", badgeBg: "bg-emerald-100 text-emerald-900 border-emerald-300", desc: isOpSelected ? "คู่มือและขั้นตอนการดำเนินงานของผู้ประกอบการ" : "คู่มือปฏิบัติงานและขั้นตอนมาตรฐาน" },
-                "นโยบาย": { bg: "from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 border-purple-200 hover:border-purple-400", iconBg: "bg-purple-600", icon: "📜", badgeBg: "bg-purple-100 text-purple-900 border-purple-300", desc: isOpSelected ? "กฎระเบียบและข้อกำหนดสำหรับผู้ประกอบการ" : "กฎระเบียบ นโยบาย และข้อกำหนดบริษัท" },
+                "ประกาศ": { bg: "from-sky-50 to-blue-50 hover:from-sky-100 hover:to-blue-100 border-sky-200 hover:border-sky-400", iconBg: "bg-blue-600", icon: "📢", badgeBg: "bg-blue-100 text-blue-900 border-blue-300", desc: isOpSelected ? "ประกาศ ข่าวสาร และข้อมูลสำคัญสำหรับพี่สปริงเคิล" : "ข่าวสาร ประกาศสำคัญ และข้อมูลองค์กร" },
+                "ขั้นตอนการทำงาน": { bg: "from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border-emerald-200 hover:border-emerald-400", iconBg: "bg-emerald-600", icon: "📋", badgeBg: "bg-emerald-100 text-emerald-900 border-emerald-300", desc: isOpSelected ? "คู่มือและขั้นตอนการดำเนินงานของพี่สปริงเคิล" : "คู่มือปฏิบัติงานและขั้นตอนมาตรฐาน" },
+                "นโยบาย": { bg: "from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 border-purple-200 hover:border-purple-400", iconBg: "bg-purple-600", icon: "📜", badgeBg: "bg-purple-100 text-purple-900 border-purple-300", desc: isOpSelected ? "กฎระเบียบและข้อกำหนดสำหรับพี่สปริงเคิล" : "กฎระเบียบ นโยบาย และข้อกำหนดบริษัท" },
                 "รวมภาพสื่อประชาสัมพันธ์": { bg: "from-purple-50 to-fuchsia-50 hover:from-purple-100 hover:to-fuchsia-100 border-purple-200 hover:border-purple-400", iconBg: "bg-purple-600", icon: "📢", badgeBg: "bg-purple-100 text-purple-900 border-purple-300", desc: "สื่อประชาสัมพันธ์ ข่าวสาร วิดีโอ และกิจกรรมองค์กร" },
                 "แฟ้มประชาสัมพันธ์": { bg: "from-purple-50 to-fuchsia-50 hover:from-purple-100 hover:to-fuchsia-100 border-purple-200 hover:border-purple-400", iconBg: "bg-purple-600", icon: "📢", badgeBg: "bg-purple-100 text-purple-900 border-purple-300", desc: "สื่อประชาสัมพันธ์ ข่าวสาร วิดีโอ และกิจกรรมองค์กร" },
                 "ประชาสัมพันธ์": { bg: "from-purple-50 to-fuchsia-50 hover:from-purple-100 hover:to-fuchsia-100 border-purple-200 hover:border-purple-400", iconBg: "bg-purple-600", icon: "📢", badgeBg: "bg-purple-100 text-purple-900 border-purple-300", desc: "สื่อประชาสัมพันธ์ ข่าวสาร วิดีโอ และกิจกรรมองค์กร" }
@@ -6599,7 +6672,7 @@ function openAudienceFolder(aud) {
                             '</div>' +
                             '<div>' +
                                 '<h3 class="text-xl font-extrabold text-slate-900 group-hover:text-slate-700 transition-colors">ดูเนื้อหาทั้งหมดในแฟ้มนี้</h3>' +
-                                '<span class="text-xs text-gray-500 font-bold block mt-0.5">รวมทุกหมวดหมู่และคู่มือทั้งหมดใน' + (isOpSelected ? 'แฟ้มผู้ประกอบการ' : 'แฟ้มพนักงาน') + '</span>' +
+                                '<span class="text-xs text-gray-500 font-bold block mt-0.5">รวมทุกหมวดหมู่และคู่มือทั้งหมดใน' + (isOpSelected ? 'แฟ้มพี่สปริงเคิล' : 'แฟ้มพนักงาน') + '</span>' +
                                 allLatestDateHtml +
                             '</div>' +
                         '</div>' +
@@ -6635,7 +6708,7 @@ function openAudienceFolder(aud) {
             var headerMeta = document.getElementById('currentFolderHeaderMeta');
 
             var fIcon = getMainFolderIcon(currentMainFolder);
-            var fTitle = currentMainFolder === 'all' ? (isPrSelected ? 'ทุกหมวดหมู่ (รวมภาพสื่อประชาสัมพันธ์)' : (isOpSelected ? 'ทุกหมวดหมู่ (แฟ้มผู้ประกอบการ)' : 'ทุกหมวดหมู่ (แฟ้มพนักงาน)')) : currentMainFolder;
+            var fTitle = currentMainFolder === 'all' ? (isPrSelected ? 'ทุกหมวดหมู่ (รวมภาพสื่อประชาสัมพันธ์)' : (isOpSelected ? 'ทุกหมวดหมู่ (แฟ้มพี่สปริงเคิล)' : 'ทุกหมวดหมู่ (แฟ้มพนักงาน)')) : currentMainFolder;
             var fMeta = currentMainFolder === 'all' ? (isPrSelected ? 'หมวดหมู่ข่าวสารและสื่อประชาสัมพันธ์องค์กร' : 'เลือกหมวดหมู่ที่ต้องการศึกษา') : ('หมวดหมู่ย่อยในหมวดหลัก "' + currentMainFolder + '"');
 
             if (headerIcon) headerIcon.innerText = fIcon;
@@ -6782,7 +6855,7 @@ function openAudienceFolder(aud) {
                         "<button onclick=\"clearSubCatSearch()\" class='mt-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-4 py-2 rounded-xl text-xs transition-all shadow-sm'>ล้างคำค้นหา</button>" +
                     "</div>";
                 } else {
-                    var folderText = currentMainFolder === 'all' ? (isPrSelected ? 'ในรวมภาพสื่อประชาสัมพันธ์' : (isOpSelected ? 'ในแฟ้มผู้ประกอบการ' : 'ในแฟ้มพนักงาน')) : ('ในหมวดหลัก "' + currentMainFolder + '"');
+                    var folderText = currentMainFolder === 'all' ? (isPrSelected ? 'ในรวมภาพสื่อประชาสัมพันธ์' : (isOpSelected ? 'ในแฟ้มพี่สปริงเคิล' : 'ในแฟ้มพนักงาน')) : ('ในหมวดหลัก "' + currentMainFolder + '"');
                     container.innerHTML = "<div class='text-gray-500 py-12 text-center text-base col-span-2 bg-gray-50 rounded-2xl border border-gray-200 p-6'>" +
                         "<span class='text-4xl block mb-2'>📭</span>" +
                         "<p class='font-bold text-gray-700'>ยังไม่มีหมวดหมู่ย่อย " + folderText + " ในกลุ่มนี้ครับ</p>" +
@@ -6796,7 +6869,7 @@ function openAudienceFolder(aud) {
             currentSelectedCategory = cat;
             var isOpSelected = (currentAudienceFolder === 'operator');
             var isPrSelected = (currentAudienceFolder === 'pr');
-            var audBadge = isPrSelected ? '📢 รวมภาพสื่อประชาสัมพันธ์' : (isOpSelected ? '🏢 แฟ้มผู้ประกอบการ' : '👥 แฟ้มพนักงาน');
+            var audBadge = isPrSelected ? '📢 รวมภาพสื่อประชาสัมพันธ์' : (isOpSelected ? '🏢 แฟ้มพี่สปริงเคิล' : '👥 แฟ้มพนักงาน');
             var folderBadgeText = (currentMainFolder !== 'all') ? (getMainFolderIcon(currentMainFolder) + ' ' + currentMainFolder) : '';
 
             var badgeHtml = ' <span class="text-xs sm:text-sm font-bold bg-blue-100 text-blue-800 px-2.5 py-1 rounded-xl ml-2 inline-flex items-center gap-1">' + audBadge + '</span>';
@@ -7285,10 +7358,10 @@ function openAudienceFolder(aud) {
                 
                 var audK = item.targetAudience || 'ทั้งหมด';
                 var audBadge = '<span class="bg-gray-100 text-gray-650 px-2 py-0.5 rounded text-xs font-bold w-fit">🌐 ทุกกลุ่ม</span>';
-                if (audK.indexOf('พนักงาน') !== -1 && audK.indexOf('ผู้ประกอบการ') !== -1) {
-                    audBadge = '<span class="bg-purple-100 text-purple-750 px-2 py-0.5 rounded text-xs font-bold w-fit border border-purple-200">👥 พนักงาน + ผปก.</span>';
-                } else if (audK.indexOf('ผู้ประกอบการ') !== -1 || audK.indexOf('ผปก') !== -1) {
-                    audBadge = '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-xs font-bold w-fit border border-amber-200">🏢 ผปก.</span>';
+                if (audK.indexOf('พนักงาน') !== -1 && (audK.indexOf('ผู้ประกอบการ') !== -1 || audK.indexOf('พี่สปริงเคิล') !== -1)) {
+                    audBadge = '<span class="bg-purple-100 text-purple-750 px-2 py-0.5 rounded text-xs font-bold w-fit border border-purple-200">👥 พนักงาน + พี่สปริงเคิล</span>';
+                } else if (audK.indexOf('ผู้ประกอบการ') !== -1 || audK.indexOf('ผปก') !== -1 || audK.indexOf('พี่สปริงเคิล') !== -1) {
+                    audBadge = '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-xs font-bold w-fit border border-amber-200">🚛 พี่สปริงเคิล</span>';
                 } else if (audK.indexOf('พนักงาน') !== -1) {
                     audBadge = '<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs font-bold w-fit border border-blue-200">👥 พนักงาน</span>';
                 }
@@ -8113,10 +8186,10 @@ function renderAdminAnnouncementsList() {
         
         var aud = ann.targetAudience || 'ทั้งหมด';
         var audienceBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700">🌐 ทั้งหมด</span>';
-        if (aud.indexOf('พนักงาน') !== -1 && aud.indexOf('ผู้ประกอบการ') !== -1) {
-            audienceBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 border border-purple-200">👥 พนักงาน + ผปก.</span>';
-        } else if (aud.indexOf('ผู้ประกอบการ') !== -1 || aud.indexOf('ผปก') !== -1) {
-            audienceBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">🏢 ผปก.</span>';
+        if (aud.indexOf('พนักงาน') !== -1 && (aud.indexOf('ผู้ประกอบการ') !== -1 || aud.indexOf('พี่สปริงเคิล') !== -1)) {
+            audienceBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 border border-purple-200">👥 พนักงาน + พี่สปริงเคิล</span>';
+        } else if (aud.indexOf('ผู้ประกอบการ') !== -1 || aud.indexOf('ผปก') !== -1 || aud.indexOf('พี่สปริงเคิล') !== -1) {
+            audienceBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">🚛 พี่สปริงเคิล</span>';
         } else if (aud.indexOf('พนักงาน') !== -1) {
             audienceBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">👥 พนักงาน</span>';
         }
@@ -9120,14 +9193,14 @@ function renderRecommendPage() {
         if (topEmp && topEmp.views > 0) {
             if (isOperatorTab) {
                 if (hEmpName) hEmpName.innerText = topEmp.name + ' (รหัส: ' + topEmp.empId + ')';
-                if (hEmpMeta) hEmpMeta.innerHTML = '<span class="bg-amber-100 text-amber-950 border border-amber-300 font-extrabold px-2 py-0.5 rounded text-xs inline-flex items-center gap-1">🚛 เบอร์รถ: ' + (topEmp.carNumber || topEmp.branch || topEmp.empId) + '</span><span class="text-xs text-gray-600 font-semibold ml-1.5">• ตำแหน่ง: ' + (topEmp.role || 'ผู้ประกอบการ') + '</span>';
+                if (hEmpMeta) hEmpMeta.innerHTML = '<span class="bg-amber-100 text-amber-950 border border-amber-300 font-extrabold px-2 py-0.5 rounded text-xs inline-flex items-center gap-1">🚛 เบอร์รถ: ' + (topEmp.carNumber || topEmp.branch || topEmp.empId) + '</span><span class="text-xs text-gray-600 font-semibold ml-1.5">• ตำแหน่ง: ' + (topEmp.role || 'สมาชิกพี่สปริงเคิล') + '</span>';
             } else {
                 if (hEmpName) hEmpName.innerText = topEmp.name + ' (' + topEmp.empId + ')';
                 if (hEmpMeta) hEmpMeta.innerText = 'ตำแหน่ง: ' + (topEmp.role || '-') + ' • สาขา: ' + (topEmp.branch || '-');
             }
             if (hEmpViews) hEmpViews.innerText = (topEmp.views || 0).toLocaleString() + ' ครั้ง';
         } else {
-            if (hEmpName) hEmpName.innerText = isOperatorTab ? 'ยังไม่มีข้อมูลผู้ประกอบการ' : 'ยังไม่มีข้อมูลพนักงาน';
+            if (hEmpName) hEmpName.innerText = isOperatorTab ? 'ยังไม่มีข้อมูลสมาชิกพี่สปริงเคิล' : 'ยังไม่มีข้อมูลพนักงาน';
             if (hEmpMeta) hEmpMeta.innerText = 'ตำแหน่ง: - • สาขา: -';
             if (hEmpViews) hEmpViews.innerText = '0 ครั้ง';
         }
@@ -9137,8 +9210,9 @@ function renderRecommendPage() {
         var hBranchName = document.getElementById('highlightTopBranchName');
         var hBranchLogins = document.getElementById('highlightTopBranchLogins');
         if (topBranch) {
+            var branchViews = (topBranch.views !== undefined ? topBranch.views : topBranch.logins) || 0;
             if (hBranchName) hBranchName.innerText = topBranch.branch;
-            if (hBranchLogins) hBranchLogins.innerText = (topBranch.logins || 0).toLocaleString() + ' ครั้ง';
+            if (hBranchLogins) hBranchLogins.innerText = branchViews.toLocaleString() + ' ครั้ง';
         } else {
             if (hBranchName) hBranchName.innerText = 'ยังไม่มีข้อมูลสาขา';
             if (hBranchLogins) hBranchLogins.innerText = '0 ครั้ง';
@@ -9161,13 +9235,16 @@ function renderRecommendPage() {
                     else if (rank === 3) rankBadge = "🥉";
                     else rankBadge = '<span class="inline-flex w-6 h-6 items-center justify-center bg-gray-100 rounded-full text-xs font-extrabold text-gray-600">' + rank + '</span>';
 
+                    var safeTitle = (item.title || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                    var safeCat = (item.category || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+
                     top20Body.innerHTML += '<tr class="border-b hover:bg-blue-50 hover:bg-opacity-40 transition-colors">' +
                         '<td class="p-3 font-extrabold text-center text-base">' + rankBadge + '</td>' +
                         '<td class="p-3"><span class="bg-blue-50 text-blue-800 text-xs font-bold px-2 py-1 rounded-md border border-blue-100 inline-block">' + (item.category || "-") + '</span></td>' +
                         '<td class="p-3 font-bold text-blue-950">' + item.title + '</td>' +
                         '<td class="p-3 text-center font-extrabold text-indigo-600">' + (item.views || 0).toLocaleString() + '</td>' +
                         '<td class="p-3 text-center">' +
-                            '<button onclick="openContentViewer(\'' + item.id + '\')" class="bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-3 py-1.5 rounded-xl text-xs shadow-xs active:scale-95 transition-all">📖 เปิด</button>' +
+                            '<button onclick="openTopicHistoryModal(\'' + item.id + '\', \'' + safeTitle + '\', \'' + safeCat + '\', ' + (item.views || 0) + ')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 font-extrabold px-3 py-1.5 rounded-xl text-xs shadow-xs active:scale-95 transition-all flex items-center gap-1 mx-auto">👁️ ประวัติ</button>' +
                         '</td>' +
                     '</tr>';
                 }
@@ -9185,6 +9262,9 @@ function renderRecommendPage() {
                     else if (rank === 3) rankBadge = "🥉";
                     else rankBadge = '<span class="inline-flex w-7 h-7 items-center justify-center bg-gray-100 rounded-full text-xs font-extrabold text-gray-500">' + rank + '</span>';
 
+                    var safeTitle = (item.title || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                    var safeCat = (item.category || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+
                     mobileList.innerHTML += '<div class="bg-gray-50 p-3.5 rounded-2xl border border-gray-200 flex items-center justify-between gap-3 shadow-xs">' +
                         '<div class="flex items-center gap-3 min-w-0">' +
                             '<div class="shrink-0 text-xl font-bold">' + rankBadge + '</div>' +
@@ -9194,7 +9274,7 @@ function renderRecommendPage() {
                                 '<span class="text-xs text-gray-500 font-semibold block mt-0.5">เข้าชม ' + (item.views || 0).toLocaleString() + ' ครั้ง</span>' +
                             '</div>' +
                         '</div>' +
-                        '<button onclick="openContentViewer(\'' + item.id + '\')" class="bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-3 py-2 rounded-xl text-xs shadow-xs active:scale-95 shrink-0">📖 เปิด</button>' +
+                        '<button onclick="openTopicHistoryModal(\'' + item.id + '\', \'' + safeTitle + '\', \'' + safeCat + '\', ' + (item.views || 0) + ')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 font-extrabold px-3 py-2 rounded-xl text-xs shadow-xs active:scale-95 shrink-0 flex items-center gap-1">👁️ ประวัติ</button>' +
                     '</div>';
                 }
             }
@@ -9206,14 +9286,14 @@ function renderRecommendPage() {
         var empTableHead = document.getElementById('recommendEmpTableHead');
 
         if (isOperatorTab) {
-            if (empCardTitle) empCardTitle.innerHTML = '🏆 รายชื่อและอันดับผู้ประกอบการทั้งหมด';
-            if (empCardSubTitle) empCardSubTitle.innerText = 'แสดงรายชื่อผู้ประกอบการทั้งหมด พร้อมยอดเข้าศึกษาและประวัติการเข้าชมรายบุคคล';
+            if (empCardTitle) empCardTitle.innerHTML = '🏆 รายชื่อและอันดับสมาชิกพี่สปริงเคิลทั้งหมด';
+            if (empCardSubTitle) empCardSubTitle.innerText = 'แสดงรายชื่อสมาชิกพี่สปริงเคิลทั้งหมด พร้อมยอดเข้าศึกษาและประวัติการเข้าชมรายบุคคล';
             if (empTableHead) {
                 empTableHead.innerHTML = '<tr class="bg-gray-50 text-gray-700 text-xs uppercase tracking-wider">' +
                     '<th class="p-3 border-b font-bold text-center w-14">อันดับ</th>' +
                     '<th class="p-3 border-b font-bold text-center w-28">เบอร์รถ</th>' +
                     '<th class="p-3 border-b font-bold w-24">รหัส</th>' +
-                    '<th class="p-3 border-b font-bold">ชื่อผู้ประกอบการ</th>' +
+                    '<th class="p-3 border-b font-bold">ชื่อสมาชิกพี่สปริงเคิล</th>' +
                     '<th class="p-3 border-b font-bold text-center w-32">ตำแหน่ง</th>' +
                     '<th class="p-3 border-b font-bold text-center w-24">สาขา</th>' +
                     '<th class="p-3 border-b font-bold text-center w-28">เข้าศึกษา (ครั้ง)</th>' +
@@ -9221,8 +9301,8 @@ function renderRecommendPage() {
                 '</tr>';
             }
         } else {
-            if (empCardTitle) empCardTitle.innerHTML = (currentRecommendSubTab === 'employee') ? '🏆 รายชื่อและอันดับพนักงานทั้งหมด' : '🏆 รายชื่อและอันดับบุคลากรทั้งหมด';
-            if (empCardSubTitle) empCardSubTitle.innerText = 'แสดงรายชื่อบุคลากรทั้งหมด พร้อมยอดเข้าศึกษาและประวัติการเข้าชมรายบุคคล';
+            if (empCardTitle) empCardTitle.innerHTML = (currentRecommendSubTab === 'employee') ? '🏆 รายชื่อและอันดับสมาชิกพนักงานทั้งหมด' : '🏆 รายชื่อและอันดับบุคลากรทั้งหมด';
+            if (empCardSubTitle) empCardSubTitle.innerText = (currentRecommendSubTab === 'employee') ? 'แสดงรายชื่อสมาชิกพนักงานทั้งหมด พร้อมยอดเข้าศึกษาและประวัติการเข้าชมรายบุคคล' : 'แสดงรายชื่อบุคลากรทั้งหมด พร้อมยอดเข้าศึกษาและประวัติการเข้าชมรายบุคคล';
             if (empTableHead) {
                 empTableHead.innerHTML = '<tr class="bg-gray-50 text-gray-700 text-xs uppercase tracking-wider">' +
                     '<th class="p-3 border-b font-bold text-center w-16">อันดับ</th>' +
@@ -9294,7 +9374,7 @@ function renderRecommendPage() {
                             '</td>' +
                             '<td class="p-3 font-mono font-bold text-gray-700">' + emp.empId + '</td>' +
                             '<td class="p-3 font-bold text-blue-950">' + emp.name + '</td>' +
-                            '<td class="p-3 text-center"><span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-md">' + (emp.role || "ผู้ประกอบการ") + '</span></td>' +
+                            '<td class="p-3 text-center"><span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-md">' + (emp.role || "สมาชิกพี่สปริงเคิล") + '</span></td>' +
                             '<td class="p-3 text-center font-bold text-gray-600">' + (emp.branch || "-") + '</td>' +
                             '<td class="p-3 text-center font-extrabold ' + (emp.views > 0 ? 'text-indigo-600' : 'text-gray-400') + '">' + (emp.views || 0).toLocaleString() + '</td>' +
                             '<td class="p-3 text-center">' + historyBtnHtml + '</td>' +
@@ -9341,7 +9421,7 @@ function renderRecommendPage() {
                                         '<span class="font-mono text-xs font-bold text-gray-600">รหัส: ' + emp.empId + '</span>' +
                                     '</div>' +
                                     '<h4 class="text-sm font-bold text-blue-950 truncate">' + emp.name + '</h4>' +
-                                    '<span class="text-xs text-gray-500 font-semibold block">ตำแหน่ง: ' + (emp.role || "ผู้ประกอบการ") + ' • สาขา: ' + (emp.branch || "-") + '</span>' +
+                                    '<span class="text-xs text-gray-500 font-semibold block">ตำแหน่ง: ' + (emp.role || "สมาชิกพี่สปริงเคิล") + ' • สาขา: ' + (emp.branch || "-") + '</span>' +
                                 '</div>' +
                             '</div>' +
                             '<div class="shrink-0 flex flex-col items-end gap-1.5">' +
@@ -9377,16 +9457,17 @@ function renderRecommendPage() {
             }
         }
 
-        // --- 3. เรนเดอร์สถิติสาขา ---
+        // --- 3. เรนเดอร์สถิติสาขาที่เข้าอ่าน ---
         if (branchContainer) {
             branchContainer.innerHTML = "";
             if (branchStats.length === 0) {
-                branchContainer.innerHTML = '<p class="text-gray-500 py-8 text-center font-semibold">ยังไม่มีสถิติการใช้งานระบบของสาขาในกลุ่มนี้</p>';
+                branchContainer.innerHTML = '<p class="text-gray-500 py-8 text-center font-semibold">ยังไม่มีสถิติการเข้าอ่านของสาขาในกลุ่มนี้</p>';
             } else {
-                var maxLogins = 1;
+                var maxBranchViews = 1;
                 for (var i = 0; i < branchStats.length; i++) {
-                    if (branchStats[i].logins > maxLogins) {
-                        maxLogins = branchStats[i].logins;
+                    var bViews = (branchStats[i].views !== undefined ? branchStats[i].views : branchStats[i].logins) || 0;
+                    if (bViews > maxBranchViews) {
+                        maxBranchViews = bViews;
                     }
                 }
 
@@ -9399,7 +9480,8 @@ function renderRecommendPage() {
                     else if (rank === 3) rankBadge = "🥉";
                     else rankBadge = '<span class="text-gray-500 font-extrabold text-xs bg-gray-200 w-5 h-5 rounded-full flex items-center justify-center">' + rank + '</span>';
 
-                    var percent = Math.round(((item.logins || 0) / maxLogins) * 100);
+                    var count = (item.views !== undefined ? item.views : item.logins) || 0;
+                    var percent = Math.round((count / maxBranchViews) * 100);
                     
                     branchContainer.innerHTML += '<div class="p-3 rounded-2xl bg-gray-50 border border-gray-150 shadow-xs space-y-1.5">' +
                         '<div class="flex justify-between items-center text-xs sm:text-sm">' +
@@ -9407,9 +9489,12 @@ function renderRecommendPage() {
                                 '<span>' + rankBadge + '</span>' +
                                 '<span class="truncate">' + item.branch + '</span>' +
                             '</span>' +
-                            '<span class="font-extrabold text-blue-700 shrink-0">' + (item.logins || 0).toLocaleString() + ' ครั้ง</span>' +
+                            '<span class="font-extrabold text-blue-700 shrink-0">' + count.toLocaleString() + ' ครั้ง</span>' +
                         '</div>' +
                         '<div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">' +
+                            '<div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-500" style="width: ' + percent + '%"></div>' +
+                        '</div>' +
+                    '</div>';
                             '<div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-500" style="width: ' + percent + '%"></div>' +
                         '</div>' +
                     '</div>';
@@ -9461,9 +9546,10 @@ function openEmployeeHistoryModal(empId, name, role, branch, carNumber, totalVie
     var metaEl = document.getElementById('histModalEmpMeta');
     var carBadgeEl = document.getElementById('histModalCarBadge');
     
+    var isOp = (role === 'ผู้ประกอบการ' || role === 'พี่สปริงเคิล' || role === 'สมาชิกพี่สปริงเคิล' || (role && (role.indexOf('ผู้ประกอบการ') !== -1 || role.indexOf('พี่สปริงเคิล') !== -1)));
     if (nameEl) nameEl.innerText = name;
-    if (roleEl) roleEl.innerText = role || "พนักงาน";
-    if (iconEl) iconEl.innerText = (role === 'ผู้ประกอบการ' || (role && role.indexOf('ผู้ประกอบการ') !== -1)) ? '🚛' : '👤';
+    if (roleEl) roleEl.innerText = isOp ? "สมาชิกพี่สปริงเคิล" : (role || "พนักงาน");
+    if (iconEl) iconEl.innerText = isOp ? '🚛' : '👤';
     if (metaEl) metaEl.innerText = 'รหัส: ' + empId + ' • สาขา: ' + (branch || '-');
     
     if (carBadgeEl) {
@@ -9631,10 +9717,215 @@ function closeEmployeeViewHistoryModal() {
     currentHistDetailedResult = null;
 }
 
+// ==================== โมดอลดูประวัติการเข้าชมหัวข้อคู่มือ (Topic View History Modal) ====================
+var currentTopicHistData = null;
+var currentTopicHistDetailedResult = null;
+var currentTopicHistModalTab = "timeline";
+
+function openTopicHistoryModal(topicId, title, category, totalViews) {
+    currentTopicHistData = {
+        topicId: topicId,
+        title: title,
+        category: category,
+        totalViews: totalViews
+    };
+    currentTopicHistDetailedResult = null;
+    currentTopicHistModalTab = "timeline";
+
+    var titleEl = document.getElementById('topicHistModalTitle');
+    var catEl = document.getElementById('topicHistModalCategory');
+    var metaEl = document.getElementById('topicHistModalMeta');
+    var openBtn = document.getElementById('topicHistOpenViewerBtn');
+
+    if (titleEl) titleEl.innerText = title;
+    if (catEl) catEl.innerText = category || "ทั่วไป";
+    if (metaEl) metaEl.innerText = 'รหัสคู่มือ: ' + topicId;
+    if (openBtn) {
+        openBtn.onclick = function() {
+            closeTopicViewHistoryModal();
+            openContentViewer(topicId);
+        };
+    }
+
+    var totalViewsEl = document.getElementById('topicHistModalTotalViews');
+    var uniqueUsersEl = document.getElementById('topicHistModalUniqueUsers');
+    var lastActiveEl = document.getElementById('topicHistModalLastActive');
+
+    if (totalViewsEl) totalViewsEl.innerText = (totalViews || 0).toLocaleString() + ' ครั้ง';
+    if (uniqueUsersEl) uniqueUsersEl.innerText = '-';
+    if (lastActiveEl) lastActiveEl.innerText = '⏳ กำลังดึงข้อมูล...';
+
+    updateTopicHistModalTabButtons();
+
+    var modal = document.getElementById('topicViewHistoryModal');
+    if (modal) modal.classList.remove('hidden');
+
+    var container = document.getElementById('topicHistModalContentContainer');
+    if (container) {
+        container.innerHTML = '<div class="p-8 text-center text-gray-500 font-semibold">' +
+            '<div class="text-4xl animate-bounce mb-2">⏳</div>' +
+            'กำลังสืบค้นประวัติการเข้าชมจากระบบ ViewLogs...' +
+        '</div>';
+    }
+
+    google.script.run.withSuccessHandler(function(res) {
+        currentTopicHistDetailedResult = res || { history: [], summaryByUser: [], summaryByBranch: [], totalViews: 0, uniqueUsersCount: 0 };
+
+        if (totalViewsEl) totalViewsEl.innerText = (currentTopicHistDetailedResult.totalViews || 0).toLocaleString() + ' ครั้ง';
+        if (uniqueUsersEl) uniqueUsersEl.innerText = (currentTopicHistDetailedResult.uniqueUsersCount || 0).toLocaleString() + ' คน';
+
+        if (lastActiveEl) {
+            if (currentTopicHistDetailedResult.history && currentTopicHistDetailedResult.history.length > 0) {
+                var latestTime = currentTopicHistDetailedResult.history[0].timestamp;
+                lastActiveEl.innerText = formatThaiDate(latestTime) || latestTime;
+            } else {
+                lastActiveEl.innerText = 'ยังไม่มีประวัติการเข้าชม';
+            }
+        }
+
+        renderTopicHistModalContent();
+    }).withFailureHandler(function(err) {
+        if (container) {
+            container.innerHTML = '<div class="p-6 text-center text-red-650 font-bold bg-red-50 rounded-2xl">' +
+                '❌ เกิดข้อผิดพลาดในการโหลดประวัติ: ' + err.toString() +
+            '</div>';
+        }
+    }).getTopicDetailedHistory(topicId);
+}
+
+function updateTopicHistModalTabButtons() {
+    var btnTimeline = document.getElementById('topicHistTabBtnTimeline');
+    var btnUsers = document.getElementById('topicHistTabBtnUsers');
+    var btnBranches = document.getElementById('topicHistTabBtnBranches');
+
+    var activeClass = "py-1.5 px-3 text-xs font-extrabold border-b-2 border-blue-600 text-blue-600 transition-all flex items-center gap-1 shrink-0";
+    var inactiveClass = "py-1.5 px-3 text-xs font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-all flex items-center gap-1 shrink-0";
+
+    if (btnTimeline) btnTimeline.className = (currentTopicHistModalTab === 'timeline') ? activeClass : inactiveClass;
+    if (btnUsers) btnUsers.className = (currentTopicHistModalTab === 'users') ? activeClass : inactiveClass;
+    if (btnBranches) btnBranches.className = (currentTopicHistModalTab === 'branches') ? activeClass : inactiveClass;
+}
+
+function switchTopicHistModalTab(tab) {
+    currentTopicHistModalTab = tab;
+    updateTopicHistModalTabButtons();
+    renderTopicHistModalContent();
+}
+
+function renderTopicHistModalContent() {
+    var container = document.getElementById('topicHistModalContentContainer');
+    if (!container) return;
+    if (!currentTopicHistDetailedResult) return;
+
+    var history = currentTopicHistDetailedResult.history || [];
+    var summaryByUser = currentTopicHistDetailedResult.summaryByUser || [];
+    var summaryByBranch = currentTopicHistDetailedResult.summaryByBranch || [];
+
+    if (history.length === 0) {
+        container.innerHTML = '<div class="p-8 text-center text-gray-500 font-semibold bg-gray-50 rounded-2xl border border-gray-150">' +
+            '<span class="text-4xl block mb-2">📭</span>' +
+            '<p class="text-base font-extrabold text-gray-700">ยังไม่มีประวัติการเข้าชมในระบบ</p>' +
+            '<p class="text-xs text-gray-400 mt-1">ยังไม่มีผู้ใช้งานเปิดอ่านคู่มือเรื่องนี้</p>' +
+        '</div>';
+        return;
+    }
+
+    if (currentTopicHistModalTab === 'timeline') {
+        var html = '<div class="space-y-2">';
+        html += '<p class="text-[11px] text-gray-500 font-bold mb-1.5 flex justify-between items-center">' +
+            '<span>📜 รายการประวัติการเปิดอ่าน (' + history.length + ' รายการ):</span>' +
+            '<span class="text-[10px] text-blue-600">เลื่อนลงเพื่อดูเพิ่มเติม ⬇️</span>' +
+        '</p>';
+
+        for (var i = 0; i < history.length; i++) {
+            var item = history[i];
+            var displayTime = item.timestamp ? (formatThaiDate(item.timestamp) || item.timestamp) : "-";
+            var isOperator = (item.empRole === 'ผู้ประกอบการ' || item.empRole === 'พี่สปริงเคิล' || item.empRole === 'สมาชิกพี่สปริงเคิล' || (item.empRole && item.empRole.indexOf('ผู้ประกอบการ') !== -1));
+            var roleBadge = isOperator ?
+                '<span class="bg-amber-100 text-amber-950 border border-amber-300 font-extrabold px-1.5 py-0.5 rounded text-[10px] inline-flex items-center gap-1">🚛 สมาชิกพี่สปริงเคิล' + (item.empBranch ? ' (' + item.empBranch + ')' : '') + '</span>' :
+                '<span class="bg-blue-50 text-blue-800 text-[10px] font-extrabold px-1.5 py-0.5 rounded border border-blue-200">👤 ' + (item.empRole || "พนักงาน") + (item.empBranch ? ' • ' + item.empBranch : '') + '</span>';
+
+            html += '<div class="bg-white hover:bg-blue-50/80 p-2.5 rounded-xl border border-gray-200 transition-all flex items-center justify-between gap-2.5 shadow-2xs">' +
+                '<div class="min-w-0 flex-1 space-y-0.5">' +
+                    '<div class="flex items-center gap-1.5 flex-wrap">' +
+                        roleBadge +
+                        '<span class="text-[11px] font-semibold text-gray-500 flex items-center gap-1">🕒 ' + displayTime + '</span>' +
+                    '</div>' +
+                    '<h4 class="text-xs sm:text-sm font-bold text-blue-950 truncate">' + (item.empName || "ไม่ระบุชื่อ") + ' <span class="font-mono text-gray-500 text-[11px]">(' + (item.empId || "-") + ')</span></h4>' +
+                '</div>' +
+            '</div>';
+        }
+        html += '</div>';
+        container.innerHTML = html;
+    } else if (currentTopicHistModalTab === 'users') {
+        var html = '<div class="space-y-2">';
+        html += '<p class="text-[11px] text-gray-500 font-bold mb-1.5 flex justify-between items-center">' +
+            '<span>👥 สรุปตามรายชื่อผู้เข้าชม (' + summaryByUser.length + ' คน):</span>' +
+            '<span class="text-[10px] text-indigo-600">เลื่อนลงเพื่อดูเพิ่มเติม ⬇️</span>' +
+        '</p>';
+
+        for (var j = 0; j < summaryByUser.length; j++) {
+            var u = summaryByUser[j];
+            var lastTime = u.lastViewTime ? (formatThaiDate(u.lastViewTime) || u.lastViewTime) : "-";
+            var isOperator = (u.empRole === 'ผู้ประกอบการ' || u.empRole === 'พี่สปริงเคิล' || u.empRole === 'สมาชิกพี่สปริงเคิล' || (u.empRole && u.empRole.indexOf('ผู้ประกอบการ') !== -1));
+            var roleBadge = isOperator ?
+                '<span class="bg-amber-100 text-amber-950 border border-amber-300 font-bold px-1.5 py-0.5 rounded text-[9px]">🚛 สมาชิกพี่สปริงเคิล</span>' :
+                '<span class="bg-blue-50 text-blue-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-blue-200">👤 ' + (u.empRole || "พนักงาน") + '</span>';
+
+            html += '<div class="bg-white hover:bg-indigo-50/80 p-2.5 rounded-xl border border-gray-200 transition-all flex items-center justify-between gap-2.5 shadow-2xs">' +
+                '<div class="min-w-0 flex-1 space-y-0.5">' +
+                    '<div class="flex items-center gap-1.5 flex-wrap">' +
+                        roleBadge +
+                        '<span class="text-[11px] text-gray-500">สาขา: ' + (u.empBranch || "-") + '</span>' +
+                        '<span class="bg-indigo-50 text-indigo-700 text-[10px] font-extrabold px-1.5 py-0.5 rounded">เข้าชม ' + u.views + ' ครั้ง</span>' +
+                    '</div>' +
+                    '<h4 class="text-xs sm:text-sm font-bold text-blue-950 truncate">' + (u.empName || "ไม่ระบุชื่อ") + ' <span class="font-mono text-gray-500 text-[11px]">(' + (u.empId || "-") + ')</span></h4>' +
+                    '<span class="text-[10px] text-gray-400 font-medium block truncate">ล่าสุด: ' + lastTime + '</span>' +
+                '</div>' +
+            '</div>';
+        }
+        html += '</div>';
+        container.innerHTML = html;
+    } else { // branches
+        var html = '<div class="space-y-2">';
+        html += '<p class="text-[11px] text-gray-500 font-bold mb-1.5 flex justify-between items-center">' +
+            '<span>🏢 สรุปตามสาขา (' + summaryByBranch.length + ' สาขา):</span>' +
+            '<span class="text-[10px] text-emerald-600">เลื่อนลงเพื่อดูเพิ่มเติม ⬇️</span>' +
+        '</p>';
+
+        for (var k = 0; k < summaryByBranch.length; k++) {
+            var b = summaryByBranch[k];
+            var rank = k + 1;
+            var rankBadge = (rank === 1) ? "🥇" : (rank === 2) ? "🥈" : (rank === 3) ? "🥉" : '<span class="text-gray-500 font-bold text-xs bg-gray-100 w-5 h-5 rounded-full flex items-center justify-center">' + rank + '</span>';
+
+            html += '<div class="bg-white hover:bg-emerald-50/80 p-2.5 rounded-xl border border-gray-200 transition-all flex items-center justify-between gap-2.5 shadow-2xs">' +
+                '<div class="flex items-center gap-2 min-w-0">' +
+                    '<div class="shrink-0 text-base font-bold">' + rankBadge + '</div>' +
+                    '<div class="min-w-0">' +
+                        '<h4 class="text-xs sm:text-sm font-bold text-blue-950 truncate">' + b.branch + '</h4>' +
+                        '<span class="text-[10px] text-gray-500 font-medium">ผู้เข้าชม ' + b.uniqueUsers + ' คน</span>' +
+                    '</div>' +
+                '</div>' +
+                '<span class="bg-emerald-50 text-emerald-700 text-xs font-extrabold px-2 py-1 rounded-lg border border-emerald-100 shrink-0">' + b.views + ' ครั้ง</span>' +
+            '</div>';
+        }
+        html += '</div>';
+        container.innerHTML = html;
+    }
+}
+
+function closeTopicViewHistoryModal() {
+    var modal = document.getElementById('topicViewHistoryModal');
+    if (modal) modal.classList.add('hidden');
+    currentTopicHistData = null;
+    currentTopicHistDetailedResult = null;
+}
+
 // ปิดโมดอลประวัติเมื่อกดปุ่ม ESC
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' || e.key === 'Esc') {
         closeEmployeeViewHistoryModal();
+        closeTopicViewHistoryModal();
     }
 });
 
@@ -10113,7 +10404,7 @@ function editAnn(index) {
         document.getElementById('annAudienceEmp').checked = (aud === "ทั้งหมด" || aud.indexOf("พนักงาน") !== -1);
     }
     if (document.getElementById('annAudienceOp')) {
-        document.getElementById('annAudienceOp').checked = (aud === "ทั้งหมด" || aud.indexOf("ผู้ประกอบการ") !== -1 || aud.indexOf("ผปก") !== -1);
+        document.getElementById('annAudienceOp').checked = (aud === "ทั้งหมด" || aud.indexOf("ผู้ประกอบการ") !== -1 || aud.indexOf("ผปก") !== -1 || aud.indexOf("พี่สปริงเคิล") !== -1);
     }
     
     // ล้างและดึงลิงก์แนบเพิ่มเติมมาเรนเดอร์ในช่องกรอก
@@ -10278,7 +10569,7 @@ function editKnowledge(index) {
         document.getElementById('knowledgeAudienceEmp').checked = (audK === "ทั้งหมด" || audK.indexOf("พนักงาน") !== -1);
     }
     if (document.getElementById('knowledgeAudienceOp')) {
-        document.getElementById('knowledgeAudienceOp').checked = (audK === "ทั้งหมด" || audK.indexOf("ผู้ประกอบการ") !== -1 || audK.indexOf("ผปก") !== -1);
+        document.getElementById('knowledgeAudienceOp').checked = (audK === "ทั้งหมด" || audK.indexOf("ผู้ประกอบการ") !== -1 || audK.indexOf("ผปก") !== -1 || audK.indexOf("พี่สปริงเคิล") !== -1);
     }
     
     // แสดงพรีวิวไฟล์หลัก
@@ -10735,6 +11026,69 @@ function cancelKnowledgeEdit() {
         </div>
     </div>
 
+    <!-- ==================== โมดอลดูประวัติการเข้าศึกษาตามหัวข้อคู่มือ (Topic View History Modal) ==================== -->
+    <div id="topicViewHistoryModal" class="fixed inset-0 bg-slate-950 bg-opacity-80 flex items-center justify-center z-[99999] hidden backdrop-blur-sm p-3 sm:p-4 overflow-y-auto" onclick="if(event.target === this) closeTopicViewHistoryModal()">
+        <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-gray-100 overflow-hidden transform transition-all my-auto flex flex-col" onclick="event.stopPropagation()">
+            <!-- Modal Header (Compact) -->
+            <div class="py-2.5 px-4 sm:px-5 bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 text-white flex justify-between items-center gap-3 shrink-0 shadow-sm">
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2 flex-wrap mb-0.5">
+                        <span id="topicHistModalCategory" class="bg-white/20 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md border border-white/30 truncate">หมวดหมู่</span>
+                        <p id="topicHistModalMeta" class="text-[11px] text-blue-200 font-semibold">รหัสคู่มือ: -</p>
+                    </div>
+                    <h3 id="topicHistModalTitle" class="text-sm sm:text-base font-extrabold truncate">ชื่อหัวข้อคู่มือ</h3>
+                </div>
+                <button type="button" onclick="closeTopicViewHistoryModal()" class="text-white hover:text-white bg-white bg-opacity-20 hover:bg-opacity-30 rounded-xl w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-base font-bold transition-all shrink-0 active:scale-90 shadow-sm" title="ปิดหน้าต่าง">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Summary Bar in Modal (Compact) -->
+            <div class="py-1.5 px-3 bg-gray-50 border-b border-gray-200 grid grid-cols-3 gap-2 shrink-0">
+                <div class="bg-white p-1 sm:p-1.5 rounded-xl border border-blue-100 shadow-2xs text-center">
+                    <span class="text-[9px] text-gray-500 font-bold block">เข้าศึกษาทั้งหมด</span>
+                    <span id="topicHistModalTotalViews" class="text-xs sm:text-sm font-extrabold text-blue-600">0 ครั้ง</span>
+                </div>
+                <div class="bg-white p-1 sm:p-1.5 rounded-xl border border-indigo-100 shadow-2xs text-center">
+                    <span class="text-[9px] text-gray-500 font-bold block">ผู้เข้าศึกษาทั้งหมด</span>
+                    <span id="topicHistModalUniqueUsers" class="text-xs sm:text-sm font-extrabold text-indigo-600">0 คน</span>
+                </div>
+                <div class="bg-white p-1 sm:p-1.5 rounded-xl border border-emerald-100 shadow-2xs text-center">
+                    <span class="text-[9px] text-gray-500 font-bold block">เข้าศึกษาล่าสุด</span>
+                    <span id="topicHistModalLastActive" class="text-[9px] sm:text-[10px] font-bold text-gray-700 block truncate mt-0.5">-</span>
+                </div>
+            </div>
+
+            <!-- Tabs inside modal (ไทม์ไลน์บันทึก vs สรุปตามรายชื่อ vs สรุปตามสาขา) -->
+            <div class="flex border-b border-gray-200 px-3 bg-white shrink-0 overflow-x-auto">
+                <button onclick="switchTopicHistModalTab('timeline')" id="topicHistTabBtnTimeline" class="py-1.5 px-3 text-xs font-extrabold border-b-2 border-blue-600 text-blue-600 transition-all flex items-center gap-1 shrink-0">
+                    <span>🕒</span> <span>ไทม์ไลน์</span>
+                </button>
+                <button onclick="switchTopicHistModalTab('users')" id="topicHistTabBtnUsers" class="py-1.5 px-3 text-xs font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-all flex items-center gap-1 shrink-0">
+                    <span>👥</span> <span>แยกตามผู้เข้าชม</span>
+                </button>
+                <button onclick="switchTopicHistModalTab('branches')" id="topicHistTabBtnBranches" class="py-1.5 px-3 text-xs font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-all flex items-center gap-1 shrink-0">
+                    <span>🏢</span> <span>แยกตามสาขา</span>
+                </button>
+            </div>
+
+            <!-- Modal Scrollable Content Body (Fixed height to display cards comfortably) -->
+            <div class="p-2.5 sm:p-3 overflow-y-auto space-y-2 overscroll-contain bg-slate-50/50" style="height: 275px; max-height: 275px;" id="topicHistModalContentContainer">
+                <div class="p-6 text-center text-gray-500 font-semibold text-xs">⏳ กำลังโหลดประวัติการศึกษา...</div>
+            </div>
+
+            <!-- Modal Footer (Compact) -->
+            <div class="py-2 px-3 sm:px-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-2 shrink-0">
+                <button type="button" id="topicHistOpenViewerBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-xl font-extrabold text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5">
+                    <span>📖</span> <span>เปิดอ่านคู่มือนี้ทันที</span>
+                </button>
+                <button type="button" onclick="closeTopicViewHistoryModal()" class="w-full sm:w-auto bg-gray-900 hover:bg-black text-white px-4 py-1.5 rounded-xl font-extrabold text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5">
+                    <span>✕</span> <span>ปิดหน้าต่าง</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ========================================================================= -->
     <!-- แถบเมนูด้านล่างสำหรับมือถือ (Mobile Bottom Navigation Bar) -->
     <!-- ออกแบบเฉพาะสำหรับหน้าจอมือถือ (sm:hidden) ใช้งานง่ายด้วยนิ้วโป้ง -->
@@ -10826,8 +11180,8 @@ function cancelKnowledgeEdit() {
             <button onclick="switchTestRole('พนักงาน')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-xl transition-all shadow-xs flex items-center gap-1 active:scale-95">
                 <span>👤</span> พนักงาน (เห็น 4 แฟ้ม)
             </button>
-            <button onclick="switchTestRole('ผู้ประกอบการ')" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1.5 rounded-xl transition-all shadow-xs flex items-center gap-1 active:scale-95">
-                <span>🏢</span> ผู้ประกอบการ (ซ่อนแฟ้มพนักงาน)
+            <button onclick="switchTestRole('พี่สปริงเคิล')" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1.5 rounded-xl transition-all shadow-xs flex items-center gap-1 active:scale-95">
+                <span>🚛</span> พี่สปริงเคิล (ซ่อนแฟ้มพนักงาน)
             </button>
             <button onclick="openRecentFolderDirectly()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl transition-all shadow-xs flex items-center gap-1 active:scale-95">
                 <span>⚡</span> ดูแฟ้มล่าสุด

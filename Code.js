@@ -906,7 +906,7 @@ function getAllEmployees() {
         var registeredDate = (rows[i].length > 7 && rows[i][7] !== undefined && rows[i][7] !== null) ? rows[i][7].toString().trim() : "";
         // ดึงเบอร์รถจากคอลัมน์ I (index 8) ของชีต Employees
         var carNo = (rows[i].length > 8 && rows[i][8] !== undefined && rows[i][8] !== null) ? rows[i][8].toString().trim() : "";
-        if (!carNo && (role === "ผู้ประกอบการ" || role.indexOf("ผู้ประกอบการ") !== -1)) {
+        if (!carNo && (role === "ผู้ประกอบการ" || role === "พี่สปริงเคิล" || role.indexOf("ผู้ประกอบการ") !== -1 || role.indexOf("สปริงเคิล") !== -1)) {
           var colH = (rows[i].length > 7 && rows[i][7] !== undefined && rows[i][7] !== null) ? rows[i][7].toString().trim() : "";
           carNo = colH || branch || empId;
         }
@@ -1018,7 +1018,7 @@ function registerNewMember(data) {
     var profilePic = data.profilePic ? data.profilePic.toString().trim() : "";
     var nowStr = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd HH:mm:ss");
     
-    if (!targetId) return { success: false, message: "กรุณากรอกรหัสพนักงาน / รหัสผู้ประกอบการ" };
+    if (!targetId) return { success: false, message: "กรุณากรอกรหัสพนักงาน / รหัสพี่สปริงเคิล" };
     if (!name) return { success: false, message: "กรุณากรอกชื่อ-นามสกุล" };
     if (!password || password === "1234") return { success: false, message: "กรุณากำหนดรหัสผ่านส่วนตัว (ไม่สามารถใช้ 1234 ได้ครับ)" };
     
@@ -1078,20 +1078,24 @@ function getRegistrationRoles() {
       }
     }
 
-    // จัดให้ "ผู้ประกอบการ" ขึ้นมาแสดงในลำดับต้นๆ เพื่อความสะดวกในการเลือก
+    // จัดให้ "พี่สปริงเคิล" / "ผู้ประกอบการ" ขึ้นมาแสดงในลำดับต้นๆ เพื่อความสะดวกในการเลือก
     if (roles.indexOf("ผู้ประกอบการ") !== -1) {
       roles.splice(roles.indexOf("ผู้ประกอบการ"), 1);
-      roles.unshift("ผู้ประกอบการ");
     }
+    if (roles.indexOf("พี่สปริงเคิล") !== -1) {
+      roles.splice(roles.indexOf("พี่สปริงเคิล"), 1);
+    }
+    roles.unshift("ผู้ประกอบการ");
+    roles.unshift("พี่สปริงเคิล");
 
     if (roles.length === 0) {
-      roles = ["ผู้ประกอบการ", "พนักงาน", "ผู้จัดการ", "แอดมิน"];
+      roles = ["พี่สปริงเคิล", "พนักงาน", "ผู้จัดการ", "แอดมิน"];
     }
 
     return roles;
   } catch (e) {
     Logger.log("Error in getRegistrationRoles: " + e.toString());
-    return ["ผู้ประกอบการ", "พนักงาน", "ผู้จัดการ", "แอดมิน"];
+    return ["พี่สปริงเคิล", "พนักงาน", "ผู้จัดการ", "แอดมิน"];
   }
 }
 
@@ -1505,7 +1509,7 @@ function getRankingDataSeparated() {
         var branch = (empRows[i].length > 6 && empRows[i][6] !== undefined && empRows[i][6] !== null) ? empRows[i][6].toString().trim() : "";
         // ดึงเบอร์รถจากคอลัมน์ I (index 8) ของชีต Employees
         var carNumber = (empRows[i].length > 8 && empRows[i][8] !== undefined && empRows[i][8] !== null) ? empRows[i][8].toString().trim() : "";
-        if (!carNumber && (role === "ผู้ประกอบการ" || role.indexOf("ผู้ประกอบการ") !== -1)) {
+        if (!carNumber && (role === "ผู้ประกอบการ" || role === "พี่สปริงเคิล" || role.indexOf("ผู้ประกอบการ") !== -1 || role.indexOf("สปริงเคิล") !== -1)) {
           var colH = (empRows[i].length > 7 && empRows[i][7] !== undefined && empRows[i][7] !== null) ? empRows[i][7].toString().trim() : "";
           carNumber = colH || branch || empId;
         }
@@ -1519,6 +1523,7 @@ function getRankingDataSeparated() {
     var logSheet = ss.getSheetByName("ViewLogs");
     var topicStats = { all: [], operator: [], employee: [] };
     var employeeStats = { all: [], operator: [], employee: [] };
+    var branchStats = { all: [], operator: [], employee: [] };
     var totalOverallViews = 0;
     var activeUsersSet = {};
     
@@ -1529,7 +1534,7 @@ function getRankingDataSeparated() {
     
     for (var id in employeesMap) {
       var empObj = employeesMap[id];
-      var isOp = (empObj.role === "ผู้ประกอบการ" || empObj.role.indexOf("ผู้ประกอบการ") !== -1);
+      var isOp = (empObj.role === "ผู้ประกอบการ" || empObj.role === "พี่สปริงเคิล" || empObj.role.indexOf("ผู้ประกอบการ") !== -1 || empObj.role.indexOf("สปริงเคิล") !== -1);
       var carNo = empObj.carNumber || empObj.branch || id;
       
       empViewsAll[id] = { empId: id, name: empObj.name, role: empObj.role, branch: empObj.branch || "-", carNumber: carNo, views: 0 };
@@ -1540,6 +1545,10 @@ function getRankingDataSeparated() {
       }
     }
     
+    var branchAllDict = {};
+    var branchOpDict = {};
+    var branchEmpDict = {};
+
     if (logSheet) {
       var logRows = logSheet.getDataRange().getValues();
       var topicsAll = {};
@@ -1561,7 +1570,7 @@ function getRankingDataSeparated() {
           
           var empInfo = employeesMap[empId];
           var role = empInfo ? empInfo.role : "พนักงาน";
-          var isOperator = (role === "ผู้ประกอบการ" || role.indexOf("ผู้ประกอบการ") !== -1);
+          var isOperator = (role === "ผู้ประกอบการ" || role === "พี่สปริงเคิล" || role.indexOf("ผู้ประกอบการ") !== -1 || role.indexOf("สปริงเคิล") !== -1);
           
           // ก. อันดับหัวข้อ
           if (!topicsAll[topicId]) {
@@ -1581,7 +1590,7 @@ function getRankingDataSeparated() {
             topicsEmployees[topicId].views++;
           }
           
-          // ข. อันดับพนักงาน / ผู้ประกอบการ
+          // ข. อันดับพนักงาน / สมาชิกพี่สปริงเคิล
           if (empId) {
             var nameVal = empInfo ? empInfo.name : empName;
             var roleVal = empInfo ? empInfo.role : "พนักงาน";
@@ -1604,6 +1613,31 @@ function getRankingDataSeparated() {
               }
               empViewsEmployees[empId].views++;
             }
+          }
+
+          // ค. สถิติอันดับสาขาที่เข้าอ่าน (คำนวณจาก ViewLogs ตามข้อกำหนด)
+          var branchName = empInfo ? (empInfo.branch || "-") : (empBranch || "-");
+          if (!branchName || branchName === "" || branchName === "-") {
+            branchName = "ไม่ระบุสาขา";
+          }
+          if (!branchAllDict[branchName]) {
+            branchAllDict[branchName] = { branch: branchName, logins: 0, views: 0 };
+          }
+          branchAllDict[branchName].views++;
+          branchAllDict[branchName].logins++;
+
+          if (isOperator) {
+            if (!branchOpDict[branchName]) {
+              branchOpDict[branchName] = { branch: branchName, logins: 0, views: 0 };
+            }
+            branchOpDict[branchName].views++;
+            branchOpDict[branchName].logins++;
+          } else {
+            if (!branchEmpDict[branchName]) {
+              branchEmpDict[branchName] = { branch: branchName, logins: 0, views: 0 };
+            }
+            branchEmpDict[branchName].views++;
+            branchEmpDict[branchName].logins++;
           }
         }
       }
@@ -1629,56 +1663,49 @@ function getRankingDataSeparated() {
       employeeStats.employee = sortStats(empViewsEmployees);
     }
     
-    // 3. ดึงข้อมูลสถิติล็อกอินแยกตามสาขา (Branch Login Statistics)
-    var branchStats = { all: [], operator: [], employee: [] };
-    var loginSheet = ss.getSheetByName("LoginLogs");
-    if (loginSheet) {
-      var loginRows = loginSheet.getDataRange().getValues();
-      var branchAllDict = {};
-      var branchOpDict = {};
-      var branchEmpDict = {};
-      
-      for (var i = 1; i < loginRows.length; i++) {
-        var role = loginRows[i][3] ? loginRows[i][3].toString().trim() : "พนักงาน";
-        var branch = loginRows[i][4] ? loginRows[i][4].toString().trim() : "";
-        if (!branch || branch === "") {
-          branch = "ไม่ระบุสาขา";
-        }
-        
-        var isOperator = (role === "ผู้ประกอบการ" || role.indexOf("ผู้ประกอบการ") !== -1);
-        
-        // หน้ารวม
-        if (!branchAllDict[branch]) {
-          branchAllDict[branch] = { branch: branch, logins: 0 };
-        }
-        branchAllDict[branch].logins++;
-        
-        // แยกกลุ่ม
-        if (isOperator) {
-          if (!branchOpDict[branch]) {
-            branchOpDict[branch] = { branch: branch, logins: 0 };
-          }
-          branchOpDict[branch].logins++;
-        } else {
-          if (!branchEmpDict[branch]) {
-            branchEmpDict[branch] = { branch: branch, logins: 0 };
-          }
-          branchEmpDict[branch].logins++;
-        }
+    // 3. จัดเรียงข้อมูลอันดับสาขาที่เข้าอ่าน (Branch Read Rankings)
+    function sortBranches(dict) {
+      var arr = [];
+      for (var key in dict) {
+        arr.push(dict[key]);
       }
-      
-      function sortBranches(dict) {
-        var arr = [];
-        for (var key in dict) {
-          arr.push(dict[key]);
-        }
-        arr.sort(function(a, b) { return b.logins - a.logins; });
-        return arr;
-      }
-      
+      arr.sort(function(a, b) { return (b.views || b.logins) - (a.views || a.logins); });
+      return arr;
+    }
+    
+    // หาก ViewLogs มีข้อมูลสาขา ให้ใช้อันดับสาขาที่เข้าอ่าน
+    if (Object.keys(branchAllDict).length > 0) {
       branchStats.all = sortBranches(branchAllDict);
       branchStats.operator = sortBranches(branchOpDict);
       branchStats.employee = sortBranches(branchEmpDict);
+    } else {
+      // Fallback: ดึงข้อมูลสถิติล็อกอินแยกตามสาขา (กรณีไม่มีประวัติการอ่าน)
+      var loginSheet = ss.getSheetByName("LoginLogs");
+      if (loginSheet) {
+        var loginRows = loginSheet.getDataRange().getValues();
+        var fbAll = {}, fbOp = {}, fbEmp = {};
+        for (var l = 1; l < loginRows.length; l++) {
+          var lRole = loginRows[l][3] ? loginRows[l][3].toString().trim() : "พนักงาน";
+          var lBranch = loginRows[l][4] ? loginRows[l][4].toString().trim() : "";
+          if (!lBranch || lBranch === "") lBranch = "ไม่ระบุสาขา";
+          var isOpLogin = (lRole === "ผู้ประกอบการ" || lRole === "พี่สปริงเคิล" || lRole.indexOf("ผู้ประกอบการ") !== -1 || lRole.indexOf("สปริงเคิล") !== -1);
+          if (!fbAll[lBranch]) fbAll[lBranch] = { branch: lBranch, logins: 0, views: 0 };
+          fbAll[lBranch].logins++;
+          fbAll[lBranch].views++;
+          if (isOpLogin) {
+            if (!fbOp[lBranch]) fbOp[lBranch] = { branch: lBranch, logins: 0, views: 0 };
+            fbOp[lBranch].logins++;
+            fbOp[lBranch].views++;
+          } else {
+            if (!fbEmp[lBranch]) fbEmp[lBranch] = { branch: lBranch, logins: 0, views: 0 };
+            fbEmp[lBranch].logins++;
+            fbEmp[lBranch].views++;
+          }
+        }
+        branchStats.all = sortBranches(fbAll);
+        branchStats.operator = sortBranches(fbOp);
+        branchStats.employee = sortBranches(fbEmp);
+      }
     }
     
     var statsStartDate = "";
@@ -1784,6 +1811,127 @@ function getEmployeeDetailedHistory(empId) {
   } catch (error) {
     Logger.log("Error in getEmployeeDetailedHistory: " + error.toString());
     return { history: [], summaryByTopic: [], totalViews: 0, uniqueTopicsCount: 0, error: error.toString() };
+  }
+}
+
+// 24.9 ดึงประวัติการเข้าศึกษาของหัวข้อคู่มือ (View Logs & Breakdown for a Topic)
+function getTopicDetailedHistory(topicId) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var logSheet = ss.getSheetByName("ViewLogs");
+    if (!logSheet) return { history: [], summaryByUser: [], summaryByBranch: [], totalViews: 0, uniqueUsersCount: 0 };
+
+    // ดึงข้อมูล Employees เพื่อ lookup บทบาท/เบอร์รถ/สาขาล่าสุด
+    var empSheet = ss.getSheetByName("Employees");
+    var employeesMap = {};
+    if (empSheet) {
+      var empRows = empSheet.getDataRange().getValues();
+      for (var e = 1; e < empRows.length; e++) {
+        var eId = empRows[e][0] !== undefined && empRows[e][0] !== null ? String(empRows[e][0]).trim() : "";
+        if (eId) {
+          var eName = empRows[e][1] ? String(empRows[e][1]).trim() : "";
+          var eRole = empRows[e][2] ? String(empRows[e][2]).trim() : "พนักงาน";
+          var eBranch = (empRows[e].length > 6 && empRows[e][6]) ? String(empRows[e][6]).trim() : "";
+          var eCar = (empRows[e].length > 8 && empRows[e][8]) ? String(empRows[e][8]).trim() : "";
+          if (!eCar && (eRole === "ผู้ประกอบการ" || eRole === "พี่สปริงเคิล" || eRole.indexOf("ผู้ประกอบการ") !== -1 || eRole.indexOf("สปริงเคิล") !== -1)) {
+            var colH = (empRows[e].length > 7 && empRows[e][7]) ? String(empRows[e][7]).trim() : "";
+            eCar = colH || eBranch || eId;
+          }
+          employeesMap[eId] = { name: eName, role: eRole, branch: eBranch, carNumber: eCar };
+        }
+      }
+    }
+
+    var targetTopicId = String(topicId).trim();
+    var logRows = logSheet.getDataRange().getValues();
+    var history = [];
+    var userCountMap = {};
+    var branchCountMap = {};
+    var topicTitle = "";
+    var topicCategory = "";
+
+    for (var i = logRows.length - 1; i >= 1; i--) {
+      var row = logRows[i];
+      var rowTopicId = row[1] !== undefined && row[1] !== null ? String(row[1]).trim() : "";
+      if (rowTopicId === targetTopicId) {
+        if (!topicTitle && row[2]) topicTitle = String(row[2]).trim();
+        if (!topicCategory && row[3]) topicCategory = String(row[3]).trim();
+
+        var timeVal = row[0];
+        var timeStr = "";
+        try {
+          timeStr = Utilities.formatDate(new Date(timeVal), "GMT+7", "yyyy-MM-dd HH:mm:ss");
+        } catch(eTime) {
+          timeStr = String(timeVal);
+        }
+
+        var empId = row[4] ? String(row[4]).trim() : "";
+        var empName = row[5] ? String(row[5]).trim() : "";
+        var empBranch = row[6] ? String(row[6]).trim() : "";
+
+        var empInfo = employeesMap[empId] || {};
+        var finalName = empInfo.name || empName || "ไม่ระบุชื่อ";
+        var finalRole = empInfo.role || "พนักงาน";
+        var finalBranch = empInfo.branch || empBranch || "ไม่ระบุสาขา";
+        var finalCar = empInfo.carNumber || "-";
+
+        history.push({
+          timestamp: timeStr,
+          empId: empId,
+          name: finalName,
+          role: finalRole,
+          branch: finalBranch,
+          carNumber: finalCar
+        });
+
+        // สรุปแยกตามผู้เข้าศึกษา
+        var userKey = empId || finalName;
+        if (!userCountMap[userKey]) {
+          userCountMap[userKey] = {
+            empId: empId,
+            name: finalName,
+            role: finalRole,
+            branch: finalBranch,
+            carNumber: finalCar,
+            views: 0,
+            lastViewTime: timeStr
+          };
+        }
+        userCountMap[userKey].views++;
+
+        // สรุปแยกตามสาขา
+        if (!branchCountMap[finalBranch]) {
+          branchCountMap[finalBranch] = { branch: finalBranch, views: 0 };
+        }
+        branchCountMap[finalBranch].views++;
+      }
+    }
+
+    var summaryByUser = [];
+    for (var uKey in userCountMap) {
+      summaryByUser.push(userCountMap[uKey]);
+    }
+    summaryByUser.sort(function(a, b) { return b.views - a.views; });
+
+    var summaryByBranch = [];
+    for (var bKey in branchCountMap) {
+      summaryByBranch.push(branchCountMap[bKey]);
+    }
+    summaryByBranch.sort(function(a, b) { return b.views - a.views; });
+
+    return {
+      topicId: targetTopicId,
+      topicTitle: topicTitle,
+      category: topicCategory,
+      history: history,
+      summaryByUser: summaryByUser,
+      summaryByBranch: summaryByBranch,
+      totalViews: history.length,
+      uniqueUsersCount: summaryByUser.length
+    };
+  } catch (error) {
+    Logger.log("Error in getTopicDetailedHistory: " + error.toString());
+    return { topicId: topicId, history: [], summaryByUser: [], summaryByBranch: [], totalViews: 0, uniqueUsersCount: 0, error: error.toString() };
   }
 }
 
@@ -2399,11 +2547,11 @@ function invalidateFCMAccessToken(sa) {
 // 4. เครื่องมือคัดกรองกลุ่มเป้าหมาย (Targeting & Filtering Engine)
 // =================================================================================
 
-// ตรวจสอบว่าเป็นบทบาทผู้ประกอบการ (ผปก.) หรือไม่
+// ตรวจสอบว่าเป็นบทบาทผู้ประกอบการ (พี่สปริงเคิล / ผปก.) หรือไม่
 function isOperatorRole(role) {
   if (!role) return false;
   var r = role.toString().trim();
-  return r === 'ผู้ประกอบการ' || r.indexOf('ผู้ประกอบการ') !== -1 || r.indexOf('ผปก') !== -1;
+  return r === 'ผู้ประกอบการ' || r === 'พี่สปริงเคิล' || r.indexOf('ผู้ประกอบการ') !== -1 || r.indexOf('สปริงเคิล') !== -1 || r.indexOf('ผปก') !== -1;
 }
 
 // ตรวจสอบเงื่อนไขกลุ่มเป้าหมายเทียบกับบทบาทผู้ใช้
@@ -2420,9 +2568,9 @@ function matchAudienceRule(targetAudience, role) {
   
   var r = role ? role.toString().trim() : "";
   var lowerR = r.toLowerCase();
-  var isOp = (r.indexOf("ผู้ประกอบการ") !== -1 || r.indexOf("ผปก") !== -1 || lowerR.indexOf("operator") !== -1 || lowerR.indexOf("entrepreneur") !== -1);
+  var isOp = (r.indexOf("ผู้ประกอบการ") !== -1 || r.indexOf("พี่สปริงเคิล") !== -1 || r.indexOf("สปริงเคิล") !== -1 || r.indexOf("ผปก") !== -1 || lowerR.indexOf("operator") !== -1 || lowerR.indexOf("entrepreneur") !== -1);
   
-  // รองรับการระบุแบบหลายกลุ่ม เช่น "พนักงาน,ผู้ประกอบการ"
+  // รองรับการระบุแบบหลายกลุ่ม เช่น "พนักงาน,ผู้ประกอบการ" หรือ "พนักงาน,พี่สปริงเคิล"
   if (norm.indexOf(",") !== -1) {
     var parts = norm.split(",");
     for (var p = 0; p < parts.length; p++) {
@@ -2432,7 +2580,7 @@ function matchAudienceRule(targetAudience, role) {
   }
   
   var lower = norm.toLowerCase();
-  var isTargetOp = (norm.indexOf("ผู้ประกอบการ") !== -1 || norm.indexOf("ผปก") !== -1 || lower.indexOf("operator") !== -1 || lower.indexOf("entrepreneur") !== -1);
+  var isTargetOp = (norm.indexOf("ผู้ประกอบการ") !== -1 || norm.indexOf("พี่สปริงเคิล") !== -1 || norm.indexOf("สปริงเคิล") !== -1 || norm.indexOf("ผปก") !== -1 || lower.indexOf("operator") !== -1 || lower.indexOf("entrepreneur") !== -1);
   var isTargetEmp = (norm.indexOf("พนักงาน") !== -1 || lower.indexOf("employee") !== -1 || lower.indexOf("staff") !== -1);
   
   if (isTargetOp && isTargetEmp) {
