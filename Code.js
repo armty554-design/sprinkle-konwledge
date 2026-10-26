@@ -1663,50 +1663,36 @@ function getRankingDataSeparated() {
       employeeStats.employee = sortStats(empViewsEmployees);
     }
     
-    // 3. จัดเรียงข้อมูลอันดับสาขาที่เข้าอ่าน (Branch Read Rankings)
-    function sortBranches(dict) {
-      var arr = [];
-      for (var key in dict) {
-        arr.push(dict[key]);
+    // 3. จัดเรียงข้อมูลอันดับสาขาที่เข้าอ่าน (Branch Read Rankings) จากรายชื่อสมาชิกในแต่ละกลุ่มโดยตรง
+    // เพื่อให้ยอดจำนวนครั้งตรงกับตารางรายชื่อและอันดับสมาชิกพนักงาน/พี่สปริงเคิล 100%
+    function computeBranchStatsFromEmpDict(dict) {
+      var bDict = {};
+      for (var empKey in dict) {
+        var emp = dict[empKey];
+        var b = (emp.branch && emp.branch.trim() !== "" && emp.branch !== "-") ? emp.branch.trim() : "ไม่ระบุสาขา";
+        if (!bDict[b]) {
+          bDict[b] = { branch: b, views: 0, logins: 0, totalEmployees: 0, activeEmployees: 0 };
+        }
+        var v = emp.views || 0;
+        bDict[b].views += v;
+        bDict[b].logins += v;
+        bDict[b].totalEmployees++;
+        if (v > 0) bDict[b].activeEmployees++;
       }
-      arr.sort(function(a, b) { return (b.views || b.logins) - (a.views || a.logins); });
+      var arr = [];
+      for (var k in bDict) {
+        arr.push(bDict[k]);
+      }
+      arr.sort(function(a, b) {
+        if (b.views !== a.views) return b.views - a.views;
+        return a.branch.localeCompare(b.branch);
+      });
       return arr;
     }
-    
-    // หาก ViewLogs มีข้อมูลสาขา ให้ใช้อันดับสาขาที่เข้าอ่าน
-    if (Object.keys(branchAllDict).length > 0) {
-      branchStats.all = sortBranches(branchAllDict);
-      branchStats.operator = sortBranches(branchOpDict);
-      branchStats.employee = sortBranches(branchEmpDict);
-    } else {
-      // Fallback: ดึงข้อมูลสถิติล็อกอินแยกตามสาขา (กรณีไม่มีประวัติการอ่าน)
-      var loginSheet = ss.getSheetByName("LoginLogs");
-      if (loginSheet) {
-        var loginRows = loginSheet.getDataRange().getValues();
-        var fbAll = {}, fbOp = {}, fbEmp = {};
-        for (var l = 1; l < loginRows.length; l++) {
-          var lRole = loginRows[l][3] ? loginRows[l][3].toString().trim() : "พนักงาน";
-          var lBranch = loginRows[l][4] ? loginRows[l][4].toString().trim() : "";
-          if (!lBranch || lBranch === "") lBranch = "ไม่ระบุสาขา";
-          var isOpLogin = (lRole === "ผู้ประกอบการ" || lRole === "พี่สปริงเคิล" || lRole.indexOf("ผู้ประกอบการ") !== -1 || lRole.indexOf("สปริงเคิล") !== -1);
-          if (!fbAll[lBranch]) fbAll[lBranch] = { branch: lBranch, logins: 0, views: 0 };
-          fbAll[lBranch].logins++;
-          fbAll[lBranch].views++;
-          if (isOpLogin) {
-            if (!fbOp[lBranch]) fbOp[lBranch] = { branch: lBranch, logins: 0, views: 0 };
-            fbOp[lBranch].logins++;
-            fbOp[lBranch].views++;
-          } else {
-            if (!fbEmp[lBranch]) fbEmp[lBranch] = { branch: lBranch, logins: 0, views: 0 };
-            fbEmp[lBranch].logins++;
-            fbEmp[lBranch].views++;
-          }
-        }
-        branchStats.all = sortBranches(fbAll);
-        branchStats.operator = sortBranches(fbOp);
-        branchStats.employee = sortBranches(fbEmp);
-      }
-    }
+
+    branchStats.all = computeBranchStatsFromEmpDict(empViewsAll);
+    branchStats.operator = computeBranchStatsFromEmpDict(empViewsOperators);
+    branchStats.employee = computeBranchStatsFromEmpDict(empViewsEmployees);
     
     var statsStartDate = "";
     if (logSheet && logSheet.getLastRow() > 1) {
@@ -1719,13 +1705,41 @@ function getRankingDataSeparated() {
         }
       }
     }
+
+    function computeTabSummary(empDict, topicList) {
+      var totalEmp = 0;
+      var activeEmp = 0;
+      var totalViews = 0;
+      for (var k in empDict) {
+        totalEmp++;
+        var v = empDict[k].views || 0;
+        totalViews += v;
+        if (v > 0) activeEmp++;
+      }
+      return {
+        totalEmployees: totalEmp,
+        totalActiveUsers: activeEmp,
+        totalTopicsViewed: topicList ? topicList.length : 0,
+        totalViews: totalViews
+      };
+    }
+
+    var summaryAll = computeTabSummary(empViewsAll, topicStats.all);
+    summaryAll.statsStartDate = statsStartDate;
+    var summaryOp = computeTabSummary(empViewsOperators, topicStats.operator);
+    summaryOp.statsStartDate = statsStartDate;
+    var summaryEmp = computeTabSummary(empViewsEmployees, topicStats.employee);
+    summaryEmp.statsStartDate = statsStartDate;
     
     var summary = {
-      totalViews: totalOverallViews,
-      totalActiveUsers: Object.keys(activeUsersSet).length,
-      totalEmployees: Object.keys(employeesMap).length,
-      totalTopicsViewed: topicStats.all.length,
-      statsStartDate: statsStartDate
+      totalViews: summaryAll.totalViews,
+      totalActiveUsers: summaryAll.totalActiveUsers,
+      totalEmployees: summaryAll.totalEmployees,
+      totalTopicsViewed: summaryAll.totalTopicsViewed,
+      statsStartDate: statsStartDate,
+      all: summaryAll,
+      operator: summaryOp,
+      employee: summaryEmp
     };
     
     return {
@@ -3721,6 +3735,10 @@ function doPost(e) {
     
     // กำหนดตารางฟังก์ชันที่อนุญาตให้เรียกใช้งานผ่าน Webhook (Allowlist Dispatch Table)
     var ALLOWED_ACTIONS = {
+      "getTopicDetailedHistory": getTopicDetailedHistory,
+      "getEmployeeDetailedHistory": getEmployeeDetailedHistory,
+      "getRankingDataSeparated": getRankingDataSeparated,
+      "getInitialAppData": getInitialAppData,
       "sendPushNotification": sendTargetedPushNotification,
       "sendTargetedPushNotification": sendTargetedPushNotification,
       "sendPushNotificationToFCM": sendPushNotificationToFCM,
@@ -3808,6 +3826,8 @@ if (typeof module !== 'undefined' && module.exports) {
     getRegisteredPushTokens: getRegisteredPushTokens,
     authorizeUrlFetch: authorizeUrlFetch,
     getAppInfo: getAppInfo,
+    getTopicDetailedHistory: getTopicDetailedHistory,
+    getRankingDataSeparated: getRankingDataSeparated,
     doPost: doPost
   };
 }

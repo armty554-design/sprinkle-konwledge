@@ -1508,28 +1508,28 @@
                 <div class="bg-white p-4 rounded-2xl border border-amber-100 shadow-xs flex items-center gap-3">
                     <span class="text-3xl p-2.5 bg-amber-50 text-amber-600 rounded-xl">🏢</span>
                     <div class="min-w-0">
-                        <span class="text-xs text-gray-500 font-bold block truncate">บุคลากรในระบบ</span>
+                        <span id="statLabelEmployees" class="text-xs text-gray-500 font-bold block truncate">บุคลากรในระบบ</span>
                         <span id="statTotalEmployees" class="text-xl sm:text-2xl font-extrabold text-amber-950">0 คน</span>
                     </div>
                 </div>
                 <div class="bg-white p-4 rounded-2xl border border-indigo-100 shadow-xs flex items-center gap-3">
                     <span class="text-3xl p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">👥</span>
                     <div class="min-w-0">
-                        <span class="text-xs text-gray-500 font-bold block truncate">ผู้เข้าศึกษาแล้ว</span>
+                        <span id="statLabelActiveUsers" class="text-xs text-gray-500 font-bold block truncate">ผู้เข้าศึกษาแล้ว</span>
                         <span id="statActiveUsers" class="text-xl sm:text-2xl font-extrabold text-indigo-950">0 คน</span>
                     </div>
                 </div>
                 <div class="bg-white p-4 rounded-2xl border border-emerald-100 shadow-xs flex items-center gap-3">
                     <span class="text-3xl p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">📂</span>
                     <div class="min-w-0">
-                        <span class="text-xs text-gray-500 font-bold block truncate">หัวข้อที่มีการศึกษา</span>
+                        <span id="statLabelTopics" class="text-xs text-gray-500 font-bold block truncate">หัวข้อที่มีการศึกษา</span>
                         <span id="statTopicsViewed" class="text-xl sm:text-2xl font-extrabold text-emerald-950">0 เรื่อง</span>
                     </div>
                 </div>
                 <div class="bg-white p-4 rounded-2xl border border-blue-100 shadow-xs flex items-center gap-3">
                     <span class="text-3xl p-2.5 bg-blue-50 text-blue-600 rounded-xl">📖</span>
                     <div class="min-w-0">
-                        <span class="text-xs text-gray-500 font-bold block truncate">ยอดเปิดอ่านทั้งหมด</span>
+                        <span id="statLabelViews" class="text-xs text-gray-500 font-bold block truncate">ยอดเปิดอ่านทั้งหมด</span>
                         <span id="statTotalViews" class="text-xl sm:text-2xl font-extrabold text-blue-950">0 ครั้ง</span>
                     </div>
                 </div>
@@ -1558,8 +1558,8 @@
                 <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-5 rounded-3xl border border-blue-200 shadow-sm flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-extrabold bg-blue-100 text-blue-900 px-2.5 py-1 rounded-full flex items-center gap-1">
-                                <span>🏆</span> อันดับ 1 พนักงานเรียนรู้สูงสุด
+                            <span id="highlightTopEmpBadge" class="text-xs font-extrabold bg-blue-100 text-blue-900 px-2.5 py-1 rounded-full flex items-center gap-1">
+                                <span>🏆</span> <span id="highlightTopEmpBadgeText">อันดับ 1 พนักงานเรียนรู้สูงสุด</span>
                             </span>
                             <span class="text-2xl">🥇</span>
                         </div>
@@ -9142,27 +9142,101 @@ function renderRecommendPage() {
 
         var isOperatorTab = (currentRecommendSubTab === 'operator');
 
-        // --- 0. อัปเดตสถิติภาพรวมการเรียนรู้ทั้งหมด (Overview Summary) ---
-        if (recommendStatsData && recommendStatsData.summary) {
+        // --- คำนวณอันดับสาขาที่เข้าอ่านโดยรวมยอดจากรายชื่อสมาชิกในกลุ่มนี้โดยตรง (ให้ยอดตรงกับตารางรายชื่อและอันดับสมาชิก 100%) ---
+        var branchMap = {};
+        for (var bIdx = 0; bIdx < employeeStats.length; bIdx++) {
+            var empItem = employeeStats[bIdx];
+            var bName = (empItem.branch && empItem.branch.trim() !== "" && empItem.branch !== "-") ? empItem.branch.trim() : "ไม่ระบุสาขา";
+            if (!branchMap[bName]) {
+                branchMap[bName] = { branch: bName, views: 0, logins: 0, totalMembers: 0, activeMembers: 0 };
+            }
+            var eV = empItem.views || 0;
+            branchMap[bName].views += eV;
+            branchMap[bName].logins += eV;
+            branchMap[bName].totalMembers++;
+            if (eV > 0) branchMap[bName].activeMembers++;
+        }
+
+        var calculatedBranchStats = [];
+        for (var bKey in branchMap) {
+            calculatedBranchStats.push(branchMap[bKey]);
+        }
+        calculatedBranchStats.sort(function(a, b) {
+            if (b.views !== a.views) return b.views - a.views;
+            return a.branch.localeCompare(b.branch);
+        });
+
+        if (calculatedBranchStats.length > 0) {
+            branchStats = calculatedBranchStats;
+        }
+
+        // --- 0. คำนวณและอัปเดตสถิติสรุปตามแท็บที่เลือก (Tab-specific Overview Summary) ---
+        var curTotalEmployees = 0;
+        var curActiveUsers = 0;
+        var curTopicsViewed = 0;
+        var curTotalViews = 0;
+
+        if (recommendStatsData && recommendStatsData.summary && recommendStatsData.summary[currentRecommendSubTab]) {
+            var tabSummary = recommendStatsData.summary[currentRecommendSubTab];
+            curTotalEmployees = tabSummary.totalEmployees;
+            curActiveUsers = tabSummary.totalActiveUsers;
+            curTopicsViewed = tabSummary.totalTopicsViewed;
+            curTotalViews = tabSummary.totalViews;
+        } else if (currentRecommendSubTab === 'all' && recommendStatsData && recommendStatsData.summary && recommendStatsData.summary.totalEmployees) {
             var s = recommendStatsData.summary;
-            var elTotalViews = document.getElementById('statTotalViews');
-            var elActiveUsers = document.getElementById('statActiveUsers');
-            var elTopicsViewed = document.getElementById('statTopicsViewed');
-            var elTotalEmployees = document.getElementById('statTotalEmployees');
-            var elStartDateText = document.getElementById('recommendStartDateText');
-            
-            if (elTotalViews) elTotalViews.innerText = (s.totalViews || 0).toLocaleString() + ' ครั้ง';
-            if (elActiveUsers) elActiveUsers.innerText = (s.totalActiveUsers || 0).toLocaleString() + ' คน';
-            if (elTopicsViewed) elTopicsViewed.innerText = (s.totalTopicsViewed || 0).toLocaleString() + ' เรื่อง';
-            if (elTotalEmployees) elTotalEmployees.innerText = (s.totalEmployees || 0).toLocaleString() + ' คน';
-            
-            if (elStartDateText) {
-                if (s.statsStartDate) {
-                    var formattedStart = formatThaiDate(s.statsStartDate) || s.statsStartDate;
-                    elStartDateText.innerText = 'เริ่มเก็บสถิติตั้งแต่วันที่: ' + formattedStart;
-                } else {
-                    elStartDateText.innerText = 'เริ่มเก็บสถิติตั้งแต่เริ่มเปิดระบบ';
-                }
+            curTotalEmployees = s.totalEmployees;
+            curActiveUsers = s.totalActiveUsers;
+            curTopicsViewed = s.totalTopicsViewed || (topicStats ? topicStats.length : 0);
+            curTotalViews = s.totalViews;
+        } else {
+            // คำนวณแบบ Real-time จากข้อมูล employeeStats และ topicStats ของแท็บนั้นๆ
+            curTotalEmployees = employeeStats ? employeeStats.length : 0;
+            curActiveUsers = employeeStats ? employeeStats.filter(function(e) { return (e.views || 0) > 0; }).length : 0;
+            curTopicsViewed = topicStats ? topicStats.length : 0;
+            curTotalViews = employeeStats ? employeeStats.reduce(function(acc, e) { return acc + (e.views || 0); }, 0) : 0;
+        }
+
+        var elTotalViews = document.getElementById('statTotalViews');
+        var elActiveUsers = document.getElementById('statActiveUsers');
+        var elTopicsViewed = document.getElementById('statTopicsViewed');
+        var elTotalEmployees = document.getElementById('statTotalEmployees');
+        var elStartDateText = document.getElementById('recommendStartDateText');
+        
+        var elLabelEmployees = document.getElementById('statLabelEmployees');
+        var elLabelActiveUsers = document.getElementById('statLabelActiveUsers');
+        var elLabelTopics = document.getElementById('statLabelTopics');
+        var elLabelViews = document.getElementById('statLabelViews');
+
+        if (elTotalViews) elTotalViews.innerText = (curTotalViews || 0).toLocaleString() + ' ครั้ง';
+        if (elActiveUsers) elActiveUsers.innerText = (curActiveUsers || 0).toLocaleString() + ' คน';
+        if (elTopicsViewed) elTopicsViewed.innerText = (curTopicsViewed || 0).toLocaleString() + ' เรื่อง';
+        if (elTotalEmployees) elTotalEmployees.innerText = (curTotalEmployees || 0).toLocaleString() + ' คน';
+
+        // ปรับเปลี่ยนป้ายข้อความให้ตรงกับแท็บที่เลือก
+        if (elLabelEmployees) {
+            elLabelEmployees.innerText = (currentRecommendSubTab === 'employee') ? 'สมาชิกพนักงานในระบบ' : 
+                                         ((currentRecommendSubTab === 'operator') ? 'สมาชิกพี่สปริงเคิลในระบบ' : 'บุคลากรในระบบ');
+        }
+        if (elLabelActiveUsers) {
+            elLabelActiveUsers.innerText = (currentRecommendSubTab === 'employee') ? 'พนักงานเข้าศึกษาแล้ว' : 
+                                           ((currentRecommendSubTab === 'operator') ? 'พี่สปริงเคิลเข้าศึกษาแล้ว' : 'ผู้เข้าศึกษาแล้ว');
+        }
+        if (elLabelTopics) {
+            elLabelTopics.innerText = (currentRecommendSubTab === 'employee') ? 'หัวข้อที่พนักงานศึกษา' : 
+                                      ((currentRecommendSubTab === 'operator') ? 'หัวข้อที่พี่สปริงเคิลศึกษา' : 'หัวข้อที่มีการศึกษา');
+        }
+        if (elLabelViews) {
+            elLabelViews.innerText = (currentRecommendSubTab === 'employee') ? 'ยอดเปิดอ่าน (พนักงาน)' : 
+                                     ((currentRecommendSubTab === 'operator') ? 'ยอดเปิดอ่าน (พี่สปริงเคิล)' : 'ยอดเปิดอ่านทั้งหมด');
+        }
+
+        if (elStartDateText) {
+            var startDt = (recommendStatsData && recommendStatsData.summary && recommendStatsData.summary.statsStartDate) ? recommendStatsData.summary.statsStartDate : "";
+            if (startDt) {
+                var formattedStart = formatThaiDate(startDt) || startDt;
+                elStartDateText.innerText = 'เริ่มเก็บสถิติตั้งแต่วันที่: ' + formattedStart;
+            } else {
+                elStartDateText.innerText = 'เริ่มเก็บสถิติตั้งแต่เริ่มเปิดระบบ';
             }
         }
 
@@ -9190,6 +9264,11 @@ function renderRecommendPage() {
         var hEmpName = document.getElementById('highlightTopEmpName');
         var hEmpMeta = document.getElementById('highlightTopEmpMeta');
         var hEmpViews = document.getElementById('highlightTopEmpViews');
+        var hEmpBadgeText = document.getElementById('highlightTopEmpBadgeText');
+        if (hEmpBadgeText) {
+            hEmpBadgeText.innerText = isOperatorTab ? 'อันดับ 1 พี่สปริงเคิลเรียนรู้สูงสุด' :
+                                      ((currentRecommendSubTab === 'employee') ? 'อันดับ 1 พนักงานเรียนรู้สูงสุด' : 'อันดับ 1 ผู้เรียนรู้สูงสุด');
+        }
         if (topEmp && topEmp.views > 0) {
             if (isOperatorTab) {
                 if (hEmpName) hEmpName.innerText = topEmp.name + ' (รหัส: ' + topEmp.empId + ')';
@@ -9495,9 +9574,6 @@ function renderRecommendPage() {
                             '<div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-500" style="width: ' + percent + '%"></div>' +
                         '</div>' +
                     '</div>';
-                            '<div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-500" style="width: ' + percent + '%"></div>' +
-                        '</div>' +
-                    '</div>';
                 }
             }
         }
@@ -9785,10 +9861,27 @@ function openTopicHistoryModal(topicId, title, category, totalViews) {
 
         renderTopicHistModalContent();
     }).withFailureHandler(function(err) {
+        var errStr = err ? err.toString() : "";
+        if (lastActiveEl) lastActiveEl.innerText = '-';
+        if (uniqueUsersEl) uniqueUsersEl.innerText = '-';
         if (container) {
-            container.innerHTML = '<div class="p-6 text-center text-red-650 font-bold bg-red-50 rounded-2xl">' +
-                '❌ เกิดข้อผิดพลาดในการโหลดประวัติ: ' + err.toString() +
-            '</div>';
+            if (errStr.indexOf("getTopicDetailedHistory") !== -1) {
+                container.innerHTML = '<div class="p-5 text-center bg-amber-50 rounded-2xl border border-amber-250 space-y-3">' +
+                    '<span class="text-3xl block">⏳</span>' +
+                    '<h4 class="font-extrabold text-amber-950 text-sm sm:text-base">รอการ Deploy เวอร์ชันใหม่บน Google Apps Script</h4>' +
+                    '<p class="text-xs text-amber-900 font-semibold leading-relaxed">' +
+                        'หน้าเว็บ Vercel ทำงานแล้ว แต่ Google Apps Script ยังเป็นเวอร์ชันเดิม<br>' +
+                        'กรุณาเปิด Google Apps Script แล้วกด <strong>Deploy > New deployment</strong> เพื่อเปิดใช้งานประวัติหัวข้อแบบละเอียดครับ' +
+                    '</p>' +
+                    '<div class="p-3 bg-white rounded-xl border border-amber-200 text-xs text-gray-700 font-bold">' +
+                        '📊 สถิติเบื้องต้น: ยอดเข้าศึกษาคู่มือนี้สะสม <strong>' + (totalViews || 0).toLocaleString() + '</strong> ครั้ง' +
+                    '</div>' +
+                '</div>';
+            } else {
+                container.innerHTML = '<div class="p-6 text-center text-red-650 font-bold bg-red-50 rounded-2xl">' +
+                    '❌ เกิดข้อผิดพลาดในการโหลดประวัติ: ' + errStr +
+                '</div>';
+            }
         }
     }).getTopicDetailedHistory(topicId);
 }
