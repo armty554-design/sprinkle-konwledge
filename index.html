@@ -1478,9 +1478,6 @@
                     <p class="text-gray-500 text-sm sm:text-base font-semibold">รายงานสถิติการเรียนรู้ยอดนิยม และอันดับการเข้าใช้งานระบบของบุคลากรและสาขา</p>
                 </div>
                 <div class="flex items-center gap-2 flex-wrap shrink-0">
-                    <button id="recommendAutoRotateToggleBtn" onclick="toggleRecommendAutoRotate()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2.5 rounded-2xl font-extrabold text-sm transition-all active:scale-95 flex items-center gap-2 border border-indigo-200 shadow-sm shrink-0">
-                        <span id="recommendAutoRotateIcon">⏸️</span> <span id="recommendAutoRotateLabel">สลับสถิติอัตโนมัติ (เปิด)</span>
-                    </button>
                     <button onclick="refreshRecommendData()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 sm:px-5 py-2.5 rounded-2xl font-extrabold text-sm transition-all active:scale-95 flex items-center gap-2 border border-blue-200 shadow-sm shrink-0">
                         🔄 รีเฟรชสถิติ
                     </button>
@@ -3222,7 +3219,7 @@
         }
 
         var recommendAutoRotateInterval = null;
-        var recommendAutoRotateActive = true;
+        var recommendAutoRotateActive = false;
         var recommendTabCycle = ['all', 'employee', 'operator'];
 
         function setRecommendSubTab(tab, isManual) {
@@ -3235,9 +3232,6 @@
             if (btnEmp) btnEmp.className = "flex-1 py-3 px-3 sm:px-4 rounded-xl text-sm sm:text-base font-extrabold text-center transition-all " + (tab === 'employee' ? "bg-blue-600 text-white shadow-md transform scale-[1.01]" : "bg-transparent text-gray-500 hover:text-blue-600 hover:bg-white hover:bg-opacity-60");
             if (btnOp) btnOp.className = "flex-1 py-3 px-3 sm:px-4 rounded-xl text-sm sm:text-base font-extrabold text-center transition-all " + (tab === 'operator' ? "bg-blue-600 text-white shadow-md transform scale-[1.01]" : "bg-transparent text-gray-500 hover:text-blue-600 hover:bg-white hover:bg-opacity-60");
             
-            if (isManual && recommendAutoRotateActive) {
-                initRecommendAutoRotate();
-            }
             if (isManual) {
                 try {
                     if (window.history && window.history.replaceState) {
@@ -3254,58 +3248,10 @@
                 clearInterval(recommendAutoRotateInterval);
                 recommendAutoRotateInterval = null;
             }
-            if (!recommendAutoRotateActive) return;
-            
-            recommendAutoRotateInterval = setInterval(function() {
-                if (!recommendAutoRotateActive) return;
-                
-                var secRec = document.getElementById('sectionRecommend');
-                if (!secRec || secRec.classList.contains('hidden')) return;
-                
-                var empModal = document.getElementById('employeeViewHistoryModal');
-                var topicModal = document.getElementById('topicViewHistoryModal');
-                var searchInput = document.getElementById('recommendEmpSearchInput');
-                if ((empModal && !empModal.classList.contains('hidden')) || 
-                    (topicModal && !topicModal.classList.contains('hidden')) || 
-                    (searchInput && document.activeElement === searchInput)) {
-                    return;
-                }
-                
-                var curIdx = recommendTabCycle.indexOf(currentRecommendSubTab);
-                var nextIdx = (curIdx + 1) % recommendTabCycle.length;
-                setRecommendSubTab(recommendTabCycle[nextIdx], false);
-            }, 7000);
         }
 
-        function toggleRecommendAutoRotate() {
-            recommendAutoRotateActive = !recommendAutoRotateActive;
-            updateRecommendAutoRotateBtnUI();
-            if (recommendAutoRotateActive) {
-                initRecommendAutoRotate();
-            } else {
-                if (recommendAutoRotateInterval) {
-                    clearInterval(recommendAutoRotateInterval);
-                    recommendAutoRotateInterval = null;
-                }
-            }
-        }
-
-        function updateRecommendAutoRotateBtnUI() {
-            var icon = document.getElementById('recommendAutoRotateIcon');
-            var label = document.getElementById('recommendAutoRotateLabel');
-            var btn = document.getElementById('recommendAutoRotateToggleBtn');
-            if (btn && icon && label) {
-                if (recommendAutoRotateActive) {
-                    icon.innerText = "⏸️";
-                    label.innerText = "สลับสถิติอัตโนมัติ (เปิด)";
-                    btn.className = "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2.5 rounded-2xl font-extrabold text-sm transition-all active:scale-95 flex items-center gap-2 border border-indigo-200 shadow-sm shrink-0";
-                } else {
-                    icon.innerText = "▶️";
-                    label.innerText = "สลับสถิติอัตโนมัติ (หยุด)";
-                    btn.className = "bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-2xl font-extrabold text-sm transition-all active:scale-95 flex items-center gap-2 border border-gray-300 shadow-sm shrink-0";
-                }
-            }
-        }
+        function toggleRecommendAutoRotate() {}
+        function updateRecommendAutoRotateBtnUI() {}
 
         var activeTab = 'home';
         var activeQAFilter = 'answered';
@@ -5241,7 +5187,6 @@
                 document.getElementById('sectionRecommend').classList.remove('hidden');
                 document.getElementById('tabBtnRecommend').className = "flex-1 min-w-[160px] py-4 px-4 rounded-xl text-lg font-extrabold text-center transition-all flex items-center justify-center gap-2 bg-blue-600 text-white shadow-md transform scale-[1.01]";
                 renderRecommendPage();
-                initRecommendAutoRotate();
             } else if (tab === 'manage_home') {
                 document.getElementById('sectionManageHome').classList.remove('hidden');
                 document.getElementById('tabBtnManageHome').className = "flex-1 min-w-[150px] py-4 px-4 rounded-xl text-lg font-extrabold text-center transition-all flex items-center justify-center gap-2 bg-blue-600 text-white shadow-md transform scale-[1.01]";
