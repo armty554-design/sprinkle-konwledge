@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบปิดปรับปรุงชั่วคราว</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+        }
+        .ambient-glow-1 {
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.18) 0%, rgba(255, 255, 255, 0) 70%);
+        }
+        .ambient-glow-2 {
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, rgba(255, 255, 255, 0) 70%);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-tr from-gray-50 via-gray-100 to-blue-50 text-gray-800 min-h-screen flex flex-col items-center justify-center relative overflow-hidden px-4">
+    <!-- แสงนีออนพื้นหลังตกแต่ง -->
+    <div class="absolute w-[500px] h-[500px] rounded-full blur-[120px] opacity-60 -top-24 -left-24 ambient-glow-1"></div>
+    <div class="absolute w-[500px] h-[500px] rounded-full blur-[120px] opacity-60 -bottom-24 -right-24 ambient-glow-2"></div>
+
+    <div class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-lg text-center border border-white border-opacity-70 z-10 transition-all duration-300 transform hover:scale-[1.01]">
+        <div class="mb-8 flex justify-center">
+            <img src="data:image/png;base64,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" alt="Sprinkle Logo" class="h-16 w-auto object-contain">
+        </div>
+        
+        <div class="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-blue-100 shadow-inner">
+            <span class="text-5xl">⚙️</span>
+        </div>
+        
+        <h1 class="text-3xl font-extrabold mb-4 text-blue-950 tracking-tight">อยู่ระหว่างปรับปรุงระบบ</h1>
+        
+        <p class="text-xl text-gray-650 font-bold leading-relaxed mb-6">
+            ขออภัยในความไม่สะดวกครับ... <br>
+            คลังปัญญากำลังปรับเปลี่ยนข้อมูลให้ดียิ่งขึ้นน้าาา 🔧
+        </p>
+        
+        <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 text-left mb-6 shadow-inner">
+            <p class="text-lg text-blue-900 font-bold text-center leading-relaxed">
+                พี่ๆ พักผ่อนดื่มน้ำเย็นๆ ของทาง Sprinkle ก่อนนะครับ แล้วค่อยแวะกลับมาเรียนรู้ใหม่ภายหลังน้าาาา 💧
+            </p>
+        </div>
+        
+        <p class="text-sm text-gray-400 font-medium">เจ้าหน้าที่กำลังรีบปรับปรุงโดยด่วนที่สุดครับ</p>
+    </div>
+</body>
+</html>
