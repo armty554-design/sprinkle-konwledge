@@ -1656,7 +1656,7 @@
                                         <th class="p-3 border-b font-bold w-36">หมวดหมู่</th>
                                         <th class="p-3 border-b font-bold">หัวข้อเรื่องคู่มือ</th>
                                         <th class="p-3 border-b font-bold text-center w-28">ยอดดู (ครั้ง)</th>
-                                        <th class="p-3 border-b font-bold text-center w-24">ประวัติ</th>
+                                        <th class="p-3 border-b font-bold text-center w-36">เปิดอ่าน / ประวัติ</th>
                                     </tr>
                                 </thead>
                                 <tbody id="recommendTop20TableBody">
@@ -3237,6 +3237,13 @@
             
             if (isManual && recommendAutoRotateActive) {
                 initRecommendAutoRotate();
+            }
+            if (isManual) {
+                try {
+                    if (window.history && window.history.replaceState) {
+                        window.history.replaceState(null, '', '#recommend?tab=' + tab);
+                    }
+                } catch(eHash) {}
             }
             
             renderRecommendPage();
@@ -5102,6 +5109,23 @@
                 return true;
             }
 
+            // นำทางสู่แท็บหน้าต่างๆ ตาม Hash (เช่น #recommend, #knowledge, #qa)
+            if (!annId && !manualId && window.location.hash) {
+                var hashVal = window.location.hash.replace('#', '').trim();
+                var tabTarget = hashVal.split('?')[0];
+                var validTabs = ['home', 'knowledge', 'qa', 'recommend', 'manage_home', 'manage_knowledge', 'manage_permissions', 'manage_notifications'];
+                if (validTabs.indexOf(tabTarget) !== -1) {
+                    switchTab(tabTarget);
+                    if (tabTarget === 'recommend' && hashVal.indexOf('tab=') !== -1) {
+                        var subMatch = hashVal.match(/tab=([^&#]+)/);
+                        if (subMatch && (subMatch[1] === 'all' || subMatch[1] === 'employee' || subMatch[1] === 'operator')) {
+                            setRecommendSubTab(subMatch[1], false);
+                        }
+                    }
+                    return true;
+                }
+            }
+
             return false;
         }
 
@@ -5171,6 +5195,14 @@
             }
 
             activeTab = tab;
+            try {
+                if (window.history && window.history.replaceState) {
+                    var curH = window.location.hash || '';
+                    if (!curH.includes('knowledge/') && !curH.includes('announcement/') && !curH.includes('manual/')) {
+                        window.history.replaceState(null, '', '#' + tab);
+                    }
+                }
+            } catch(eHash) {}
             
             // ซ่อนทุกแท็บการใช้งาน
             document.getElementById('sectionHome').classList.add('hidden');
@@ -9058,6 +9090,10 @@ function onRecommendEmpSearch() {
 function changeRecommendEmpPage(page) {
     recommendEmpPage = page;
     renderRecommendPage();
+    var card = document.getElementById('recommendEmpCardTitle');
+    if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 // ฟังก์ชันสร้างปุ่มแบ่งหน้าสำหรับตารางอันดับพนักงาน
@@ -9320,10 +9356,18 @@ function renderRecommendPage() {
                     top20Body.innerHTML += '<tr class="border-b hover:bg-blue-50 hover:bg-opacity-40 transition-colors">' +
                         '<td class="p-3 font-extrabold text-center text-base">' + rankBadge + '</td>' +
                         '<td class="p-3"><span class="bg-blue-50 text-blue-800 text-xs font-bold px-2 py-1 rounded-md border border-blue-100 inline-block">' + (item.category || "-") + '</span></td>' +
-                        '<td class="p-3 font-bold text-blue-950">' + item.title + '</td>' +
+                        '<td class="p-3 font-bold text-blue-950">' +
+                            '<a href="javascript:void(0)" onclick="openContentViewer(\'' + item.id + '\')" class="text-blue-950 hover:text-blue-600 hover:underline inline-flex items-center gap-1.5 group cursor-pointer" title="คลิกเพื่อเปิดอ่านคู่มือนี้">' +
+                                '<span>' + item.title + '</span>' +
+                                '<span class="text-xs text-blue-500 opacity-60 group-hover:opacity-100 transition-opacity shrink-0">📖</span>' +
+                            '</a>' +
+                        '</td>' +
                         '<td class="p-3 text-center font-extrabold text-indigo-600">' + (item.views || 0).toLocaleString() + '</td>' +
                         '<td class="p-3 text-center">' +
-                            '<button onclick="openTopicHistoryModal(\'' + item.id + '\', \'' + safeTitle + '\', \'' + safeCat + '\', ' + (item.views || 0) + ')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 font-extrabold px-3 py-1.5 rounded-xl text-xs shadow-xs active:scale-95 transition-all flex items-center gap-1 mx-auto">👁️ ประวัติ</button>' +
+                            '<div class="flex items-center justify-center gap-1.5">' +
+                                '<button onclick="openContentViewer(\'' + item.id + '\')" class="bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-2.5 py-1.5 rounded-xl text-xs shadow-xs active:scale-95 transition-all flex items-center gap-1" title="เปิดอ่านคู่มือทันที">📖 เปิด</button>' +
+                                '<button onclick="openTopicHistoryModal(\'' + item.id + '\', \'' + safeTitle + '\', \'' + safeCat + '\', ' + (item.views || 0) + ')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 font-extrabold px-2.5 py-1.5 rounded-xl text-xs shadow-xs active:scale-95 transition-all flex items-center gap-1" title="ดูประวัติการเข้าศึกษา">👁️ ประวัติ</button>' +
+                            '</div>' +
                         '</td>' +
                     '</tr>';
                 }
@@ -9345,15 +9389,20 @@ function renderRecommendPage() {
                     var safeCat = (item.category || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
 
                     mobileList.innerHTML += '<div class="bg-gray-50 p-3.5 rounded-2xl border border-gray-200 flex items-center justify-between gap-3 shadow-xs">' +
-                        '<div class="flex items-center gap-3 min-w-0">' +
+                        '<div class="flex items-center gap-3 min-w-0 flex-1">' +
                             '<div class="shrink-0 text-xl font-bold">' + rankBadge + '</div>' +
-                            '<div class="min-w-0">' +
+                            '<div class="min-w-0 flex-1">' +
                                 '<span class="inline-block bg-blue-50 text-blue-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-blue-100">' + (item.category || "-") + '</span>' +
-                                '<h4 class="text-sm font-bold text-blue-950 mt-0.5 truncate">' + item.title + '</h4>' +
+                                '<h4 class="text-sm font-bold text-blue-950 mt-0.5 truncate">' +
+                                    '<a href="javascript:void(0)" onclick="openContentViewer(\'' + item.id + '\')" class="hover:text-blue-600 hover:underline cursor-pointer" title="คลิกเพื่อเปิดอ่าน">' + item.title + '</a>' +
+                                '</h4>' +
                                 '<span class="text-xs text-gray-500 font-semibold block mt-0.5">เข้าชม ' + (item.views || 0).toLocaleString() + ' ครั้ง</span>' +
                             '</div>' +
                         '</div>' +
-                        '<button onclick="openTopicHistoryModal(\'' + item.id + '\', \'' + safeTitle + '\', \'' + safeCat + '\', ' + (item.views || 0) + ')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 font-extrabold px-3 py-2 rounded-xl text-xs shadow-xs active:scale-95 shrink-0 flex items-center gap-1">👁️ ประวัติ</button>' +
+                        '<div class="flex items-center gap-1.5 shrink-0">' +
+                            '<button onclick="openContentViewer(\'' + item.id + '\')" class="bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-2 py-1.5 rounded-xl text-xs shadow-xs active:scale-95 transition-all flex items-center gap-0.5" title="เปิดอ่านคู่มือ">📖 เปิด</button>' +
+                            '<button onclick="openTopicHistoryModal(\'' + item.id + '\', \'' + safeTitle + '\', \'' + safeCat + '\', ' + (item.views || 0) + ')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 font-extrabold px-2 py-1.5 rounded-xl text-xs shadow-xs active:scale-95 transition-all flex items-center gap-0.5" title="ดูประวัติ">👁️ ประวัติ</button>' +
+                        '</div>' +
                     '</div>';
                 }
             }
