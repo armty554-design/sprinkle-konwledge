@@ -1797,6 +1797,39 @@
                         </div>
                     </div>
 
+                    <!-- แถวการจัดเรียง วันที่ประกาศจริง และการปักหมุด (Ordering, Date & Pin Settings) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-gradient-to-r from-blue-50/70 to-indigo-50/50 border border-blue-200 rounded-2xl">
+                        <!-- 1. วันที่ของประกาศจริง -->
+                        <div>
+                            <label class="block text-xs font-extrabold text-blue-950 mb-1">
+                                📅 วันที่ของประกาศจริง
+                            </label>
+                            <input type="date" id="annEffectiveDateInput" class="w-full p-2.5 border border-blue-250 rounded-xl bg-white font-bold text-xs text-gray-800 outline-none focus:ring-2 focus:ring-blue-400">
+                            <span class="text-[10px] text-gray-500 font-semibold block mt-0.5">ระบุย้อนหลังได้สำหรับข้อมูลเดิม</span>
+                        </div>
+
+                        <!-- 2. ลำดับการแสดงผล -->
+                        <div>
+                            <label class="block text-xs font-extrabold text-blue-950 mb-1">
+                                🔢 ลำดับการแสดงผล (Order No.)
+                            </label>
+                            <input type="number" id="annDisplayOrderInput" min="1" placeholder="เช่น 1, 2, 3... (ว่างไว้ = อัตโนมัติ)" class="w-full p-2.5 border border-blue-250 rounded-xl bg-white font-bold text-xs text-gray-800 outline-none focus:ring-2 focus:ring-blue-400">
+                            <span class="text-[10px] text-gray-500 font-semibold block mt-0.5">เลข 1 จะอยู่บนสุดตามด้วย 2, 3...</span>
+                        </div>
+
+                        <!-- 3. ปักหมุดประกาศสำคัญ -->
+                        <div class="flex flex-col justify-center">
+                            <label class="block text-xs font-extrabold text-blue-950 mb-1">
+                                📌 การเน้นประกาศ
+                            </label>
+                            <label class="inline-flex items-center gap-2 p-2 bg-white border border-blue-250 rounded-xl cursor-pointer select-none hover:bg-indigo-50/60 transition-colors">
+                                <input type="checkbox" id="annIsPinnedInput" class="w-4 h-4 text-indigo-600 rounded">
+                                <span class="text-xs font-extrabold text-indigo-900">📌 ปักหมุดไว้บนสุด</span>
+                            </label>
+                            <span class="text-[10px] text-indigo-700 font-semibold block mt-0.5">แสดงเด่นด้านบนสุดเสมอ</span>
+                        </div>
+                    </div>
+
                     <!-- แถวที่ 2: เนื้อหาประกาศ -->
                     <div>
                         <label class="block text-xs sm:text-sm font-extrabold text-gray-800 mb-1.5">
@@ -2003,6 +2036,7 @@
                     <table class="w-full text-left border-collapse text-sm">
                         <thead>
                             <tr class="bg-gray-50 text-gray-700 text-xs font-extrabold uppercase border-b border-gray-200">
+                                <th class="p-3.5 border-b text-center w-24">ลำดับ / หมุด</th>
                                 <th class="p-3.5 border-b w-28">วันที่</th>
                                 <th class="p-3.5 border-b min-w-[200px]">หัวข้อและรายละเอียด</th>
                                 <th class="p-3.5 border-b text-center w-32">กลุ่มเป้าหมาย</th>
@@ -2810,7 +2844,8 @@
                                 'schedulePushNotification', 'registerPushToken', 'removePushToken',
                                 'deactivatePushToken', 'saveUserPermissions', 'updateMemberStatus',
                                 'updateMemberRole', 'deleteMember', 'saveAdminData', 'saveAnnouncementData',
-                                'submitQuestion', 'submitAnswer', 'submitRegistration', 'changePassword'
+                                'submitQuestion', 'submitAnswer', 'submitRegistration', 'changePassword',
+                                'updateAnnouncementOrder', 'reorderAnnouncements', 'toggleAnnouncementPin', 'toggleAnnouncementStatus'
                             ];
                             var canRetry = mutatingFunctions.indexOf(propKey) === -1;
                             
@@ -2986,10 +3021,21 @@
             });
         }
 
-        // จัดเรียงประกาศจากใหม่ล่าสุดไปเก่าสุดเสมอ (Newest First)
+        // จัดเรียงประกาศ: ปักหมุดอันดับแรก -> ลำดับที่แอดมินกำหนด (1, 2, 3...) -> วันที่ประกาศจริง (Newest First)
         function sortAnnouncementsLatestFirst(list) {
             if (!list || !Array.isArray(list)) return list;
             return list.sort(function(a, b) {
+                // 1. ปักหมุดมาก่อน
+                var pinA = (a.isPinned === true || a.isPinned === "true" || a.isPinned === "TRUE") ? 1 : 0;
+                var pinB = (b.isPinned === true || b.isPinned === "true" || b.isPinned === "TRUE") ? 1 : 0;
+                if (pinB !== pinA) return pinB - pinA;
+
+                // 2. ลำดับที่กำหนดเอง (1, 2, 3...)
+                var orderA = (a.displayOrder && parseInt(a.displayOrder, 10) > 0) ? parseInt(a.displayOrder, 10) : 999999;
+                var orderB = (b.displayOrder && parseInt(b.displayOrder, 10) > 0) ? parseInt(b.displayOrder, 10) : 999999;
+                if (orderA !== orderB) return orderA - orderB;
+
+                // 3. วันที่ประกาศจริง (ใหม่สุดไปเก่าสุด)
                 var timeA = 0;
                 if (a.date) {
                     var dA = new Date(a.date);
@@ -7953,6 +7999,10 @@ function toggleAnnForm(show) {
         if (titleEl && !editingAnnId) {
             titleEl.innerText = "สร้างประกาศข่าวสารใหม่";
         }
+        var effInput = document.getElementById('annEffectiveDateInput');
+        if (effInput && !effInput.value) {
+            effInput.value = new Date().toISOString().substring(0, 10);
+        }
         var firstInput = document.getElementById('annTitleInput');
         if (firstInput) firstInput.focus();
     } else {
@@ -8034,7 +8084,7 @@ function renderAnnouncementsOnHomepage() {
         return isAudienceMatch(ann.targetAudience);
     });
     
-    // จัดเรียงประกาศจากใหม่ล่าสุดไปเก่าสุดเสมอ (Newest First)
+    // จัดเรียงประกาศ: ปักหมุดอันดับแรก -> ลำดับที่แอดมินกำหนด -> วันที่ประกาศจริง (Newest First)
     activeAnnouncements = sortAnnouncementsLatestFirst(activeAnnouncements);
     
     if (activeAnnouncements.length === 0) {
@@ -8045,19 +8095,49 @@ function renderAnnouncementsOnHomepage() {
     for (var i = 0; i < activeAnnouncements.length; i++) {
         var ann = activeAnnouncements[i];
         
-        // 1. ตรวจสอบสื่อสำหรับแสดงพรีวิวบนการ์ด (เฉพาะภาพสถิตหรือหน้าปก)
+        // 1. ตรวจสอบสถานะ ปักหมุด และ ความใหม่ของประกาศ (เงื่อนไข 7 วันตามที่กำหนด)
+        var isPin = (ann.isPinned === true || ann.isPinned === "true" || ann.isPinned === "TRUE");
+        var isNew = false;
+        var isHistorical = false;
+        if (ann.date) {
+            var annDateMs = new Date(ann.date).getTime();
+            if (!isNaN(annDateMs)) {
+                var diffDays = (Date.now() - annDateMs) / (1000 * 60 * 60 * 24);
+                if (diffDays >= -1 && diffDays <= 7) {
+                    isNew = true;
+                } else if (diffDays > 30) {
+                    isHistorical = true;
+                }
+            }
+        }
+
+        var badgeHtml = '';
+        if (isPin) {
+            badgeHtml += '<span class="bg-indigo-600 text-white text-[11px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs shrink-0">📌 ปักหมุดสำคัญ</span>';
+        }
+        if (isNew) {
+            badgeHtml += '<span class="bg-emerald-600 text-white text-[11px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs shrink-0 animate-pulse">✨ ใหม่ (NEW)</span>';
+        } else if (isHistorical) {
+            badgeHtml += '<span class="bg-gray-100 text-gray-600 text-[11px] font-bold px-2 py-0.5 rounded-full border border-gray-250 shrink-0">📁 ข้อมูลย้อนหลัง</span>';
+        }
+
+        var cardClass = isPin 
+            ? 'bg-gradient-to-b from-indigo-50/40 via-white to-white rounded-3xl overflow-hidden shadow-md border-2 border-indigo-400 flex flex-col hover:shadow-xl transition-all duration-300 relative'
+            : 'bg-white rounded-3xl overflow-hidden shadow-md border border-gray-150 flex flex-col hover:shadow-lg transition-all duration-300';
+
+        // 2. ตรวจสอบสื่อสำหรับแสดงพรีวิวบนการ์ด (เฉพาะภาพสถิตหรือหน้าปก)
         var cardMediaHtml = getAnnouncementCardImage(ann);
         var mediaHtml = '<div class="w-full aspect-video bg-gray-100 overflow-hidden relative border-b border-gray-150 rounded-t-3xl shrink-0 flex items-center justify-center">' +
             cardMediaHtml +
         '</div>';
         
-        // 2. ตัดย่อคำของเนื้อหาประกาศเพื่อแสดงเป็นพรีวิว
+        // 3. ตัดย่อคำของเนื้อหาประกาศเพื่อแสดงเป็นพรีวิว
         var maxLen = 120;
         var cleanContent = ann.content ? ann.content.toString() : "";
         var isTruncated = cleanContent.length > maxLen;
         var previewContent = isTruncated ? cleanContent.substring(0, maxLen) + "..." : cleanContent;
         
-        // 3. ปรับแต่งปุ่มลิงก์ภายนอกบนการ์ด (ไม่ซ้ำซ้อนกับลิงก์ Canva/PDF)
+        // 4. ปรับแต่งปุ่มลิงก์ภายนอกบนการ์ด (ไม่ซ้ำซ้อนกับลิงก์ Canva/PDF)
         var linkHtml = "";
         if (ann.linkUrl && !getCanvaEmbedUrl(ann.linkUrl) && !isPdfUrl(ann.linkUrl)) {
             linkHtml = '<a href="' + ann.linkUrl + '" target="_blank" onclick="event.stopPropagation();" class="shrink-0 bg-green-50 hover:bg-green-100 text-green-700 py-2.5 px-4 rounded-xl text-sm font-extrabold transition-all border border-green-200 flex items-center justify-center gap-1 shadow-sm">' +
@@ -8065,12 +8145,15 @@ function renderAnnouncementsOnHomepage() {
             '</a>';
         }
         
-        // 4. ประกอบการ์ดพรีวิวเข้ากริด
-        container.innerHTML += '<div class="bg-white rounded-3xl overflow-hidden shadow-md border border-gray-150 flex flex-col hover:shadow-lg transition-all duration-300">' +
+        // 5. ประกอบการ์ดพรีวิวเข้ากริด
+        container.innerHTML += '<div class="' + cardClass + '">' +
             mediaHtml +
             '<div class="p-5 flex-1 flex flex-col justify-between gap-4">' +
                 '<div onclick="openAnnouncementModal(\'' + ann.id + '\')" class="cursor-pointer space-y-2 flex-1">' +
-                    '<span class="text-xs text-blue-600 font-bold block">📅 ' + formatThaiDate(ann.date) + '</span>' +
+                    '<div class="flex items-center justify-between gap-2 flex-wrap">' +
+                        '<span class="text-xs text-blue-600 font-bold block">📅 ' + formatThaiDate(ann.date) + '</span>' +
+                        '<div class="flex items-center gap-1.5 flex-wrap">' + badgeHtml + '</div>' +
+                    '</div>' +
                     '<h3 class="text-xl font-extrabold text-blue-950 line-clamp-2 leading-tight hover:text-blue-600 transition-colors">' + ann.title + '</h3>' +
                     '<p class="text-sm text-gray-500 leading-relaxed font-semibold line-clamp-3 whitespace-pre-line">' + previewContent + '</p>' +
                 '</div>' +
@@ -8104,7 +8187,7 @@ function renderAdminAnnouncementsList() {
     updateAnnouncementKPIs();
     
     if (!allAnnouncementsData || allAnnouncementsData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-gray-500 font-semibold">ยังไม่มีรายการประกาศข่าวสารในระบบ</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-gray-500 font-semibold">ยังไม่มีรายการประกาศข่าวสารในระบบ</td></tr>';
         var pagEl = document.getElementById('adminAnnouncementsPagination');
         if (pagEl) pagEl.innerHTML = '';
         var badgeEl = document.getElementById('annFilteredCountBadge');
@@ -8138,13 +8221,13 @@ function renderAdminAnnouncementsList() {
     if (badgeCount) badgeCount.innerText = filtered.length + ' รายการ';
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-gray-500 font-semibold">ไม่พบรายการประกาศที่ตรงกับเงื่อนไขการค้นหา</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-gray-500 font-semibold">ไม่พบรายการประกาศที่ตรงกับเงื่อนไขการค้นหา</td></tr>';
         var pagEl2 = document.getElementById('adminAnnouncementsPagination');
         if (pagEl2) pagEl2.innerHTML = '';
         return;
     }
 
-    // จัดเรียงประกาศจากใหม่ล่าสุดไปเก่าสุดเสมอ
+    // จัดเรียงประกาศ: ปักหมุดอันดับแรก -> ลำดับที่แอดมินกำหนด -> วันที่ประกาศจริง (Newest First)
     var sortedAnnouncements = sortAnnouncementsLatestFirst(filtered.slice());
     
     var itemsPerPage = 8;
@@ -8161,6 +8244,20 @@ function renderAdminAnnouncementsList() {
         var statusChecked = isStatusOn ? 'checked' : '';
         var imgHtml = ann.imageUrl ? '<a href="' + ann.imageUrl + '" target="_blank" class="text-blue-600 hover:text-blue-800 font-extrabold text-xs underline">ดูไฟล์</a>' : '<span class="text-gray-400 text-xs">-</span>';
         
+        var isPin = (ann.isPinned === true || ann.isPinned === "true" || ann.isPinned === "TRUE");
+        var pinBtnClass = isPin ? "bg-indigo-600 text-white shadow-xs" : "bg-gray-100 text-gray-400 hover:text-indigo-600 hover:bg-gray-200";
+        var pinTitle = isPin ? "ยกเลิกปักหมุด" : "ปักหมุดไว้บนสุด";
+        var orderNum = (ann.displayOrder && ann.displayOrder > 0) ? ann.displayOrder : (i + 1);
+
+        var orderControls = '<div class="flex items-center justify-center gap-1.5">' +
+            '<div class="flex flex-col gap-0.5">' +
+                '<button type="button" onclick="moveAnnUp(\'' + ann.id + '\')" class="w-5 h-4 flex items-center justify-center bg-gray-100 hover:bg-blue-600 hover:text-white rounded text-[9px] font-black transition-colors cursor-pointer" title="เลื่อนขึ้น">▲</button>' +
+                '<button type="button" onclick="moveAnnDown(\'' + ann.id + '\')" class="w-5 h-4 flex items-center justify-center bg-gray-100 hover:bg-blue-600 hover:text-white rounded text-[9px] font-black transition-colors cursor-pointer" title="เลื่อนลง">▼</button>' +
+            '</div>' +
+            '<span class="font-extrabold text-xs ' + (isPin ? 'text-indigo-600' : 'text-gray-700') + '">' + orderNum + '</span>' +
+            '<button type="button" onclick="toggleAnnPin(\'' + ann.id + '\', ' + (!isPin) + ')" class="p-1 rounded-md text-xs font-bold transition-all cursor-pointer ' + pinBtnClass + '" title="' + pinTitle + '">📌</button>' +
+        '</div>';
+
         var aud = ann.targetAudience || 'ทั้งหมด';
         var audienceBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700">🌐 ทั้งหมด</span>';
         if (aud.indexOf('พนักงาน') !== -1 && (aud.indexOf('ผู้ประกอบการ') !== -1 || aud.indexOf('พี่สปริงเคิล') !== -1)) {
@@ -8199,6 +8296,7 @@ function renderAdminAnnouncementsList() {
             '<button type="button" onclick="closeAnnImmediately(\'' + ann.id + '\', \'' + safeTitle + '\')" class="bg-amber-50 hover:bg-amber-600 text-amber-800 hover:text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all border border-amber-300 cursor-pointer" title="ตัดเวลาปิดและซ่อนจากหน้าแรกทันที">⏱️ ตัดเวลาปิด</button>' : '';
 
         tbody.innerHTML += '<tr class="border-b border-gray-150 hover:bg-gray-50/80 transition-colors">' +
+            '<td class="p-3.5 text-center">' + orderControls + '</td>' +
             '<td class="p-3.5 text-xs font-semibold text-gray-650">' + formatThaiDate(ann.date) + '</td>' +
             '<td class="p-3.5">' +
                 '<div class="font-extrabold text-sm text-gray-900 leading-snug hover:text-blue-600 transition-colors cursor-pointer" onclick="openAnnouncementModal(\'' + ann.id + '\')">' + ann.title + '</div>' +
@@ -8247,6 +8345,72 @@ function deleteAnn(id) {
             loadData();
         }).deleteAnnouncement(id);
     }
+}
+
+function toggleAnnPin(id, isPinned) {
+    showLoading("กำลังปรับเปลี่ยนสถานะปักหมุด...");
+    var item = allAnnouncementsData.find(function(a) { return a.id == id; });
+    if (item) item.isPinned = isPinned;
+    renderAdminAnnouncementsList();
+    renderAnnouncementsOnHomepage();
+
+    google.script.run.withSuccessHandler(function(response) {
+        hideLoading();
+        loadData();
+    }).withFailureHandler(function(err) {
+        hideLoading();
+        alert("เกิดข้อผิดพลาดในการปักหมุด: " + err.toString());
+        loadData();
+    }).toggleAnnouncementPin(id, isPinned);
+}
+
+function moveAnnUp(id) {
+    var list = sortAnnouncementsLatestFirst(allAnnouncementsData.slice());
+    var idx = -1;
+    for (var i = 0; i < list.length; i++) {
+        if (list[i].id == id) {
+            idx = i;
+            break;
+        }
+    }
+    if (idx <= 0) return;
+    var temp = list[idx];
+    list[idx] = list[idx - 1];
+    list[idx - 1] = temp;
+    saveNewAnnOrder(list);
+}
+
+function moveAnnDown(id) {
+    var list = sortAnnouncementsLatestFirst(allAnnouncementsData.slice());
+    var idx = -1;
+    for (var i = 0; i < list.length; i++) {
+        if (list[i].id == id) {
+            idx = i;
+            break;
+        }
+    }
+    if (idx === -1 || idx >= list.length - 1) return;
+    var temp = list[idx];
+    list[idx] = list[idx + 1];
+    list[idx + 1] = temp;
+    saveNewAnnOrder(list);
+}
+
+function saveNewAnnOrder(orderedList) {
+    var orderedIds = orderedList.map(function(item) { return item.id; });
+    for (var i = 0; i < orderedList.length; i++) {
+        orderedList[i].displayOrder = i + 1;
+        var originalItem = allAnnouncementsData.find(function(a) { return a.id == orderedList[i].id; });
+        if (originalItem) originalItem.displayOrder = i + 1;
+    }
+    renderAdminAnnouncementsList();
+    renderAnnouncementsOnHomepage();
+    
+    google.script.run.withSuccessHandler(function(msg) {
+        console.log("บันทึกลำดับประกาศเรียบร้อย:", msg);
+    }).withFailureHandler(function(err) {
+        console.error("เกิดข้อผิดพลาดในการบันทึกลำดับประกาศ:", err);
+    }).reorderAnnouncements(orderedIds);
 }
 
 function changeAnnFile() {
@@ -8338,6 +8502,14 @@ function saveAnnouncementData() {
     var isAutoClose = autoCloseToggle ? autoCloseToggle.checked : false;
     var autoCloseTime = isAutoClose && document.getElementById('annAutoCloseTime') ? document.getElementById('annAutoCloseTime').value.trim() : "";
 
+    // รวบรวมข้อมูลวันที่ประกาศจริง ลำดับการแสดงผล และการปักหมุด
+    var effectiveDateInput = document.getElementById('annEffectiveDateInput');
+    var effectiveDate = effectiveDateInput ? effectiveDateInput.value.trim() : "";
+    var orderInput = document.getElementById('annDisplayOrderInput');
+    var displayOrder = (orderInput && orderInput.value.trim() !== "") ? parseInt(orderInput.value.trim(), 10) : 0;
+    var pinInput = document.getElementById('annIsPinnedInput');
+    var isPinned = pinInput ? pinInput.checked : false;
+
     // รวบรวมข้อมูล Push Notification ตัวเลือก
     var sendPush = document.getElementById('annPushToggle') ? document.getElementById('annPushToggle').checked : false;
     var pushTimingEl = document.querySelector('input[name="annPushTiming"]:checked');
@@ -8411,7 +8583,7 @@ function saveAnnouncementData() {
             setSaveAnnouncementBtnState(false);
             hideLoading();
             alert("เกิดข้อผิดพลาดในการแก้ไขประกาศ: " + err.toString());
-        }).updateAnnouncement(editingAnnId, title, content, imageUrl, linkUrl, targetAudience, autoCloseTime);
+        }).updateAnnouncement(editingAnnId, title, content, imageUrl, linkUrl, targetAudience, autoCloseTime, effectiveDate, displayOrder, isPinned);
     } else {
         showLoading("กำลังบันทึกประกาศข่าวสาร...");
         google.script.run.withSuccessHandler(function(msg) {
@@ -8448,6 +8620,9 @@ function saveAnnouncementData() {
             document.getElementById('annTitleInput').value = "";
             document.getElementById('annContentInput').value = "";
             document.getElementById('annUploadedImageUrl').value = "";
+            if (document.getElementById('annEffectiveDateInput')) document.getElementById('annEffectiveDateInput').value = new Date().toISOString().substring(0, 10);
+            if (document.getElementById('annDisplayOrderInput')) document.getElementById('annDisplayOrderInput').value = "";
+            if (document.getElementById('annIsPinnedInput')) document.getElementById('annIsPinnedInput').checked = false;
             if (document.getElementById('annAudienceEmp')) document.getElementById('annAudienceEmp').checked = true;
             if (document.getElementById('annAudienceOp')) document.getElementById('annAudienceOp').checked = true;
             if (document.getElementById('annPushToggle')) document.getElementById('annPushToggle').checked = true;
@@ -8471,7 +8646,7 @@ function saveAnnouncementData() {
             setSaveAnnouncementBtnState(false);
             hideLoading();
             alert("เกิดข้อผิดพลาดในการบันทึกประกาศ: " + err.toString());
-        }).addAnnouncement(title, content, imageUrl, currentUser.name, linkUrl, targetAudience, autoCloseTime);
+        }).addAnnouncement(title, content, imageUrl, currentUser.name, linkUrl, targetAudience, autoCloseTime, effectiveDate, displayOrder, isPinned, !sendPush);
     }
 }
 
@@ -10177,7 +10352,26 @@ function openAnnouncementModal(id) {
         };
     }
 
-    document.getElementById('annModalDate').innerText = "📅 " + formatThaiDate(ann.date);
+    var dateEl = document.getElementById('annModalDate');
+    if (dateEl) {
+        var isPin = (ann.isPinned === true || ann.isPinned === "true" || ann.isPinned === "TRUE");
+        var isNew = false;
+        var isHistorical = false;
+        if (ann.date) {
+            var annDateMs = new Date(ann.date).getTime();
+            if (!isNaN(annDateMs)) {
+                var diffDays = (Date.now() - annDateMs) / (1000 * 60 * 60 * 24);
+                if (diffDays >= -1 && diffDays <= 7) isNew = true;
+                else if (diffDays > 30) isHistorical = true;
+            }
+        }
+        var mBadge = '';
+        if (isPin) mBadge += '<span class="bg-indigo-600 text-white text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ml-2">📌 ปักหมุดสำคัญ</span>';
+        if (isNew) mBadge += '<span class="bg-emerald-600 text-white text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ml-2">✨ ใหม่ (NEW)</span>';
+        else if (isHistorical) mBadge += '<span class="bg-gray-100 text-gray-600 text-[11px] font-bold px-2 py-0.5 rounded-full ml-2 border border-gray-250">📁 ข้อมูลย้อนหลัง</span>';
+        
+        dateEl.innerHTML = '<span class="inline-flex items-center gap-1 flex-wrap"><span>📅 วันที่ประกาศ: ' + formatThaiDate(ann.date) + '</span>' + mBadge + '</span>';
+    }
     document.getElementById('annModalTitle').innerText = ann.title;
     document.getElementById('annModalContent').innerText = ann.content;
     
@@ -10484,6 +10678,36 @@ function editAnn(index) {
     document.getElementById('annTitleInput').value = ann.title;
     document.getElementById('annContentInput').value = ann.content;
     document.getElementById('annUploadedImageUrl').value = ann.imageUrl || "";
+
+    // เติมวันที่ประกาศจริง
+    var dateInput = document.getElementById('annEffectiveDateInput');
+    if (dateInput) {
+        if (ann.date) {
+            var dObj = new Date(ann.date);
+            if (!isNaN(dObj.getTime())) {
+                var y = dObj.getFullYear();
+                var m = String(dObj.getMonth() + 1).padStart(2, '0');
+                var dt = String(dObj.getDate()).padStart(2, '0');
+                dateInput.value = y + '-' + m + '-' + dt;
+            } else {
+                dateInput.value = ann.date.toString().substring(0, 10);
+            }
+        } else {
+            dateInput.value = "";
+        }
+    }
+
+    // เติมลำดับการแสดงผล
+    var orderInput = document.getElementById('annDisplayOrderInput');
+    if (orderInput) {
+        orderInput.value = (ann.displayOrder && ann.displayOrder > 0) ? ann.displayOrder : "";
+    }
+
+    // เติมปักหมุด
+    var pinInput = document.getElementById('annIsPinnedInput');
+    if (pinInput) {
+        pinInput.checked = (ann.isPinned === true || ann.isPinned === "true" || ann.isPinned === "TRUE");
+    }
     
     // เติมกลุ่มเป้าหมาย (Audience)
     var aud = ann.targetAudience || "ทั้งหมด";
@@ -10568,6 +10792,15 @@ function cancelAnnEdit() {
     document.getElementById('annTitleInput').value = "";
     document.getElementById('annContentInput').value = "";
     document.getElementById('annUploadedImageUrl').value = "";
+    if (document.getElementById('annEffectiveDateInput')) {
+        document.getElementById('annEffectiveDateInput').value = new Date().toISOString().substring(0, 10);
+    }
+    if (document.getElementById('annDisplayOrderInput')) {
+        document.getElementById('annDisplayOrderInput').value = "";
+    }
+    if (document.getElementById('annIsPinnedInput')) {
+        document.getElementById('annIsPinnedInput').checked = false;
+    }
     if (document.getElementById('annAudienceEmp')) {
         document.getElementById('annAudienceEmp').checked = true;
     }

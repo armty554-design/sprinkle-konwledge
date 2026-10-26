@@ -603,7 +603,7 @@ function getAnnouncements() {
     var rows = sheet.getDataRange().getValues();
     var data = [];
     
-    // ตรวจสอบคอลัมน์ H (ลิงก์เชื่อมโยง), I (กลุ่มเป้าหมาย), J (วันเวลาปิดอัตโนมัติ)
+    // ตรวจสอบคอลัมน์ H (ลิงก์เชื่อมโยง), I (กลุ่มเป้าหมาย), J (วันเวลาปิดอัตโนมัติ), K (ลำดับแสดงผล), L (ปักหมุด)
     if (sheet.getLastColumn() < 8) {
       sheet.getRange(1, 8).setValue("ลิงก์เชื่อมโยง");
     }
@@ -612,6 +612,12 @@ function getAnnouncements() {
     }
     if (sheet.getLastColumn() < 10) {
       sheet.getRange(1, 10).setValue("วันเวลาปิดอัตโนมัติ (Auto Close)");
+    }
+    if (sheet.getLastColumn() < 11) {
+      sheet.getRange(1, 11).setValue("ลำดับการแสดงผล (Display Order)");
+    }
+    if (sheet.getLastColumn() < 12) {
+      sheet.getRange(1, 12).setValue("ปักหมุด (isPinned)");
     }
     
     for (var i = 1; i < rows.length; i++) {
@@ -632,6 +638,12 @@ function getAnnouncements() {
         } else if (rawAutoClose) {
           autoCloseDate = rawAutoClose.toString().trim();
         }
+
+        var rawOrder = (rows[i].length > 10 && rows[i][10] !== undefined && rows[i][10] !== null && rows[i][10].toString().trim() !== "") ? parseInt(rows[i][10], 10) : 0;
+        var displayOrder = isNaN(rawOrder) ? 0 : rawOrder;
+        var rawPin = (rows[i].length > 11 && rows[i][11] !== undefined && rows[i][11] !== null) ? rows[i][11] : false;
+        var isPinned = (rawPin === true || rawPin.toString().trim().toUpperCase() === "TRUE" || rawPin.toString().trim() === "ปักหมุด");
+
         data.push({
           id: rows[i][0],
           title: rows[i][1] ? rows[i][1].toString().trim() : "",
@@ -642,20 +654,30 @@ function getAnnouncements() {
           createdBy: rows[i][6] ? rows[i][6].toString().trim() : "",
           linkUrl: rows[i][7] ? rows[i][7].toString().trim() : "",
           targetAudience: targetAudience,
-          autoCloseDate: autoCloseDate
+          autoCloseDate: autoCloseDate,
+          displayOrder: displayOrder,
+          isPinned: isPinned
         });
       }
     }
     
-    // จัดเรียงประกาศจากใหม่ล่าสุดไปเก่าสุดเสมอ (Newest First)
+    // จัดเรียงประกาศ: ปักหมุดอันดับแรก -> เรียงตามลำดับที่กำหนด (displayOrder 1, 2, 3...) -> เรียงตามวันที่ (Newest First)
     data.sort(function(a, b) {
+      var pinA = a.isPinned ? 1 : 0;
+      var pinB = b.isPinned ? 1 : 0;
+      if (pinB !== pinA) return pinB - pinA;
+
+      var orderA = (a.displayOrder && a.displayOrder > 0) ? a.displayOrder : 999999;
+      var orderB = (b.displayOrder && b.displayOrder > 0) ? b.displayOrder : 999999;
+      if (orderA !== orderB) return orderA - orderB;
+
       var timeA = a.date ? new Date(a.date).getTime() : 0;
       if (!timeA && a.id && a.id.toString().indexOf("ann_") === 0) {
-        timeA = parseInt(a.id.toString().replace("ann_", "")) || 0;
+        timeA = parseInt(a.id.toString().replace("ann_", ""), 10) || 0;
       }
       var timeB = b.date ? new Date(b.date).getTime() : 0;
       if (!timeB && b.id && b.id.toString().indexOf("ann_") === 0) {
-        timeB = parseInt(b.id.toString().replace("ann_", "")) || 0;
+        timeB = parseInt(b.id.toString().replace("ann_", ""), 10) || 0;
       }
       return timeB - timeA;
     });
@@ -667,7 +689,7 @@ function getAnnouncements() {
 }
 
 // 13. เพิ่มประกาศข่าวสารหน้าแรก (แอดมิน)
-function addAnnouncement(title, content, imageUrl, createdBy, linkUrl, targetAudience, autoCloseDate) {
+function addAnnouncement(title, content, imageUrl, createdBy, linkUrl, targetAudience, autoCloseDate, announcementDate, displayOrder, isPinned, skipNotification) {
   var lock = null;
   var hasLock = false;
   try {
@@ -682,8 +704,8 @@ function addAnnouncement(title, content, imageUrl, createdBy, linkUrl, targetAud
     var sheet = ss.getSheetByName("Announcements");
     if (!sheet) {
       sheet = ss.insertSheet("Announcements");
-      sheet.appendRow(["รหัสประกาศ", "หัวข้อประกาศ", "เนื้อหาประกาศ", "ลิงก์รูปภาพประกอบ", "วันที่ประกาศ", "สถานะการแสดงผล", "ผู้สร้างประกาศ", "ลิงก์เชื่อมโยง", "กลุ่มเป้าหมาย (Audience)", "วันเวลาปิดอัตโนมัติ (Auto Close)"]);
-      sheet.getRange("A1:J1").setFontWeight("bold").setBackground("#F1F5F9");
+      sheet.appendRow(["รหัสประกาศ", "หัวข้อประกาศ", "เนื้อหาประกาศ", "ลิงก์รูปภาพประกอบ", "วันที่ประกาศ", "สถานะการแสดงผล", "ผู้สร้างประกาศ", "ลิงก์เชื่อมโยง", "กลุ่มเป้าหมาย (Audience)", "วันเวลาปิดอัตโนมัติ (Auto Close)", "ลำดับการแสดงผล (Display Order)", "ปักหมุด (isPinned)"]);
+      sheet.getRange("A1:L1").setFontWeight("bold").setBackground("#F1F5F9");
     }
     
     if (sheet.getLastColumn() < 8) {
@@ -694,6 +716,12 @@ function addAnnouncement(title, content, imageUrl, createdBy, linkUrl, targetAud
     }
     if (sheet.getLastColumn() < 10) {
       sheet.getRange(1, 10).setValue("วันเวลาปิดอัตโนมัติ (Auto Close)");
+    }
+    if (sheet.getLastColumn() < 11) {
+      sheet.getRange(1, 11).setValue("ลำดับการแสดงผล (Display Order)");
+    }
+    if (sheet.getLastColumn() < 12) {
+      sheet.getRange(1, 12).setValue("ปักหมุด (isPinned)");
     }
 
     var lastRow = sheet.getLastRow();
@@ -724,16 +752,36 @@ function addAnnouncement(title, content, imageUrl, createdBy, linkUrl, targetAud
     }
     
     var newId = "ann_" + new Date().getTime();
-    var formattedDate = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd HH:mm:ss");
+    var formattedDate = "";
+    if (announcementDate && announcementDate.toString().trim() !== "") {
+      try {
+        var d = new Date(announcementDate);
+        if (!isNaN(d.getTime())) {
+          formattedDate = Utilities.formatDate(d, "GMT+7", "yyyy-MM-dd HH:mm:ss");
+        } else {
+          formattedDate = announcementDate.toString().trim();
+        }
+      } catch (eDate) {
+        formattedDate = announcementDate.toString().trim();
+      }
+    }
+    if (!formattedDate) {
+      formattedDate = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd HH:mm:ss");
+    }
+
     var audience = targetAudience || "ทั้งหมด";
+    var orderVal = parseInt(displayOrder, 10) || 0;
+    var pinVal = (isPinned === true || isPinned === "true" || isPinned === "TRUE") ? true : false;
     
-    sheet.appendRow([newId, title, content, imageUrl || "", formattedDate, "เปิดใช้งาน", createdBy || "แอดมิน", linkUrl || "", audience, autoCloseDate || ""]);
+    sheet.appendRow([newId, title, content, imageUrl || "", formattedDate, "เปิดใช้งาน", createdBy || "แอดมิน", linkUrl || "", audience, autoCloseDate || "", orderVal, pinVal]);
     
-    // ยิง Push Notification แจ้งเตือนเมื่อมีประกาศข่าวสารใหม่
-    try {
-      var summaryText = (content && content.length > 80) ? (content.substring(0, 80) + "...") : (content || "มีประกาศข่าวสารใหม่ในระบบ");
-      sendPushNotificationToFCM("📢 " + title, summaryText, "/", audience);
-    } catch(ePushAnn) {}
+    // ยิง Push Notification แจ้งเตือนเมื่อมีประกาศข่าวสารใหม่ (หากไม่เลือกข้ามแจ้งเตือน)
+    if (!skipNotification) {
+      try {
+        var summaryText = (content && content.length > 80) ? (content.substring(0, 80) + "...") : (content || "มีประกาศข่าวสารใหม่ในระบบ");
+        sendPushNotificationToFCM("📢 " + title, summaryText, "/", audience);
+      } catch(ePushAnn) {}
+    }
     
     return "บันทึกประกาศข่าวสารเรียบร้อยแล้ว!";
   } catch (error) {
@@ -1994,7 +2042,7 @@ function getBranchLoginStatistics() {
 }
 
 // แก้ไขประกาศข่าวสาร (สำหรับแอดมิน)
-function updateAnnouncement(id, title, content, imageUrl, linkUrl, targetAudience, autoCloseDate) {
+function updateAnnouncement(id, title, content, imageUrl, linkUrl, targetAudience, autoCloseDate, announcementDate, displayOrder, isPinned) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName("Announcements");
@@ -2006,6 +2054,12 @@ function updateAnnouncement(id, title, content, imageUrl, linkUrl, targetAudienc
     if (sheet.getLastColumn() < 10) {
       sheet.getRange(1, 10).setValue("วันเวลาปิดอัตโนมัติ (Auto Close)");
     }
+    if (sheet.getLastColumn() < 11) {
+      sheet.getRange(1, 11).setValue("ลำดับการแสดงผล (Display Order)");
+    }
+    if (sheet.getLastColumn() < 12) {
+      sheet.getRange(1, 12).setValue("ปักหมุด (isPinned)");
+    }
     
     var rows = sheet.getDataRange().getValues();
     var targetId = id.toString().trim();
@@ -2015,10 +2069,19 @@ function updateAnnouncement(id, title, content, imageUrl, linkUrl, targetAudienc
         sheet.getRange(i + 1, 2).setValue(title);     // คอลัมน์ B (หัวข้อ)
         sheet.getRange(i + 1, 3).setValue(content);   // คอลัมน์ C (เนื้อหา)
         sheet.getRange(i + 1, 4).setValue(imageUrl || "");  // คอลัมน์ D (ลิงก์รูปภาพ)
+        if (announcementDate && announcementDate.toString().trim() !== "") {
+          sheet.getRange(i + 1, 5).setValue(announcementDate.toString().trim()); // คอลัมน์ E (วันที่ประกาศ)
+        }
         sheet.getRange(i + 1, 8).setValue(linkUrl || "");   // คอลัมน์ H (ลิงก์เชื่อมโยง)
         sheet.getRange(i + 1, 9).setValue(targetAudience || "ทั้งหมด"); // คอลัมน์ I (กลุ่มเป้าหมาย)
-        if (autoCloseDate !== undefined) {
+        if (autoCloseDate !== undefined && autoCloseDate !== null) {
           sheet.getRange(i + 1, 10).setValue(autoCloseDate || ""); // คอลัมน์ J (วันเวลาปิดอัตโนมัติ)
+        }
+        if (displayOrder !== undefined && displayOrder !== null) {
+          sheet.getRange(i + 1, 11).setValue(parseInt(displayOrder, 10) || 0); // คอลัมน์ K (ลำดับการแสดงผล)
+        }
+        if (isPinned !== undefined && isPinned !== null) {
+          sheet.getRange(i + 1, 12).setValue((isPinned === true || isPinned === "true" || isPinned === "TRUE") ? true : false); // คอลัมน์ L (ปักหมุด)
         }
         return "แก้ไขประกาศเรียบร้อยแล้ว!";
       }
@@ -2026,6 +2089,77 @@ function updateAnnouncement(id, title, content, imageUrl, linkUrl, targetAudienc
     return "ไม่พบประกาศที่ต้องการแก้ไข";
   } catch (error) {
     return "เกิดข้อผิดพลาดในการแก้ไข: " + error.toString();
+  }
+}
+
+// อัปเดตลำดับการแสดงผลของประกาศทีละรายการ
+function updateAnnouncementOrder(id, newOrder) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Announcements");
+    if (!sheet) return "ไม่พบชีตประกาศข่าวสาร";
+    if (sheet.getLastColumn() < 11) {
+      sheet.getRange(1, 11).setValue("ลำดับการแสดงผล (Display Order)");
+    }
+    var rows = sheet.getDataRange().getValues();
+    var targetId = id.toString().trim();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString().trim() === targetId) {
+        sheet.getRange(i + 1, 11).setValue(parseInt(newOrder, 10) || 0);
+        return "อัปเดตลำดับประกาศเรียบร้อยแล้ว!";
+      }
+    }
+    return "ไม่พบประกาศที่ต้องการอัปเดต";
+  } catch (error) {
+    return "เกิดข้อผิดพลาด: " + error.toString();
+  }
+}
+
+// อัปเดตลำดับการแสดงผลของประกาศทั้งชุด (Reorder All)
+function reorderAnnouncements(orderedIds) {
+  try {
+    if (!Array.isArray(orderedIds) || orderedIds.length === 0) return "ไม่มีข้อมูลลำดับ";
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Announcements");
+    if (!sheet) return "ไม่พบชีตประกาศข่าวสาร";
+    if (sheet.getLastColumn() < 11) {
+      sheet.getRange(1, 11).setValue("ลำดับการแสดงผล (Display Order)");
+    }
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      var rowId = rows[i][0].toString().trim();
+      var idx = orderedIds.indexOf(rowId);
+      if (idx !== -1) {
+        sheet.getRange(i + 1, 11).setValue(idx + 1);
+      }
+    }
+    return "บันทึกลำดับประกาศเรียบร้อยแล้ว!";
+  } catch (error) {
+    return "เกิดข้อผิดพลาด: " + error.toString();
+  }
+}
+
+// สลับสถานะปักหมุดประกาศ (Pin / Unpin)
+function toggleAnnouncementPin(id, isPinned) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Announcements");
+    if (!sheet) return "ไม่พบชีตประกาศข่าวสาร";
+    if (sheet.getLastColumn() < 12) {
+      sheet.getRange(1, 12).setValue("ปักหมุด (isPinned)");
+    }
+    var rows = sheet.getDataRange().getValues();
+    var targetId = id.toString().trim();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString().trim() === targetId) {
+        var pinVal = (isPinned === true || isPinned === "true" || isPinned === "TRUE") ? true : false;
+        sheet.getRange(i + 1, 12).setValue(pinVal);
+        return "บันทึกสถานะปักหมุดเรียบร้อยแล้ว!";
+      }
+    }
+    return "ไม่พบประกาศที่ต้องการปักหมุด";
+  } catch (error) {
+    return "เกิดข้อผิดพลาด: " + error.toString();
   }
 }
 
@@ -3754,7 +3888,15 @@ function doPost(e) {
       "schedulePushNotification": schedulePushNotification,
       "testSendPushNotification": testSendPushNotification,
       "setupFCM": setupFCM,
-      "debugFCMStatus": debugFCMStatus
+      "debugFCMStatus": debugFCMStatus,
+      "addAnnouncement": addAnnouncement,
+      "updateAnnouncement": updateAnnouncement,
+      "updateAnnouncementOrder": updateAnnouncementOrder,
+      "reorderAnnouncements": reorderAnnouncements,
+      "toggleAnnouncementPin": toggleAnnouncementPin,
+      "deleteAnnouncement": deleteAnnouncement,
+      "toggleAnnouncementStatus": toggleAnnouncementStatus,
+      "getAnnouncements": getAnnouncements
     };
     
     var fn = null;
@@ -3828,6 +3970,12 @@ if (typeof module !== 'undefined' && module.exports) {
     getAppInfo: getAppInfo,
     getTopicDetailedHistory: getTopicDetailedHistory,
     getRankingDataSeparated: getRankingDataSeparated,
+    addAnnouncement: addAnnouncement,
+    updateAnnouncement: updateAnnouncement,
+    updateAnnouncementOrder: updateAnnouncementOrder,
+    reorderAnnouncements: reorderAnnouncements,
+    toggleAnnouncementPin: toggleAnnouncementPin,
+    getAnnouncements: getAnnouncements,
     doPost: doPost
   };
 }
