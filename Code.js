@@ -199,6 +199,11 @@ function getKnowledgeData() {
         // กลุ่มเป้าหมาย (คอลัมน์ L index 11) เช่น "พนักงาน", "ผู้ประกอบการ", หรือ "พนักงาน,ผู้ประกอบการ"
         var targetAudience = (rows[i].length > 11 && rows[i][11] !== undefined && rows[i][11] !== null && rows[i][11].toString().trim() !== "") ? rows[i][11].toString().trim() : "ทั้งหมด";
         
+        // ลำดับการแสดงผล (คอลัมน์ M index 12) และการปักหมุด (คอลัมน์ N index 13)
+        var displayOrder = (rows[i].length > 12 && rows[i][12] !== undefined && rows[i][12] !== null && rows[i][12].toString().trim() !== "") ? parseInt(rows[i][12], 10) : 999;
+        if (isNaN(displayOrder)) displayOrder = 999;
+        var isPinned = (rows[i].length > 13 && rows[i][13] !== undefined && rows[i][13] !== null) ? (rows[i][13] === true || rows[i][13].toString().toLowerCase() === "true" || rows[i][13].toString() === "1") : false;
+
         data.push({
           id: rows[i][0],
           category: rows[i][1] ? rows[i][1].toString().trim() : "",
@@ -211,7 +216,9 @@ function getKnowledgeData() {
           additionalLinks: rows[i][8] ? rows[i][8].toString().trim() : "",
           groupType: groupType,
           mainFolder: mainFolder,
-          targetAudience: targetAudience
+          targetAudience: targetAudience,
+          displayOrder: displayOrder,
+          isPinned: isPinned
         });
       }
     }
@@ -247,6 +254,12 @@ function addKnowledge(data, uploadedBy) {
     }
     if (headers.length < 12 || headers[11] === "") {
       sheet.getRange(1, 12).setValue("กลุ่มเป้าหมาย (Audience)").setFontWeight("bold").setBackground("#F1F5F9");
+    }
+    if (headers.length < 13 || headers[12] === "") {
+      sheet.getRange(1, 13).setValue("ลำดับการแสดงผล").setFontWeight("bold").setBackground("#F1F5F9");
+    }
+    if (headers.length < 14 || headers[13] === "") {
+      sheet.getRange(1, 14).setValue("ปักหมุด").setFontWeight("bold").setBackground("#F1F5F9");
     }
     
     var lastRow = sheet.getLastRow();
@@ -298,7 +311,9 @@ function addKnowledge(data, uploadedBy) {
       targetAudience = "พนักงาน";
     }
     
-    sheet.appendRow([newId, data.category, data.title, data.type, data.url, uBy, formattedDate, "เปิดใช้งาน", data.additionalLinks || "", groupType, mainFolder, targetAudience]);
+    var saveOrder = (data.displayOrder !== undefined && data.displayOrder !== null && data.displayOrder !== "" && !isNaN(parseInt(data.displayOrder, 10))) ? parseInt(data.displayOrder, 10) : "";
+    var savePinned = (data.isPinned === true || data.isPinned === "true" || data.isPinned === 1 || data.isPinned === "1") ? true : false;
+    sheet.appendRow([newId, data.category, data.title, data.type, data.url, uBy, formattedDate, "เปิดใช้งาน", data.additionalLinks || "", groupType, mainFolder, targetAudience, saveOrder, savePinned]);
     
     // ยิง Push Notification แจ้งเตือนเมื่อมีคู่มือความรู้ใหม่ (ยกเว้นกรณีเป็นเอกสารย้อนหลังเกิน 7 วัน เพื่อไม่ให้พนักงานเข้าใจผิด)
     if (!isHistoricalDoc) {
@@ -1913,7 +1928,12 @@ function getTopicDetailedHistory(topicId) {
             var colH = (empRows[e].length > 7 && empRows[e][7]) ? String(empRows[e][7]).trim() : "";
             eCar = colH || eBranch || eId;
           }
-          employeesMap[eId] = { name: eName, role: eRole, branch: eBranch, carNumber: eCar };
+          var empObj = { name: eName, role: eRole, branch: eBranch, carNumber: eCar };
+        employeesMap[eId] = empObj;
+        employeesMap[eId.toLowerCase()] = empObj;
+        if (!isNaN(parseInt(eId, 10))) {
+          employeesMap[String(parseInt(eId, 10))] = empObj;
+        }
         }
       }
     }
@@ -1945,7 +1965,7 @@ function getTopicDetailedHistory(topicId) {
         var empName = row[5] ? String(row[5]).trim() : "";
         var empBranch = row[6] ? String(row[6]).trim() : "";
 
-        var empInfo = employeesMap[empId] || {};
+        var empInfo = employeesMap[empId] || employeesMap[empId.toLowerCase()] || (employeesMap[String(parseInt(empId, 10))] || {});
         var finalName = empInfo.name || empName || "ไม่ระบุชื่อ";
         var finalRole = empInfo.role || "พนักงาน";
         var finalBranch = empInfo.branch || empBranch || "ไม่ระบุสาขา";
@@ -1955,8 +1975,11 @@ function getTopicDetailedHistory(topicId) {
           timestamp: timeStr,
           empId: empId,
           name: finalName,
+          empName: finalName,
           role: finalRole,
+          empRole: finalRole,
           branch: finalBranch,
+          empBranch: finalBranch,
           carNumber: finalCar
         });
 
@@ -1966,8 +1989,11 @@ function getTopicDetailedHistory(topicId) {
           userCountMap[userKey] = {
             empId: empId,
             name: finalName,
+            empName: finalName,
             role: finalRole,
+            empRole: finalRole,
             branch: finalBranch,
+            empBranch: finalBranch,
             carNumber: finalCar,
             views: 0,
             lastViewTime: timeStr
@@ -2192,6 +2218,12 @@ function updateKnowledge(id, data) {
     if (headers.length < 12 || headers[11] === "") {
       sheet.getRange(1, 12).setValue("กลุ่มเป้าหมาย (Audience)").setFontWeight("bold").setBackground("#F1F5F9");
     }
+    if (headers.length < 13 || headers[12] === "") {
+      sheet.getRange(1, 13).setValue("ลำดับการแสดงผล").setFontWeight("bold").setBackground("#F1F5F9");
+    }
+    if (headers.length < 14 || headers[13] === "") {
+      sheet.getRange(1, 14).setValue("ปักหมุด").setFontWeight("bold").setBackground("#F1F5F9");
+    }
     
     var rows = sheet.getDataRange().getValues();
     var targetId = id.toString().trim();
@@ -2220,12 +2252,61 @@ function updateKnowledge(id, data) {
         }
         sheet.getRange(i + 1, 11).setValue(saveMainFolder); // K (แฟ้มหลัก)
         sheet.getRange(i + 1, 12).setValue(saveAudience);   // L (กลุ่มเป้าหมาย)
+        if (data.displayOrder !== undefined) {
+          sheet.getRange(i + 1, 13).setValue((data.displayOrder !== "" && !isNaN(parseInt(data.displayOrder, 10))) ? parseInt(data.displayOrder, 10) : ""); // M (ลำดับ)
+        }
+        if (data.isPinned !== undefined) {
+          sheet.getRange(i + 1, 14).setValue((data.isPinned === true || data.isPinned === "true" || data.isPinned === 1 || data.isPinned === "1") ? true : false); // N (ปักหมุด)
+        }
         return "แก้ไขข้อมูลศูนย์การเรียนรู้เรียบร้อยแล้ว!";
       }
     }
     return "ไม่พบข้อมูลคู่มือที่ต้องการแก้ไข";
   } catch (error) {
     return "เกิดข้อผิดพลาดในการแก้ไข: " + error.toString();
+  }
+}
+
+// สลับสถานะปักหมุดของหัวข้อคู่มือ (สำหรับแอดมิน เพื่อจัดเรียงแสดงผลในหน้าศูนย์เรียนรู้)
+function toggleKnowledgePin(id) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Knowledge");
+    if (!sheet) return "ไม่พบชีตศูนย์การเรียนรู้";
+    var rows = sheet.getDataRange().getValues();
+    var targetId = String(id).trim();
+    for (var i = 1; i < rows.length; i++) {
+      if (String(rows[i][0]).trim() === targetId) {
+        var currentPin = (rows[i].length > 13 && rows[i][13]) ? (rows[i][13] === true || rows[i][13].toString().toLowerCase() === "true" || rows[i][13].toString() === "1") : false;
+        var newPin = !currentPin;
+        sheet.getRange(i + 1, 14).setValue(newPin);
+        return newPin ? "📌 ปักหมุดหัวข้อนี้ให้อยู่บนสุดในหน้าศูนย์การเรียนรู้เรียบร้อยแล้ว!" : "ปลดหมุดหัวข้อนี้เรียบร้อยแล้ว";
+      }
+    }
+    return "ไม่พบข้อมูลที่ต้องการปักหมุด";
+  } catch(e) {
+    return "เกิดข้อผิดพลาด: " + e.toString();
+  }
+}
+
+// อัปเดตลำดับการแสดงผลของคู่มือในหน้าศูนย์เรียนรู้โดยตรง
+function updateKnowledgeOrderDirect(id, newOrder) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Knowledge");
+    if (!sheet) return "ไม่พบชีตศูนย์การเรียนรู้";
+    var rows = sheet.getDataRange().getValues();
+    var targetId = String(id).trim();
+    for (var i = 1; i < rows.length; i++) {
+      if (String(rows[i][0]).trim() === targetId) {
+        var val = (newOrder !== "" && !isNaN(parseInt(newOrder, 10))) ? parseInt(newOrder, 10) : "";
+        sheet.getRange(i + 1, 13).setValue(val);
+        return "อัปเดตลำดับการแสดงผลในหน้าศูนย์การเรียนรู้เรียบร้อยแล้ว!";
+      }
+    }
+    return "ไม่พบข้อมูลคู่มือ";
+  } catch(e) {
+    return "เกิดข้อผิดพลาด: " + e.toString();
   }
 }
 

@@ -1418,7 +1418,8 @@
                         <div class="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-gray-700">
                             <span class="text-blue-600">🔀</span> <span>จัดเรียงตาม:</span>
                             <select id="topicSortSelect" onchange="renderFilteredTopics()" class="bg-white border border-gray-250 rounded-xl px-3 py-2 text-xs sm:text-sm font-extrabold text-blue-950 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs hover:border-blue-300 transition-all">
-                                <option value="date_desc">🕒 วันที่อัปเดตล่าสุด (ใหม่ ➔ เก่า)</option>
+                                <option value="date_desc">⭐ แนะนำ & ล่าสุด (ปักหมุด / ลำดับที่ / วันที่ใหม่ ➔ เก่า)</option>
+                                <option value="order_asc">🔢 ลำดับที่กำหนด (1 ➔ 2 ➔ 3...)</option>
                                 <option value="date_asc">📅 วันที่อัปเดต (เก่า ➔ ใหม่)</option>
                                 <option value="name_asc">🔤 ชื่อหัวข้อ (ก - ฮ)</option>
                                 <option value="name_desc">🔤 ชื่อหัวข้อ (ฮ - ก)</option>
@@ -2125,6 +2126,29 @@
                         <p id="addKnowledgeDateHint" class="text-xs text-gray-500 mt-1.5 font-medium">💡 หากเว้นว่างไว้ ระบบจะใช้วันที่และเวลาปัจจุบันโดยอัตโนมัติ</p>
                     </div>
 
+                    <!-- กำหนดการจัดเรียงในหน้าศูนย์เรียนรู้ (Pin & Display Order) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-indigo-50/50 p-4 border-2 border-indigo-100 rounded-2xl">
+                        <!-- ปักหมุดให้อยู่บนสุด -->
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" id="addKnowledgeIsPinned" class="w-6 h-6 text-indigo-600 rounded cursor-pointer">
+                            <div>
+                                <label for="addKnowledgeIsPinned" class="block text-base font-extrabold text-indigo-950 cursor-pointer">
+                                    📌 ปักหมุดหัวข้อนี้ (Pin to Top)
+                                </label>
+                                <p class="text-xs text-indigo-800 font-semibold">แสดงอยู่บนสุดเสมอในหน้าศูนย์การเรียนรู้</p>
+                            </div>
+                        </div>
+
+                        <!-- ลำดับที่การแสดงผล -->
+                        <div>
+                            <label for="addKnowledgeDisplayOrder" class="block text-base font-bold text-gray-700 mb-1">
+                                🔢 ลำดับการแสดงผลในหน้าศูนย์การเรียนรู้
+                            </label>
+                            <input type="number" id="addKnowledgeDisplayOrder" placeholder="เช่น 1, 2, 3 (ค่าน้อยกว่าจะขึ้นก่อน)" class="w-full p-3 border-2 rounded-xl text-base bg-white font-bold outline-none focus:border-blue-600">
+                            <p class="text-xs text-gray-500 mt-1">💡 หากเว้นว่าง ระบบจะเรียงตามวันที่เอกสารล่าสุดให้อัตโนมัติ</p>
+                        </div>
+                    </div>
+
                     <div>
                         <label class="block text-lg font-bold text-gray-700 mb-2">ประเภทของไฟล์คู่มือ</label>
                         <select id="addType" class="w-full p-4 border-2 rounded-xl text-lg bg-gray-50 outline-none focus:border-blue-600 transition-all">
@@ -2275,6 +2299,7 @@
                         <div class="flex items-center gap-2">
                             <label for="adminKnowledgeSortSelect" class="text-xs font-extrabold text-gray-700 whitespace-nowrap">🔄 จัดเรียง:</label>
                             <select id="adminKnowledgeSortSelect" onchange="changeAdminKnowledgeSort(this.value)" class="px-3.5 py-2.5 border-2 border-blue-200 rounded-xl bg-white font-bold text-xs sm:text-sm text-gray-800 outline-none focus:border-blue-600 shadow-2xs cursor-pointer transition-all">
+                                <option value="order_asc">📌 ตามหน้าศูนย์เรียนรู้ (ปักหมุด ➔ ลำดับ 1, 2, 3...)</option>
                                 <option value="date_desc">🕒 วันที่ (ใหม่ล่าสุดก่อน)</option>
                                 <option value="date_asc">🕒 วันที่ (เก่าสุดก่อน)</option>
                                 <option value="title_asc">🔤 ชื่อคู่มือ (ก - ฮ / A - Z)</option>
@@ -3108,10 +3133,24 @@
             });
         }
 
-        // จัดเรียงหัวข้อศูนย์การเรียนรู้จากใหม่ล่าสุดไปเก่าสุดเสมอ (Newest First)
+        // จัดเรียงหัวข้อศูนย์การเรียนรู้เพื่อโชว์ในหน้าศูนย์เรียนรู้ (Pinned ➔ Display Order ➔ Newest Date)
         function sortKnowledgeLatestFirst(list) {
             if (!list || !Array.isArray(list)) return [];
             return list.slice().sort(function(a, b) {
+                // 1. หัวข้อที่ปักหมุด (Pinned) ขึ้นก่อนเสมอ
+                var pinA = (a.isPinned === true || a.isPinned === "true" || a.isPinned === "TRUE" || a.isPinned === 1 || a.isPinned === "1");
+                var pinB = (b.isPinned === true || b.isPinned === "true" || b.isPinned === "TRUE" || b.isPinned === 1 || b.isPinned === "1");
+                if (pinA && !pinB) return -1;
+                if (!pinA && pinB) return 1;
+
+                // 2. เรียงตามลำดับการแสดงผลที่แอดมินกำหนด (Display Order)
+                var ordA = (a.displayOrder !== undefined && a.displayOrder !== null && a.displayOrder !== "" && !isNaN(parseInt(a.displayOrder, 10))) ? parseInt(a.displayOrder, 10) : 999;
+                var ordB = (b.displayOrder !== undefined && b.displayOrder !== null && b.displayOrder !== "" && !isNaN(parseInt(b.displayOrder, 10))) ? parseInt(b.displayOrder, 10) : 999;
+                if (ordA !== 999 || ordB !== 999) {
+                    if (ordA !== ordB) return ordA - ordB;
+                }
+
+                // 3. เรียงตามวันที่เอกสาร (ใหม่ล่าสุดอยู่บนสุด ข้อมูลเก่าที่ระบุวันย้อนหลังจะลงไปอยู่ด้านล่าง)
                 var timeA = 0;
                 if (a.timestamp) {
                     var dA = new Date(a.timestamp);
@@ -3125,9 +3164,9 @@
                     else if (typeof parseKnowledgeDate === 'function') timeB = parseKnowledgeDate(b.timestamp);
                 }
                 if (timeA && timeB && timeA !== timeB) {
-                    return timeB - timeA; // เวลาใหม่กว่าอยู่บนสุด
+                    return timeB - timeA;
                 }
-                return 0; // หากเวลาเท่ากัน รักษาลำดับจาก Backend (ซึ่งแถวล่างสุดของชีตอยู่บนสุดแล้ว)
+                return (a.title || "").localeCompare(b.title || "", 'th');
             });
         }
         var adminAnnouncementsPage = 1;
@@ -7033,12 +7072,26 @@ function openAudienceFolder(aud) {
                 });
             }
 
-            // จัดเรียง
+            // จัดเรียงหัวข้อเพื่อโชว์ในหน้าศูนย์เรียนรู้
             items.sort(function(a, b) {
+                // หากเลือกตามวันที่ล่าสุด หรือตามลำดับมาตรฐาน ให้ตรวจเช็คปักหมุดและลำดับที่ก่อนเสมอ
+                if (sortVal === "date_desc" || !sortVal) {
+                    var pinA = (a.isPinned === true || a.isPinned === "true" || a.isPinned === "TRUE" || a.isPinned === 1 || a.isPinned === "1");
+                    var pinB = (b.isPinned === true || b.isPinned === "true" || b.isPinned === "TRUE" || b.isPinned === 1 || b.isPinned === "1");
+                    if (pinA && !pinB) return -1;
+                    if (!pinA && pinB) return 1;
+
+                    var ordA = (a.displayOrder !== undefined && a.displayOrder !== null && a.displayOrder !== "" && !isNaN(parseInt(a.displayOrder, 10))) ? parseInt(a.displayOrder, 10) : 999;
+                    var ordB = (b.displayOrder !== undefined && b.displayOrder !== null && b.displayOrder !== "" && !isNaN(parseInt(b.displayOrder, 10))) ? parseInt(b.displayOrder, 10) : 999;
+                    if (ordA !== 999 || ordB !== 999) {
+                        if (ordA !== ordB) return ordA - ordB;
+                    }
+                }
+
                 var dateA = parseKnowledgeDate(a.timestamp);
                 var dateB = parseKnowledgeDate(b.timestamp);
 
-                if (sortVal === "date_desc") {
+                if (sortVal === "date_desc" || !sortVal) {
                     if (dateB !== dateA) return dateB - dateA;
                     return (a.title || "").localeCompare(b.title || "", 'th');
                 } else if (sortVal === "date_asc") {
@@ -7110,11 +7163,18 @@ function openAudienceFolder(aud) {
                     actionBtnHtml = '<button onclick="confirmDeleteKnowledge(\'' + item.id + '\', \'' + (item.title || '').replace(/'/g, "\\'") + '\', event)" class="bg-red-50 hover:bg-red-600 text-red-700 hover:text-white px-4 py-2.5 rounded-xl font-bold text-sm transition-all border border-red-200 active:scale-95">🗑️ ลบหัวข้อนี้</button>';
                 }
 
-                listContainer.innerHTML += '<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-white hover:bg-blue-50 border border-gray-200 rounded-2xl transition-all shadow-2xs hover:shadow-sm">' +
+                var isPinnedItem = (item.isPinned === true || item.isPinned === "true" || item.isPinned === "TRUE" || item.isPinned === 1 || item.isPinned === "1");
+                var pinBadgeHtml = isPinnedItem ? '<span class="bg-indigo-600 text-white text-xs font-black px-2.5 py-0.5 rounded-lg shadow-2xs flex items-center gap-1">📌 ปักหมุด</span>' : '';
+                var orderBadgeHtml = (item.displayOrder !== undefined && item.displayOrder !== null && item.displayOrder !== "" && item.displayOrder !== 999 && !isNaN(parseInt(item.displayOrder, 10))) ?
+                    ('<span class="bg-blue-100 text-blue-900 text-xs font-bold px-2 py-0.5 rounded-lg border border-blue-200">ลำดับที่ ' + item.displayOrder + '</span>') : '';
+
+                listContainer.innerHTML += '<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-white hover:bg-blue-50 border border-gray-200 rounded-2xl transition-all shadow-2xs hover:shadow-sm ' + (isPinnedItem ? 'ring-2 ring-indigo-200 bg-indigo-50/20' : '') + '">' +
                     '<button onclick="openContentViewer(\'' + item.id + '\')" class="flex-1 text-left flex items-start gap-3.5 focus:outline-none">' +
                         '<span class="text-3xl p-2.5 bg-gray-50 rounded-2xl shadow-2xs border border-gray-200 shrink-0">' + icon + '</span>' +
                         '<div class="flex-1 min-w-0">' +
                             '<div class="flex items-center gap-2 flex-wrap mb-1">' +
+                                pinBadgeHtml +
+                                orderBadgeHtml +
                                 '<span class="bg-indigo-50 text-indigo-800 text-xs font-bold px-2.5 py-0.5 rounded-lg border border-indigo-200 flex items-center gap-1">' +
                                     '<span>' + folderIcon + '</span> <span>' + itemFolder + '</span>' +
                                 '</span>' +
@@ -7321,10 +7381,29 @@ function openAudienceFolder(aud) {
                     return;
                 }
 
+                // จัดเรียงผลการค้นหาตามลำดับที่กำหนดและปักหมุด
+                filtered.sort(function(a, b) {
+                    var pinA = (a.isPinned === true || a.isPinned === "true" || a.isPinned === "TRUE" || a.isPinned === 1 || a.isPinned === "1");
+                    var pinB = (b.isPinned === true || b.isPinned === "true" || b.isPinned === "TRUE" || b.isPinned === 1 || b.isPinned === "1");
+                    if (pinA && !pinB) return -1;
+                    if (!pinA && pinB) return 1;
+
+                    var ordA = (a.displayOrder !== undefined && a.displayOrder !== null && a.displayOrder !== "" && !isNaN(parseInt(a.displayOrder, 10))) ? parseInt(a.displayOrder, 10) : 999;
+                    var ordB = (b.displayOrder !== undefined && b.displayOrder !== null && b.displayOrder !== "" && !isNaN(parseInt(b.displayOrder, 10))) ? parseInt(b.displayOrder, 10) : 999;
+                    if (ordA !== 999 || ordB !== 999) {
+                        if (ordA !== ordB) return ordA - ordB;
+                    }
+
+                    var dateA = parseKnowledgeDate(a.timestamp);
+                    var dateB = parseKnowledgeDate(b.timestamp);
+                    if (dateB !== dateA) return dateB - dateA;
+                    return (a.title || "").localeCompare(b.title || "", 'th');
+                });
+
                 for (var i = 0; i < filtered.length; i++) {
                     var item = filtered[i];
-                    var icon = item.type === 'pdf' ? '📄' : '🖼️';
-                    var fileTypeLabel = item.type === 'pdf' ? 'ไฟล์ PDF' : 'ไฟล์รูปภาพ';
+                    var icon = item.type === 'pdf' ? '📄' : (item.type === 'video' ? '🎥' : '🖼️');
+                    var fileTypeLabel = item.type === 'pdf' ? 'ไฟล์ PDF' : (item.type === 'video' ? 'วิดีโอ' : 'ไฟล์รูปภาพ');
                     var itemFolder = (item.mainFolder && item.mainFolder.trim() !== "") ? item.mainFolder.trim() : "ขั้นตอนการทำงาน";
                     var folderIcon = getMainFolderIcon(itemFolder);
                     
@@ -7333,23 +7412,33 @@ function openAudienceFolder(aud) {
                         statusBadge = ' <span class="bg-red-500 text-white px-2 py-0.5 rounded text-xs font-bold mr-2">🔴 ปิดใช้งานอยู่</span>';
                     }
 
+                    var isPinnedItem = (item.isPinned === true || item.isPinned === "true" || item.isPinned === "TRUE" || item.isPinned === 1 || item.isPinned === "1");
+                    var pinBadgeHtml = isPinnedItem ? '<span class="bg-indigo-600 text-white text-xs font-black px-2.5 py-0.5 rounded-lg shadow-2xs flex items-center gap-1">📌 ปักหมุด</span>' : '';
+                    var orderBadgeHtml = (item.displayOrder !== undefined && item.displayOrder !== null && item.displayOrder !== "" && item.displayOrder !== 999 && !isNaN(parseInt(item.displayOrder, 10))) ?
+                        ('<span class="bg-blue-100 text-blue-900 text-xs font-bold px-2 py-0.5 rounded-lg border border-blue-200">ลำดับที่ ' + item.displayOrder + '</span>') : '';
+                    var displayDate = item.timestamp ? (formatThaiDate(item.timestamp) || item.timestamp) : "";
+                    var dateBadgeHtml = displayDate ? ('<span class="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-lg flex items-center gap-1 border border-gray-200"><span>🕒</span><span>' + displayDate + '</span></span>') : '';
+
                     var actionBtnHtml = "";
                     if (currentUser.canEdit) {
-                        actionBtnHtml = '<button onclick="confirmDeleteKnowledge(\'' + item.id + '\', \'' + item.title + '\', event)" class="bg-red-50 hover:bg-red-600 text-red-700 hover:text-white px-4 py-2.5 rounded-xl font-bold text-sm transition-all border border-red-200 active:scale-95">🗑️ ลบ</button>';
+                        actionBtnHtml = '<button onclick="confirmDeleteKnowledge(\'' + item.id + '\', \'' + (item.title || '').replace(/'/g, "\\'") + '\', event)" class="bg-red-50 hover:bg-red-600 text-red-700 hover:text-white px-4 py-2.5 rounded-xl font-bold text-sm transition-all border border-red-200 active:scale-95">🗑️ ลบ</button>';
                     }
 
-                    listContainer.innerHTML += '<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-white border border-gray-200 rounded-2xl shadow-2xs hover:bg-blue-50 transition-all">' +
+                    listContainer.innerHTML += '<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-white border border-gray-200 rounded-2xl shadow-2xs hover:bg-blue-50 transition-all ' + (isPinnedItem ? 'ring-2 ring-indigo-200 bg-indigo-50/20' : '') + '">' +
                         '<button onclick="openContentViewer(\'' + item.id + '\')" class="flex-1 text-left flex items-start gap-3.5">' +
                             '<span class="text-3xl p-2.5 bg-gray-50 rounded-2xl shadow-2xs border border-gray-200 shrink-0">' + icon + '</span>' +
                             '<div class="flex-1 min-w-0">' +
                                 '<div class="flex items-center gap-2 flex-wrap mb-1">' +
+                                    pinBadgeHtml +
+                                    orderBadgeHtml +
                                     '<span class="bg-indigo-50 text-indigo-800 text-xs font-bold px-2.5 py-0.5 rounded-lg border border-indigo-200 flex items-center gap-1">' +
                                         '<span>' + folderIcon + '</span> <span>' + itemFolder + '</span>' +
                                     '</span>' +
                                     '<span class="bg-blue-50 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded-lg border border-blue-200">' + item.category + '</span>' +
+                                    dateBadgeHtml +
                                 '</div>' +
                                 '<h3 class="text-lg sm:text-xl font-bold text-blue-950">' + statusBadge + item.title + '</h3>' +
-                                '<span class="text-xs font-semibold text-gray-500 block mt-1">อัปโหลดโดย: ' + item.uploadedBy + '</span>' +
+                                '<span class="text-xs font-semibold text-gray-500 block mt-1">ประเภท: ' + fileTypeLabel + ' • อัปโหลดโดย: ' + item.uploadedBy + '</span>' +
                             '</div>' +
                         '</button>' +
                         '<div class="flex justify-end gap-2 shrink-0">' +
@@ -7516,7 +7605,19 @@ function openAudienceFolder(aud) {
                 var timeA = parseKnowledgeDate(a.timestamp);
                 var timeB = parseKnowledgeDate(b.timestamp);
 
-                if (adminKnowledgeSort === 'date_desc') {
+                if (adminKnowledgeSort === 'order_asc') {
+                    var pinA = (a.isPinned === true || a.isPinned === "true" || a.isPinned === "TRUE" || a.isPinned === 1 || a.isPinned === "1");
+                    var pinB = (b.isPinned === true || b.isPinned === "true" || b.isPinned === "TRUE" || b.isPinned === 1 || b.isPinned === "1");
+                    if (pinA && !pinB) return -1;
+                    if (!pinA && pinB) return 1;
+
+                    var ordA = (a.displayOrder !== undefined && a.displayOrder !== null && a.displayOrder !== "" && !isNaN(parseInt(a.displayOrder, 10))) ? parseInt(a.displayOrder, 10) : 999;
+                    var ordB = (b.displayOrder !== undefined && b.displayOrder !== null && b.displayOrder !== "" && !isNaN(parseInt(b.displayOrder, 10))) ? parseInt(b.displayOrder, 10) : 999;
+                    if (ordA !== ordB) return ordA - ordB;
+
+                    if (timeB !== timeA) return timeB - timeA;
+                    return (a.title || '').localeCompare(b.title || '', 'th');
+                } else if (adminKnowledgeSort === 'date_desc') {
                     if (timeB !== timeA) return timeB - timeA;
                     return (a.title || '').localeCompare(b.title || '', 'th');
                 } else if (adminKnowledgeSort === 'date_asc') {
@@ -7587,10 +7688,22 @@ function openAudienceFolder(aud) {
                     toggleBtnHtml = '<button disabled class="bg-gray-200 text-gray-400 cursor-not-allowed px-4 py-2 rounded-xl font-bold text-sm">🔒 ล็อก (เฉพาะแอดมิน)</button>';
                 }
                 
+                var isPinned = (item.isPinned === true || item.isPinned === "true" || item.isPinned === "TRUE" || item.isPinned === 1 || item.isPinned === "1");
+                var pinBadge = isPinned ? '<span class="bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black px-2 py-0.5 rounded-md inline-flex items-center gap-1 shadow-2xs mr-1.5">📌 ปักหมุด</span>' : '';
+                var orderBadge = (item.displayOrder !== undefined && item.displayOrder !== null && item.displayOrder !== "" && item.displayOrder !== 999 && !isNaN(parseInt(item.displayOrder, 10))) ?
+                    ('<span class="bg-blue-100 text-blue-900 border border-blue-200 text-xs font-bold px-2 py-0.5 rounded-md inline-flex items-center gap-1 mr-1.5">🔢 ลำดับที่ ' + item.displayOrder + '</span>') : '';
+
                 var editDeleteBtnsHtml = "";
                 if (currentUser.canEdit) {
                     var safeTitle = (item.title || '').replace(/'/g, "\\'");
-                    editDeleteBtnsHtml = ' <button onclick="editKnowledge(\'' + item.id + '\')" class="bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-all border border-blue-200">📝 แก้ไข</button>' +
+                    var currentOrd = (item.displayOrder !== undefined && item.displayOrder !== null && item.displayOrder !== "" && item.displayOrder !== 999) ? item.displayOrder : "";
+
+                    var quickPinBtn = '<button onclick="quickToggleKnowledgePin(\'' + item.id + '\', event)" class="' + (isPinned ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-100 hover:bg-amber-100 text-gray-700 hover:text-amber-900 border border-gray-300') + ' px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs whitespace-nowrap" title="' + (isPinned ? 'คลิกเพื่อปลดหมุด' : 'คลิกเพื่อปักหมุดให้อยู่บนสุดในหน้าศูนย์เรียนรู้') + '">' + (isPinned ? '📌 หมุดอยู่' : '📌 ปักหมุด') + '</button>';
+
+                    var quickOrderBtn = '<button onclick="quickChangeKnowledgeOrder(\'' + item.id + '\', \'' + currentOrd + '\', event)" class="bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs whitespace-nowrap" title="คลิกเพื่อกำหนดลำดับแสดงผล (เช่น 1, 2, 3...)">🔢 ลำดับ ' + (currentOrd ? '#' + currentOrd : '-') + '</button>';
+
+                    editDeleteBtnsHtml = ' ' + quickPinBtn + ' ' + quickOrderBtn +
+                        ' <button onclick="editKnowledge(\'' + item.id + '\')" class="bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-all border border-blue-200">📝 แก้ไข</button>' +
                         ' <button onclick="confirmDeleteKnowledge(\'' + item.id + '\', \'' + safeTitle + '\', event)" class="bg-red-50 hover:bg-red-650 text-red-700 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-all border border-red-200">🗑️ ลบ</button>';
                 }
 
@@ -7605,7 +7718,10 @@ function openAudienceFolder(aud) {
                             audBadge +
                         '</div>' +
                     '</td>' +
-                    '<td class="p-4 font-bold text-gray-900">' + item.title + '</td>' +
+                    '<td class="p-4">' +
+                        '<div class="flex items-center gap-1 flex-wrap mb-1">' + pinBadge + orderBadge + '</div>' +
+                        '<div class="font-bold text-gray-900">' + item.title + '</div>' +
+                    '</td>' +
                     '<td class="p-4 text-sm">' +
                         '<div class="font-bold text-gray-800">' + (item.uploadedBy || 'แอดมิน') + '</div>' +
                         '<div class="text-xs text-gray-500 flex items-center gap-1 mt-0.5 font-medium" title="' + dateFull + '">' +
@@ -7634,6 +7750,50 @@ function openAudienceFolder(aud) {
                 hideLoading();
                 alert("เกิดข้อผิดพลาดในการเปลี่ยนสิทธิ์: " + err.toString());
             }).toggleKnowledgeStatus(id, newStatus);
+        }
+
+        // ทางลัดสลับการปักหมุดคู่มือสำหรับแอดมิน
+        function quickToggleKnowledgePin(id, e) {
+            if (e) e.stopPropagation();
+            showLoading("กำลังอัปเดตการปักหมุด...");
+            google.script.run.withSuccessHandler(function(msg) {
+                hideLoading();
+                var item = allDatabaseData.find(function(k) { return String(k.id).trim() === String(id).trim(); });
+                if (item) {
+                    item.isPinned = !item.isPinned;
+                }
+                renderAdminKnowledgeList();
+                if (typeof renderFilteredTopics === 'function') renderFilteredTopics();
+            }).withFailureHandler(function(err) {
+                hideLoading();
+                alert("เกิดข้อผิดพลาดในการปักหมุด: " + err.toString());
+            }).toggleKnowledgePin(id);
+        }
+
+        // ทางลัดกำหนดลำดับการแสดงผลของคู่มือสำหรับแอดมิน
+        function quickChangeKnowledgeOrder(id, currentOrder, e) {
+            if (e) e.stopPropagation();
+            var item = allDatabaseData.find(function(k) { return String(k.id).trim() === String(id).trim(); });
+            var curVal = (item && item.displayOrder !== undefined && item.displayOrder !== null && item.displayOrder !== 999) ? item.displayOrder : "";
+            var newOrder = prompt("🔢 กำหนดลำดับการแสดงผลในหน้าศูนย์การเรียนรู้\n(ใส่ตัวเลข เช่น 1, 2, 3... ค่าน้อยจะขึ้นก่อน หรือเว้นว่างไว้เพื่อจัดตามวันที่):", curVal);
+            if (newOrder === null) return;
+            newOrder = newOrder.trim();
+            if (newOrder !== "" && isNaN(parseInt(newOrder, 10))) {
+                alert("กรุณากรอกเฉพาะตัวเลขลำดับ เช่น 1, 2, 3");
+                return;
+            }
+            showLoading("กำลังบันทึกลำดับการแสดงผล...");
+            google.script.run.withSuccessHandler(function(msg) {
+                hideLoading();
+                if (item) {
+                    item.displayOrder = (newOrder !== "" && !isNaN(parseInt(newOrder, 10))) ? parseInt(newOrder, 10) : 999;
+                }
+                renderAdminKnowledgeList();
+                if (typeof renderFilteredTopics === 'function') renderFilteredTopics();
+            }).withFailureHandler(function(err) {
+                hideLoading();
+                alert("เกิดข้อผิดพลาดในการบันทึกลำดับ: " + err.toString());
+            }).updateKnowledgeOrderDirect(id, newOrder);
         }
 
         // ==================== ส่วน Q&A (Q&A Module) ====================
@@ -7896,6 +8056,8 @@ function openAudienceFolder(aud) {
             }
 
             var customTimestamp = document.getElementById('addKnowledgeDate') ? document.getElementById('addKnowledgeDate').value : "";
+            var isPinnedVal = document.getElementById('addKnowledgeIsPinned') ? document.getElementById('addKnowledgeIsPinned').checked : false;
+            var displayOrderVal = document.getElementById('addKnowledgeDisplayOrder') ? document.getElementById('addKnowledgeDisplayOrder').value.trim() : "";
 
             var data = {
                 category: category,
@@ -7906,7 +8068,9 @@ function openAudienceFolder(aud) {
                 url: document.getElementById('addUrl').value.trim(),
                 additionalLinks: additionalLinksJson,
                 targetAudience: targetAudience,
-                timestamp: customTimestamp
+                timestamp: customTimestamp,
+                isPinned: isPinnedVal,
+                displayOrder: displayOrderVal
             };
 
             if(!data.category || !data.title || !data.url) {
@@ -8004,6 +8168,8 @@ function openAudienceFolder(aud) {
                     if (document.getElementById('knowledgePushBranchSelect')) document.getElementById('knowledgePushBranchSelect').value = "ทุกสาขา";
                     if (document.getElementById('addKnowledgeDate')) document.getElementById('addKnowledgeDate').value = "";
                     if (document.getElementById('addKnowledgeDateHint')) document.getElementById('addKnowledgeDateHint').innerHTML = "💡 หากเว้นว่างไว้ ระบบจะใช้วันที่และเวลาปัจจุบันโดยอัตโนมัติ";
+                    if (document.getElementById('addKnowledgeIsPinned')) document.getElementById('addKnowledgeIsPinned').checked = false;
+                    if (document.getElementById('addKnowledgeDisplayOrder')) document.getElementById('addKnowledgeDisplayOrder').value = "";
                     document.getElementById('additionalLinksInputContainer').innerHTML = ""; // ล้างลิงก์แนบเพิ่มเติม
                     
                     loadData();
@@ -10300,18 +10466,40 @@ function renderTopicHistModalContent() {
         for (var i = 0; i < history.length; i++) {
             var item = history[i];
             var displayTime = item.timestamp ? (formatThaiDate(item.timestamp) || item.timestamp) : "-";
-            var isOperator = (item.empRole === 'ผู้ประกอบการ' || item.empRole === 'พี่สปริงเคิล' || item.empRole === 'สมาชิกพี่สปริงเคิล' || (item.empRole && item.empRole.indexOf('ผู้ประกอบการ') !== -1));
-            var roleBadge = isOperator ?
-                '<span class="bg-amber-100 text-amber-950 border border-amber-300 font-extrabold px-1.5 py-0.5 rounded text-[10px] inline-flex items-center gap-1">🚛 สมาชิกพี่สปริงเคิล' + (item.empBranch ? ' (' + item.empBranch + ')' : '') + '</span>' :
-                '<span class="bg-blue-50 text-blue-800 text-[10px] font-extrabold px-1.5 py-0.5 rounded border border-blue-200">👤 ' + (item.empRole || "พนักงาน") + (item.empBranch ? ' • ' + item.empBranch : '') + '</span>';
+            var rawEmpId = item.empId || item.id || "";
+            
+            // ค้นหาข้อมูลพนักงานเพิ่มเติมจากฐานข้อมูลกลางในเครื่อง (allEmployeesData)
+            var matchedEmp = null;
+            if (rawEmpId && typeof allEmployeesData !== 'undefined' && Array.isArray(allEmployeesData)) {
+                matchedEmp = allEmployeesData.find(function(e) {
+                    return String(e.empId).trim() === String(rawEmpId).trim();
+                });
+            }
 
-            html += '<div class="bg-white hover:bg-blue-50/80 p-2.5 rounded-xl border border-gray-200 transition-all flex items-center justify-between gap-2.5 shadow-2xs">' +
-                '<div class="min-w-0 flex-1 space-y-0.5">' +
+            var finalName = (matchedEmp && matchedEmp.name) ? matchedEmp.name : (item.name || item.empName || "ไม่ระบุชื่อ");
+            var finalRole = (matchedEmp && matchedEmp.role) ? matchedEmp.role : (item.role || item.empRole || "พนักงาน");
+            var finalBranch = (matchedEmp && matchedEmp.branch) ? matchedEmp.branch : (item.branch || item.empBranch || "ไม่ระบุสาขา");
+            var finalCar = (matchedEmp && matchedEmp.carNumber && matchedEmp.carNumber !== "-") ? matchedEmp.carNumber : (item.carNumber && item.carNumber !== "-" ? item.carNumber : "");
+
+            var isOperator = (finalRole === 'ผู้ประกอบการ' || finalRole === 'พี่สปริงเคิล' || finalRole === 'สมาชิกพี่สปริงเคิล' || finalRole.indexOf('ผู้ประกอบการ') !== -1 || finalRole.indexOf('สปริงเคิล') !== -1);
+            var roleBadge = isOperator ?
+                '<span class="bg-amber-100 text-amber-950 border border-amber-300 font-extrabold px-2 py-0.5 rounded-lg text-xs inline-flex items-center gap-1">🚛 ' + finalRole + '</span>' :
+                '<span class="bg-blue-100 text-blue-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-blue-200">👔 ตำแหน่ง: ' + finalRole + '</span>';
+
+            var carBadge = finalCar ? '<span class="bg-amber-50 text-amber-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-amber-200">🚛 รถ: ' + finalCar + '</span>' : '';
+
+            html += '<div class="bg-white hover:bg-blue-50/80 p-3 rounded-2xl border border-gray-200 transition-all flex flex-col gap-1.5 shadow-2xs">' +
+                '<div class="flex items-center justify-between gap-2 flex-wrap">' +
                     '<div class="flex items-center gap-1.5 flex-wrap">' +
+                        '<span class="bg-blue-950 text-white font-mono text-xs font-black px-2 py-0.5 rounded-lg shadow-2xs">🆔 รหัส ' + (rawEmpId || "-") + '</span>' +
                         roleBadge +
-                        '<span class="text-[11px] font-semibold text-gray-500 flex items-center gap-1">🕒 ' + displayTime + '</span>' +
+                        '<span class="bg-emerald-50 text-emerald-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-emerald-200">🏢 สาขา: ' + finalBranch + '</span>' +
+                        carBadge +
                     '</div>' +
-                    '<h4 class="text-xs sm:text-sm font-bold text-blue-950 truncate">' + (item.empName || "ไม่ระบุชื่อ") + ' <span class="font-mono text-gray-500 text-[11px]">(' + (item.empId || "-") + ')</span></h4>' +
+                    '<span class="text-xs font-semibold text-gray-500 flex items-center gap-1">🕒 ' + displayTime + '</span>' +
+                '</div>' +
+                '<div class="text-sm sm:text-base font-extrabold text-blue-950 flex items-center gap-2 mt-0.5">' +
+                    '<span>👤</span> <span>ชื่อ-นามสกุล: <span class="text-blue-900 font-black">' + finalName + '</span></span>' +
                 '</div>' +
             '</div>';
         }
@@ -10327,20 +10515,39 @@ function renderTopicHistModalContent() {
         for (var j = 0; j < summaryByUser.length; j++) {
             var u = summaryByUser[j];
             var lastTime = u.lastViewTime ? (formatThaiDate(u.lastViewTime) || u.lastViewTime) : "-";
-            var isOperator = (u.empRole === 'ผู้ประกอบการ' || u.empRole === 'พี่สปริงเคิล' || u.empRole === 'สมาชิกพี่สปริงเคิล' || (u.empRole && u.empRole.indexOf('ผู้ประกอบการ') !== -1));
-            var roleBadge = isOperator ?
-                '<span class="bg-amber-100 text-amber-950 border border-amber-300 font-bold px-1.5 py-0.5 rounded text-[9px]">🚛 สมาชิกพี่สปริงเคิล</span>' :
-                '<span class="bg-blue-50 text-blue-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-blue-200">👤 ' + (u.empRole || "พนักงาน") + '</span>';
+            var rawEmpId = u.empId || u.id || "";
+            
+            var matchedEmp = null;
+            if (rawEmpId && typeof allEmployeesData !== 'undefined' && Array.isArray(allEmployeesData)) {
+                matchedEmp = allEmployeesData.find(function(e) {
+                    return String(e.empId).trim() === String(rawEmpId).trim();
+                });
+            }
 
-            html += '<div class="bg-white hover:bg-indigo-50/80 p-2.5 rounded-xl border border-gray-200 transition-all flex items-center justify-between gap-2.5 shadow-2xs">' +
-                '<div class="min-w-0 flex-1 space-y-0.5">' +
+            var finalName = (matchedEmp && matchedEmp.name) ? matchedEmp.name : (u.name || u.empName || "ไม่ระบุชื่อ");
+            var finalRole = (matchedEmp && matchedEmp.role) ? matchedEmp.role : (u.role || u.empRole || "พนักงาน");
+            var finalBranch = (matchedEmp && matchedEmp.branch) ? matchedEmp.branch : (u.branch || u.empBranch || "ไม่ระบุสาขา");
+            var finalCar = (matchedEmp && matchedEmp.carNumber && matchedEmp.carNumber !== "-") ? matchedEmp.carNumber : (u.carNumber && u.carNumber !== "-" ? u.carNumber : "");
+
+            var isOperator = (finalRole === 'ผู้ประกอบการ' || finalRole === 'พี่สปริงเคิล' || finalRole === 'สมาชิกพี่สปริงเคิล' || finalRole.indexOf('ผู้ประกอบการ') !== -1 || finalRole.indexOf('สปริงเคิล') !== -1);
+            var roleBadge = isOperator ?
+                '<span class="bg-amber-100 text-amber-950 border border-amber-300 font-extrabold px-2 py-0.5 rounded-lg text-xs inline-flex items-center gap-1">🚛 ' + finalRole + '</span>' :
+                '<span class="bg-indigo-100 text-indigo-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-indigo-200">👔 ตำแหน่ง: ' + finalRole + '</span>';
+
+            html += '<div class="bg-white hover:bg-indigo-50/80 p-3 rounded-2xl border border-gray-200 transition-all flex flex-col gap-1.5 shadow-2xs">' +
+                '<div class="flex items-center justify-between gap-2 flex-wrap">' +
                     '<div class="flex items-center gap-1.5 flex-wrap">' +
+                        '<span class="bg-indigo-950 text-white font-mono text-xs font-black px-2 py-0.5 rounded-lg shadow-2xs">🆔 รหัส ' + (rawEmpId || "-") + '</span>' +
                         roleBadge +
-                        '<span class="text-[11px] text-gray-500">สาขา: ' + (u.empBranch || "-") + '</span>' +
-                        '<span class="bg-indigo-50 text-indigo-700 text-[10px] font-extrabold px-1.5 py-0.5 rounded">เข้าชม ' + u.views + ' ครั้ง</span>' +
+                        '<span class="bg-emerald-50 text-emerald-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-emerald-200">🏢 สาขา: ' + finalBranch + '</span>' +
                     '</div>' +
-                    '<h4 class="text-xs sm:text-sm font-bold text-blue-950 truncate">' + (u.empName || "ไม่ระบุชื่อ") + ' <span class="font-mono text-gray-500 text-[11px]">(' + (u.empId || "-") + ')</span></h4>' +
-                    '<span class="text-[10px] text-gray-400 font-medium block truncate">ล่าสุด: ' + lastTime + '</span>' +
+                    '<span class="bg-purple-100 text-purple-900 text-xs font-black px-2.5 py-0.5 rounded-lg border border-purple-200">เข้าชม ' + u.views + ' ครั้ง</span>' +
+                '</div>' +
+                '<div class="flex items-center justify-between gap-2 flex-wrap mt-0.5">' +
+                    '<div class="text-sm sm:text-base font-extrabold text-blue-950 flex items-center gap-2">' +
+                        '<span>👤</span> <span>ชื่อ-นามสกุล: <span class="text-indigo-900 font-black">' + finalName + '</span></span>' +
+                    '</div>' +
+                    '<span class="text-xs text-gray-400 font-medium">ล่าสุด: ' + lastTime + '</span>' +
                 '</div>' +
             '</div>';
         }
@@ -11130,6 +11337,14 @@ function editKnowledge(indexOrId) {
         onKnowledgeDateChange();
     }
 
+    // เติมสถานะปักหมุดและลำดับการแสดงผล
+    if (document.getElementById('addKnowledgeIsPinned')) {
+        document.getElementById('addKnowledgeIsPinned').checked = (item.isPinned === true || item.isPinned === "true" || item.isPinned === "TRUE" || item.isPinned === 1 || item.isPinned === "1");
+    }
+    if (document.getElementById('addKnowledgeDisplayOrder')) {
+        document.getElementById('addKnowledgeDisplayOrder').value = (item.displayOrder !== undefined && item.displayOrder !== null && item.displayOrder !== "" && item.displayOrder !== 999) ? item.displayOrder : "";
+    }
+
     // เติมกลุ่มเป้าหมาย (Audience)
     var audK = item.targetAudience || "ทั้งหมด";
     if (document.getElementById('knowledgeAudienceEmp')) {
@@ -11203,6 +11418,12 @@ function cancelKnowledgeEdit() {
     }
     if (document.getElementById('knowledgeAudienceOp')) {
         document.getElementById('knowledgeAudienceOp').checked = true;
+    }
+    if (document.getElementById('addKnowledgeIsPinned')) {
+        document.getElementById('addKnowledgeIsPinned').checked = false;
+    }
+    if (document.getElementById('addKnowledgeDisplayOrder')) {
+        document.getElementById('addKnowledgeDisplayOrder').value = "";
     }
     document.getElementById('additionalLinksInputContainer').innerHTML = ""; 
     clearAdminFile();
