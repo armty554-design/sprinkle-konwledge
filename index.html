@@ -2115,6 +2115,16 @@
                         <input type="text" id="addTitle" placeholder="เช่น ขั้นตอนการเบิกเงิน, วิธีแชร์ไดรฟ์" class="w-full p-4 border-2 rounded-xl text-lg bg-gray-50 outline-none focus:border-blue-600 transition-all">
                     </div>
 
+                    <!-- วันที่ของเอกสาร / คู่มือ (รองรับเอกสารย้อนหลัง) -->
+                    <div class="bg-blue-50/50 p-4 border-2 border-blue-100 rounded-2xl">
+                        <label class="block text-base font-bold text-gray-700 mb-1.5 flex items-center justify-between flex-wrap gap-1">
+                            <span class="flex items-center gap-1.5"><span>📅</span> วันที่ของเอกสาร / คู่มือ</span>
+                            <span class="text-xs font-semibold text-gray-500">(หากนำข้อมูลเก่ามาอัปโหลด สามารถระบุวันที่ย้อนหลังได้)</span>
+                        </label>
+                        <input type="datetime-local" id="addKnowledgeDate" onchange="onKnowledgeDateChange()" class="w-full p-3.5 border-2 rounded-xl text-base bg-white outline-none focus:border-blue-600 transition-all font-semibold text-gray-800">
+                        <p id="addKnowledgeDateHint" class="text-xs text-gray-500 mt-1.5 font-medium">💡 หากเว้นว่างไว้ ระบบจะใช้วันที่และเวลาปัจจุบันโดยอัตโนมัติ</p>
+                    </div>
+
                     <div>
                         <label class="block text-lg font-bold text-gray-700 mb-2">ประเภทของไฟล์คู่มือ</label>
                         <select id="addType" class="w-full p-4 border-2 rounded-xl text-lg bg-gray-50 outline-none focus:border-blue-600 transition-all">
@@ -2256,19 +2266,61 @@
             <!-- รายการจัดการสิทธิ์การเข้าถึงสำหรับแอดมิน/ผู้จัดการ -->
             <div class="bg-white p-6 rounded-3xl shadow-xl border border-gray-200 mt-6">
                 <div class="flex justify-between items-center gap-4 mb-4 border-b pb-3 flex-wrap">
-                    <h3 class="text-2xl font-extrabold text-blue-900">🔒 รายการคู่มือและการจัดการสิทธิ์เปิด/ปิดการเข้าถึง</h3>
-                    <div class="relative w-full sm:w-80">
-                        <input type="text" id="adminKnowledgeSearchInput" oninput="adminKnowledgeSearch()" placeholder="🔍 ค้นหาหัวข้อ หรือหมวดหมู่..." class="w-full px-4 py-3 border rounded-xl bg-gray-50 outline-none focus:bg-white focus:border-blue-600 font-bold transition-all text-sm">
+                    <div class="flex items-center gap-3">
+                        <h3 class="text-2xl font-extrabold text-blue-900">🔒 รายการคู่มือและการจัดการสิทธิ์เปิด/ปิดการเข้าถึง</h3>
+                        <span id="adminKnowledgeCountBadge" class="bg-blue-100 text-blue-800 text-xs font-black px-3 py-1 rounded-full border border-blue-200 shadow-2xs">0 รายการ</span>
+                    </div>
+                    <div class="flex items-center gap-3 flex-wrap w-full lg:w-auto">
+                        <!-- ปุ่มจัดเรียงข้อมูล -->
+                        <div class="flex items-center gap-2">
+                            <label for="adminKnowledgeSortSelect" class="text-xs font-extrabold text-gray-700 whitespace-nowrap">🔄 จัดเรียง:</label>
+                            <select id="adminKnowledgeSortSelect" onchange="changeAdminKnowledgeSort(this.value)" class="px-3.5 py-2.5 border-2 border-blue-200 rounded-xl bg-white font-bold text-xs sm:text-sm text-gray-800 outline-none focus:border-blue-600 shadow-2xs cursor-pointer transition-all">
+                                <option value="date_desc">🕒 วันที่ (ใหม่ล่าสุดก่อน)</option>
+                                <option value="date_asc">🕒 วันที่ (เก่าสุดก่อน)</option>
+                                <option value="title_asc">🔤 ชื่อคู่มือ (ก - ฮ / A - Z)</option>
+                                <option value="title_desc">🔤 ชื่อคู่มือ (ฮ - ก / Z - A)</option>
+                                <option value="category_asc">📁 หมวดหมู่ (ก - ฮ)</option>
+                                <option value="category_desc">📁 หมวดหมู่ (ฮ - ก)</option>
+                                <option value="folder_asc">📂 แฟ้มหลัก (ก - ฮ)</option>
+                                <option value="status_on">🟢 สถานะ (เปิดใช้งาน ON ก่อน)</option>
+                                <option value="status_off">🔴 สถานะ (ปิดใช้งาน OFF ก่อน)</option>
+                                <option value="uploader_asc">👤 ผู้บันทึก (ก - ฮ)</option>
+                            </select>
+                        </div>
+                        <!-- กล่องค้นหา -->
+                        <div class="relative w-full sm:w-72">
+                            <input type="text" id="adminKnowledgeSearchInput" oninput="adminKnowledgeSearch()" placeholder="🔍 ค้นหาหัวข้อ หรือหมวดหมู่..." class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 outline-none focus:bg-white focus:border-blue-600 font-bold transition-all text-xs sm:text-sm">
+                        </div>
                     </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-base">
                         <thead>
-                            <tr class="bg-gray-100 text-gray-700">
-                                <th class="p-4 border-b font-bold">หมวดหมู่</th>
-                                <th class="p-4 border-b font-bold">หัวข้อเรื่อง</th>
-                                <th class="p-4 border-b font-bold text-center">ผู้สืบค้นหลัก</th>
-                                <th class="p-4 border-b font-bold text-center">สิทธิ์แสดงผล (ผู้จัดการ)</th>
+                            <tr class="bg-gray-100 text-gray-700 select-none">
+                                <th onclick="toggleAdminKnowledgeHeaderSort('category')" class="p-4 border-b font-bold cursor-pointer hover:bg-gray-200 transition-colors" title="คลิกเพื่อเรียงตามหมวดหมู่/แฟ้ม">
+                                    <div class="flex items-center gap-1.5">
+                                        <span>หมวดหมู่ / แฟ้ม</span>
+                                        <span id="sortIconAdminKnowledgeCategory" class="text-xs text-gray-400 font-black">⇅</span>
+                                    </div>
+                                </th>
+                                <th onclick="toggleAdminKnowledgeHeaderSort('title')" class="p-4 border-b font-bold cursor-pointer hover:bg-gray-200 transition-colors" title="คลิกเพื่อเรียงตามชื่อหัวข้อ">
+                                    <div class="flex items-center gap-1.5">
+                                        <span>หัวข้อเรื่อง</span>
+                                        <span id="sortIconAdminKnowledgeTitle" class="text-xs text-gray-400 font-black">⇅</span>
+                                    </div>
+                                </th>
+                                <th onclick="toggleAdminKnowledgeHeaderSort('date')" class="p-4 border-b font-bold cursor-pointer hover:bg-gray-200 transition-colors" title="คลิกเพื่อเรียงตามวันที่/ผู้บันทึก">
+                                    <div class="flex items-center gap-1.5">
+                                        <span>ผู้บันทึก / วันที่</span>
+                                        <span id="sortIconAdminKnowledgeDate" class="text-xs text-blue-600 font-black">▼</span>
+                                    </div>
+                                </th>
+                                <th onclick="toggleAdminKnowledgeHeaderSort('status')" class="p-4 border-b font-bold text-center cursor-pointer hover:bg-gray-200 transition-colors" title="คลิกเพื่อเรียงตามสิทธิ์สถานะ">
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <span>สิทธิ์แสดงผล (ผู้จัดการ)</span>
+                                        <span id="sortIconAdminKnowledgeStatus" class="text-xs text-gray-400 font-black">⇅</span>
+                                    </div>
+                                </th>
                                 <th class="p-4 border-b font-bold text-center">จัดการ</th>
                             </tr>
                         </thead>
@@ -3064,11 +3116,13 @@
                 if (a.timestamp) {
                     var dA = new Date(a.timestamp);
                     if (!isNaN(dA.getTime())) timeA = dA.getTime();
+                    else if (typeof parseKnowledgeDate === 'function') timeA = parseKnowledgeDate(a.timestamp);
                 }
                 var timeB = 0;
                 if (b.timestamp) {
                     var dB = new Date(b.timestamp);
                     if (!isNaN(dB.getTime())) timeB = dB.getTime();
+                    else if (typeof parseKnowledgeDate === 'function') timeB = parseKnowledgeDate(b.timestamp);
                 }
                 if (timeA && timeB && timeA !== timeB) {
                     return timeB - timeA; // เวลาใหม่กว่าอยู่บนสุด
@@ -7329,6 +7383,87 @@ function openAudienceFolder(aud) {
         }
 
         // ==================== ส่วนหลังบ้าน จัดการแสดงรายการทั้งหมด (Admin Management Grid) ====================
+        var adminKnowledgeSort = 'date_desc';
+
+        function changeAdminKnowledgeSort(val) {
+            adminKnowledgeSort = val;
+            var sel = document.getElementById('adminKnowledgeSortSelect');
+            if (sel && sel.value !== val) sel.value = val;
+            updateAdminKnowledgeSortIcons();
+            adminKnowledgePage = 1;
+            renderAdminKnowledgeList();
+        }
+
+        function toggleAdminKnowledgeHeaderSort(field) {
+            if (field === 'date') {
+                changeAdminKnowledgeSort(adminKnowledgeSort === 'date_desc' ? 'date_asc' : 'date_desc');
+            } else if (field === 'title') {
+                changeAdminKnowledgeSort(adminKnowledgeSort === 'title_asc' ? 'title_desc' : 'title_asc');
+            } else if (field === 'category') {
+                changeAdminKnowledgeSort(adminKnowledgeSort === 'category_asc' ? 'category_desc' : 'category_asc');
+            } else if (field === 'status') {
+                changeAdminKnowledgeSort(adminKnowledgeSort === 'status_on' ? 'status_off' : 'status_on');
+            }
+        }
+
+        function updateAdminKnowledgeSortIcons() {
+            var iconCat = document.getElementById('sortIconAdminKnowledgeCategory');
+            var iconTitle = document.getElementById('sortIconAdminKnowledgeTitle');
+            var iconDate = document.getElementById('sortIconAdminKnowledgeDate');
+            var iconStatus = document.getElementById('sortIconAdminKnowledgeStatus');
+
+            if (iconCat) {
+                if (adminKnowledgeSort === 'category_asc' || adminKnowledgeSort === 'folder_asc') iconCat.innerHTML = '▲';
+                else if (adminKnowledgeSort === 'category_desc') iconCat.innerHTML = '▼';
+                else iconCat.innerHTML = '⇅';
+                iconCat.className = (adminKnowledgeSort.indexOf('category') !== -1 || adminKnowledgeSort === 'folder_asc') ? 'text-xs text-blue-600 font-black' : 'text-xs text-gray-400 font-black';
+            }
+
+            if (iconTitle) {
+                if (adminKnowledgeSort === 'title_asc') iconTitle.innerHTML = '▲';
+                else if (adminKnowledgeSort === 'title_desc') iconTitle.innerHTML = '▼';
+                else iconTitle.innerHTML = '⇅';
+                iconTitle.className = (adminKnowledgeSort.indexOf('title') !== -1) ? 'text-xs text-blue-600 font-black' : 'text-xs text-gray-400 font-black';
+            }
+
+            if (iconDate) {
+                if (adminKnowledgeSort === 'date_desc') iconDate.innerHTML = '▼';
+                else if (adminKnowledgeSort === 'date_asc') iconDate.innerHTML = '▲';
+                else iconDate.innerHTML = '⇅';
+                iconDate.className = (adminKnowledgeSort.indexOf('date') !== -1) ? 'text-xs text-blue-600 font-black' : 'text-xs text-gray-400 font-black';
+            }
+
+            if (iconStatus) {
+                if (adminKnowledgeSort === 'status_on') iconStatus.innerHTML = '🟢▲';
+                else if (adminKnowledgeSort === 'status_off') iconStatus.innerHTML = '🔴▼';
+                else iconStatus.innerHTML = '⇅';
+                iconStatus.className = (adminKnowledgeSort.indexOf('status') !== -1) ? 'text-xs text-blue-600 font-black' : 'text-xs text-gray-400 font-black';
+            }
+        }
+
+        function formatThaiDateTimeShort(dateStr) {
+            if (!dateStr) return "-";
+            try {
+                var ts = parseKnowledgeDate(dateStr);
+                if (!ts) {
+                    var cleanStr = dateStr.toString().replace(/\s*\(.*\)\s*/g, '').trim();
+                    var dRaw = new Date(cleanStr);
+                    if (!isNaN(dRaw.getTime())) ts = dRaw.getTime();
+                }
+                if (!ts) return String(dateStr);
+                var d = new Date(ts);
+                var months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+                var day = d.getDate();
+                var month = months[d.getMonth()];
+                var year = (d.getFullYear() + 543) % 100;
+                var hours = d.getHours().toString().padStart(2, '0');
+                var minutes = d.getMinutes().toString().padStart(2, '0');
+                return day + " " + month + " " + year + " " + hours + ":" + minutes + " น.";
+            } catch(e) {
+                return String(dateStr);
+            }
+        }
+
         function adminKnowledgeSearch() {
             var input = document.getElementById('adminKnowledgeSearchInput');
             if (input) {
@@ -7343,7 +7478,9 @@ function openAudienceFolder(aud) {
             if (!container) return;
             container.innerHTML = "";
             
+            var countBadge = document.getElementById('adminKnowledgeCountBadge');
             if (allDatabaseData.length === 0) {
+                if (countBadge) countBadge.innerText = "0 รายการ";
                 container.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-500">ไม่มีข้อมูลศูนย์การเรียนรู้ในระบบ</td></tr>';
                 return;
             }
@@ -7363,6 +7500,10 @@ function openAudienceFolder(aud) {
                 });
             }
             
+            if (countBadge) {
+                countBadge.innerText = filteredData.length + " รายการ";
+            }
+
             if (filteredData.length === 0) {
                 container.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-500">ไม่พบข้อมูลคู่มือหรือหมวดหมู่ที่ระบุ</td></tr>';
                 var paginationContainer = document.getElementById('adminKnowledgePagination');
@@ -7370,6 +7511,51 @@ function openAudienceFolder(aud) {
                 return;
             }
             
+            // จัดเรียงข้อมูลตาม adminKnowledgeSort
+            filteredData = filteredData.slice().sort(function(a, b) {
+                var timeA = parseKnowledgeDate(a.timestamp);
+                var timeB = parseKnowledgeDate(b.timestamp);
+
+                if (adminKnowledgeSort === 'date_desc') {
+                    if (timeB !== timeA) return timeB - timeA;
+                    return (a.title || '').localeCompare(b.title || '', 'th');
+                } else if (adminKnowledgeSort === 'date_asc') {
+                    if (timeA !== timeB) return timeA - timeB;
+                    return (a.title || '').localeCompare(b.title || '', 'th');
+                } else if (adminKnowledgeSort === 'title_asc') {
+                    return (a.title || '').localeCompare(b.title || '', 'th');
+                } else if (adminKnowledgeSort === 'title_desc') {
+                    return (b.title || '').localeCompare(a.title || '', 'th');
+                } else if (adminKnowledgeSort === 'category_asc') {
+                    var cCmp = (a.category || '').localeCompare(b.category || '', 'th');
+                    if (cCmp !== 0) return cCmp;
+                    return (a.title || '').localeCompare(b.title || '', 'th');
+                } else if (adminKnowledgeSort === 'category_desc') {
+                    var cCmp = (b.category || '').localeCompare(a.category || '', 'th');
+                    if (cCmp !== 0) return cCmp;
+                    return (a.title || '').localeCompare(b.title || '', 'th');
+                } else if (adminKnowledgeSort === 'folder_asc') {
+                    var fCmp = (a.mainFolder || '').localeCompare(b.mainFolder || '', 'th');
+                    if (fCmp !== 0) return fCmp;
+                    return (a.category || '').localeCompare(b.category || '', 'th');
+                } else if (adminKnowledgeSort === 'status_on') {
+                    var sA = (a.status !== 'ปิดใช้งาน') ? 1 : 0;
+                    var sB = (b.status !== 'ปิดใช้งาน') ? 1 : 0;
+                    if (sB !== sA) return sB - sA;
+                    return timeB - timeA;
+                } else if (adminKnowledgeSort === 'status_off') {
+                    var sA = (a.status === 'ปิดใช้งาน') ? 1 : 0;
+                    var sB = (b.status === 'ปิดใช้งาน') ? 1 : 0;
+                    if (sB !== sA) return sB - sA;
+                    return timeB - timeA;
+                } else if (adminKnowledgeSort === 'uploader_asc') {
+                    var uCmp = (a.uploadedBy || '').localeCompare(b.uploadedBy || '', 'th');
+                    if (uCmp !== 0) return uCmp;
+                    return timeB - timeA;
+                }
+                return timeB - timeA;
+            });
+
             var startIndex = (adminKnowledgePage - 1) * itemsPerPage;
             var endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
             for (var i = startIndex; i < endIndex; i++) {
@@ -7403,11 +7589,13 @@ function openAudienceFolder(aud) {
                 
                 var editDeleteBtnsHtml = "";
                 if (currentUser.canEdit) {
-                    // ดึงตำแหน่ง Index จริงของไอเทมจาก database ดั้งเดิม เพื่อให้ modal ดึงค่าถูกต้องตอนกดแก้ไข
-                    var originalIndex = allDatabaseData.indexOf(item);
-                    editDeleteBtnsHtml = ' <button onclick="editKnowledge(' + originalIndex + ')" class="bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-all border border-blue-200">📝 แก้ไข</button>' +
-                        ' <button onclick="confirmDeleteKnowledge(\'' + item.id + '\', \'' + item.title + '\', event)" class="bg-red-50 hover:bg-red-650 text-red-700 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-all border border-red-200">🗑️ ลบ</button>';
+                    var safeTitle = (item.title || '').replace(/'/g, "\\'");
+                    editDeleteBtnsHtml = ' <button onclick="editKnowledge(\'' + item.id + '\')" class="bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-all border border-blue-200">📝 แก้ไข</button>' +
+                        ' <button onclick="confirmDeleteKnowledge(\'' + item.id + '\', \'' + safeTitle + '\', event)" class="bg-red-50 hover:bg-red-650 text-red-700 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-all border border-red-200">🗑️ ลบ</button>';
                 }
+
+                var dateShort = item.timestamp ? formatThaiDateTimeShort(item.timestamp) : '-';
+                var dateFull = item.timestamp ? formatThaiDate(item.timestamp) : '';
 
                 container.innerHTML += '<tr class="border-b hover:bg-gray-50">' +
                     '<td class="p-4">' +
@@ -7418,7 +7606,12 @@ function openAudienceFolder(aud) {
                         '</div>' +
                     '</td>' +
                     '<td class="p-4 font-bold text-gray-900">' + item.title + '</td>' +
-                    '<td class="p-4 text-sm text-gray-500">' + item.uploadedBy + '</td>' +
+                    '<td class="p-4 text-sm">' +
+                        '<div class="font-bold text-gray-800">' + (item.uploadedBy || 'แอดมิน') + '</div>' +
+                        '<div class="text-xs text-gray-500 flex items-center gap-1 mt-0.5 font-medium" title="' + dateFull + '">' +
+                            '<span>🕒</span> <span>' + dateShort + '</span>' +
+                        '</div>' +
+                    '</td>' +
                     '<td class="p-4 text-center"><span class="px-3 py-1 rounded-full text-xs font-extrabold ' + statusColor + '">' + statusText + '</span></td>' +
                     '<td class="p-4 text-center"><div class="flex items-center justify-center gap-2 flex-wrap">' + toggleBtnHtml + editDeleteBtnsHtml + '</div></td>' +
                 '</tr>';
@@ -7702,6 +7895,8 @@ function openAudienceFolder(aud) {
                 return alert("⚠️ กรุณาระบุวันและเวลาที่ต้องการส่งแจ้งเตือนล่วงหน้า");
             }
 
+            var customTimestamp = document.getElementById('addKnowledgeDate') ? document.getElementById('addKnowledgeDate').value : "";
+
             var data = {
                 category: category,
                 title: document.getElementById('addTitle').value.trim(),
@@ -7710,7 +7905,8 @@ function openAudienceFolder(aud) {
                 mainFolder: mainFolder,
                 url: document.getElementById('addUrl').value.trim(),
                 additionalLinks: additionalLinksJson,
-                targetAudience: targetAudience
+                targetAudience: targetAudience,
+                timestamp: customTimestamp
             };
 
             if(!data.category || !data.title || !data.url) {
@@ -7806,6 +8002,8 @@ function openAudienceFolder(aud) {
                     if (kTimingRad) kTimingRad.checked = true;
                     if (document.getElementById('knowledgePushScheduleTime')) document.getElementById('knowledgePushScheduleTime').value = "";
                     if (document.getElementById('knowledgePushBranchSelect')) document.getElementById('knowledgePushBranchSelect').value = "ทุกสาขา";
+                    if (document.getElementById('addKnowledgeDate')) document.getElementById('addKnowledgeDate').value = "";
+                    if (document.getElementById('addKnowledgeDateHint')) document.getElementById('addKnowledgeDateHint').innerHTML = "💡 หากเว้นว่างไว้ ระบบจะใช้วันที่และเวลาปัจจุบันโดยอัตโนมัติ";
                     document.getElementById('additionalLinksInputContainer').innerHTML = ""; // ล้างลิงก์แนบเพิ่มเติม
                     
                     loadData();
@@ -10829,8 +11027,34 @@ function cancelAnnEdit() {
 
 // ==================== จัดการการแก้ไขคู่มือ (Manage Knowledge Edit Controls) ====================
 var editingKnowledgeId = null;
-function editKnowledge(index) {
-    var item = allDatabaseData[index];
+
+function onKnowledgeDateChange() {
+    var dateInput = document.getElementById('addKnowledgeDate');
+    var hintEl = document.getElementById('addKnowledgeDateHint');
+    var pushToggle = document.getElementById('knowledgePushToggle');
+    if (!dateInput || !dateInput.value) {
+        if (hintEl) hintEl.innerHTML = "💡 หากเว้นว่างไว้ ระบบจะใช้วันที่และเวลาปัจจุบันโดยอัตโนมัติ";
+        return;
+    }
+    var ts = parseKnowledgeDate(dateInput.value);
+    if (ts) {
+        var diffDays = (Date.now() - ts) / (1000 * 60 * 60 * 24);
+        if (diffDays > 7) {
+            if (hintEl) hintEl.innerHTML = "<span class='text-amber-700 font-bold'>📁 กำลังบันทึกข้อมูลย้อนหลัง (" + Math.floor(diffDays) + " วันที่แล้ว): ระบบปิดแจ้งเตือน Push ให้อัตโนมัติ และไม่แสดงป้าย 'ใหม่' เพื่อป้องกันความสับสน</span>";
+            if (pushToggle) pushToggle.checked = false;
+        } else {
+            if (hintEl) hintEl.innerHTML = "💡 บันทึกด้วยวันที่: " + formatThaiDate(dateInput.value);
+        }
+    }
+}
+
+function editKnowledge(indexOrId) {
+    var item = null;
+    if (typeof indexOrId === 'number' && allDatabaseData[indexOrId]) {
+        item = allDatabaseData[indexOrId];
+    } else {
+        item = allDatabaseData.find(function(x) { return String(x.id) === String(indexOrId); });
+    }
     if (!item) return;
     
     editingKnowledgeId = item.id;
@@ -10883,6 +11107,29 @@ function editKnowledge(index) {
     document.getElementById('addGroupType').value = item.groupType || "document";
     document.getElementById('addUrl').value = item.url;
     
+    // เติมวันที่ของคู่มือเดิม
+    var dateInput = document.getElementById('addKnowledgeDate');
+    if (dateInput) {
+        if (item.timestamp) {
+            var ts = parseKnowledgeDate(item.timestamp);
+            if (ts) {
+                var d = new Date(ts);
+                var pad = function(n) { return (n < 10 ? '0' : '') + n; };
+                var y = d.getFullYear();
+                var m = pad(d.getMonth() + 1);
+                var dt = pad(d.getDate());
+                var hr = pad(d.getHours());
+                var mn = pad(d.getMinutes());
+                dateInput.value = y + '-' + m + '-' + dt + 'T' + hr + ':' + mn;
+            } else {
+                dateInput.value = "";
+            }
+        } else {
+            dateInput.value = "";
+        }
+        onKnowledgeDateChange();
+    }
+
     // เติมกลุ่มเป้าหมาย (Audience)
     var audK = item.targetAudience || "ทั้งหมด";
     if (document.getElementById('knowledgeAudienceEmp')) {
@@ -10945,6 +11192,12 @@ function cancelKnowledgeEdit() {
     document.getElementById('addCatSelect').value = "";
     document.getElementById('addCatInput').value = "";
     document.getElementById('addCatInput').classList.add('hidden');
+    if (document.getElementById('addKnowledgeDate')) {
+        document.getElementById('addKnowledgeDate').value = "";
+    }
+    if (document.getElementById('addKnowledgeDateHint')) {
+        document.getElementById('addKnowledgeDateHint').innerHTML = "💡 หากเว้นว่างไว้ ระบบจะใช้วันที่และเวลาปัจจุบันโดยอัตโนมัติ";
+    }
     if (document.getElementById('knowledgeAudienceEmp')) {
         document.getElementById('knowledgeAudienceEmp').checked = true;
     }

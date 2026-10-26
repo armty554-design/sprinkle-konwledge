@@ -279,6 +279,18 @@ function addKnowledge(data, uploadedBy) {
     var newId = Math.floor(Math.random() * 1000000); // สุ่ม ID
     var uBy = uploadedBy || "แอดมิน";
     var formattedDate = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd HH:mm:ss");
+    var isHistoricalDoc = false;
+    if (data.timestamp && data.timestamp.toString().trim() !== "") {
+      try {
+        var customD = new Date(data.timestamp);
+        if (!isNaN(customD.getTime())) {
+          formattedDate = Utilities.formatDate(customD, "GMT+7", "yyyy-MM-dd HH:mm:ss");
+          if ((new Date().getTime() - customD.getTime()) > (7 * 86400000)) {
+            isHistoricalDoc = true;
+          }
+        }
+      } catch (eD) {}
+    }
     var groupType = data.groupType || "document";
     var mainFolder = data.mainFolder || "ขั้นตอนการทำงาน";
     var targetAudience = data.targetAudience || "ทั้งหมด";
@@ -288,10 +300,12 @@ function addKnowledge(data, uploadedBy) {
     
     sheet.appendRow([newId, data.category, data.title, data.type, data.url, uBy, formattedDate, "เปิดใช้งาน", data.additionalLinks || "", groupType, mainFolder, targetAudience]);
     
-    // ยิง Push Notification แจ้งเตือนเมื่อมีคู่มือความรู้ใหม่
-    try {
-      sendPushNotificationToFCM("📚 คู่มือความรู้ใหม่: " + data.title, "หมวดหมู่: " + data.category + " (แฟ้ม " + mainFolder + ")", "/", targetAudience);
-    } catch(ePush) {}
+    // ยิง Push Notification แจ้งเตือนเมื่อมีคู่มือความรู้ใหม่ (ยกเว้นกรณีเป็นเอกสารย้อนหลังเกิน 7 วัน เพื่อไม่ให้พนักงานเข้าใจผิด)
+    if (!isHistoricalDoc) {
+      try {
+        sendPushNotificationToFCM("📚 คู่มือความรู้ใหม่: " + data.title, "หมวดหมู่: " + data.category + " (แฟ้ม " + mainFolder + ")", "/", targetAudience);
+      } catch(ePush) {}
+    }
     
     return "บันทึกข้อมูลเรียบร้อยแล้ว!";
   } catch (error) {
@@ -2188,6 +2202,15 @@ function updateKnowledge(id, data) {
         sheet.getRange(i + 1, 3).setValue(data.title);          // C (หัวข้อเรื่อง)
         sheet.getRange(i + 1, 4).setValue(data.type);           // D (ประเภท)
         sheet.getRange(i + 1, 5).setValue(data.url);            // E (ลิงก์หลัก)
+        if (data.timestamp && data.timestamp.toString().trim() !== "") {
+          try {
+            var customD = new Date(data.timestamp);
+            if (!isNaN(customD.getTime())) {
+              var fDate = Utilities.formatDate(customD, "GMT+7", "yyyy-MM-dd HH:mm:ss");
+              sheet.getRange(i + 1, 7).setValue(fDate);         // G (timestamp วันที่ของเอกสาร)
+            }
+          } catch (eD) {}
+        }
         sheet.getRange(i + 1, 9).setValue(data.additionalLinks || ""); // I (ลิงก์แนบเพิ่มเติม JSON)
         sheet.getRange(i + 1, 10).setValue(data.groupType || "document"); // J (กลุ่มประเภท)
         var saveMainFolder = data.mainFolder || "ขั้นตอนการทำงาน";
