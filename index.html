@@ -2291,9 +2291,14 @@
             <!-- รายการจัดการสิทธิ์การเข้าถึงสำหรับแอดมิน/ผู้จัดการ -->
             <div class="bg-white p-6 rounded-3xl shadow-xl border border-gray-200 mt-6">
                 <div class="flex justify-between items-center gap-4 mb-4 border-b pb-3 flex-wrap">
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3 flex-wrap">
                         <h3 class="text-2xl font-extrabold text-blue-900">🔒 รายการคู่มือและการจัดการสิทธิ์เปิด/ปิดการเข้าถึง</h3>
                         <span id="adminKnowledgeCountBadge" class="bg-blue-100 text-blue-800 text-xs font-black px-3 py-1 rounded-full border border-blue-200 shadow-2xs">0 รายการ</span>
+                        <!-- ปุ่มเปิดหน้าต่างจัดเรียงลำดับโฟลเดอร์ & เรื่อง -->
+                        <button type="button" onclick="openKnowledgeReorderModal()" class="bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 hover:from-indigo-700 hover:to-blue-700 text-white font-extrabold px-3.5 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer whitespace-nowrap" title="เปิดหน้าต่างจัดเรียงลำดับโฟลเดอร์หลัก โฟลเดอร์ย่อย และหัวข้อเรื่อง">
+                            <span class="text-base">🔄</span>
+                            <span>จัดเรียงโฟลเดอร์ & เรื่อง</span>
+                        </button>
                     </div>
                     <div class="flex items-center gap-3 flex-wrap w-full lg:w-auto">
                         <!-- ปุ่มกรองโฟลเดอร์ / แฟ้มหลัก -->
@@ -2940,7 +2945,8 @@
                                 'deactivatePushToken', 'saveUserPermissions', 'updateMemberStatus',
                                 'updateMemberRole', 'deleteMember', 'saveAdminData', 'saveAnnouncementData',
                                 'submitQuestion', 'submitAnswer', 'submitRegistration', 'changePassword',
-                                'updateAnnouncementOrder', 'reorderAnnouncements', 'toggleAnnouncementPin', 'toggleAnnouncementStatus'
+                                'updateAnnouncementOrder', 'reorderAnnouncements', 'toggleAnnouncementPin', 'toggleAnnouncementStatus',
+                                'saveKnowledgeFolderOrder', 'updateKnowledgeOrdersBulk', 'updateKnowledgeOrderDirect', 'toggleKnowledgePin'
                             ];
                             var canRetry = mutatingFunctions.indexOf(propKey) === -1;
                             
@@ -6738,8 +6744,19 @@ function openAudienceFolder(aud) {
                 } else if (sortVal === "name_desc") {
                     return b.localeCompare(a, 'th');
                 } else {
-                    // default: ประกาศ ➔ ขั้นตอนการทำงาน ➔ นโยบาย ➔ รวมภาพสื่อประชาสัมพันธ์ ➔ อื่นๆ
+                    // default: ตรวจสอบลำดับที่แอดมินตั้งค่าไว้ใน SystemConfig (main_folder_order) หรือใช้ลำดับมาตรฐาน
                     var defaultOrder = { "ประกาศ": 1, "ขั้นตอนการทำงาน": 2, "นโยบาย": 3, "รวมภาพสื่อประชาสัมพันธ์": 4, "แฟ้มประชาสัมพันธ์": 4, "ประชาสัมพันธ์": 5 };
+                    if (systemConfigData && systemConfigData.main_folder_order) {
+                        try {
+                            var savedCustom = (typeof systemConfigData.main_folder_order === 'string') ? JSON.parse(systemConfigData.main_folder_order) : systemConfigData.main_folder_order;
+                            if (Array.isArray(savedCustom) && savedCustom.length > 0) {
+                                defaultOrder = {};
+                                for (var mIdx = 0; mIdx < savedCustom.length; mIdx++) {
+                                    defaultOrder[savedCustom[mIdx]] = mIdx + 1;
+                                }
+                            }
+                        } catch(e) {}
+                    }
                     var orderA = defaultOrder[a] || 99;
                     var orderB = defaultOrder[b] || 99;
                     if (orderA !== orderB) return orderA - orderB;
@@ -6925,10 +6942,32 @@ function openAudienceFolder(aud) {
                 });
             }
 
+            // ตรวจสอบลำดับโฟลเดอร์ย่อยที่แอดมินกำหนดไว้ใน SystemConfig (category_order)
+            var customCatOrderMap = null;
+            if (systemConfigData && systemConfigData.category_order && currentMainFolder && currentMainFolder !== 'all') {
+                try {
+                    var parsedCatMap = (typeof systemConfigData.category_order === 'string') ? JSON.parse(systemConfigData.category_order) : systemConfigData.category_order;
+                    if (parsedCatMap && Array.isArray(parsedCatMap[currentMainFolder]) && parsedCatMap[currentMainFolder].length > 0) {
+                        customCatOrderMap = {};
+                        var cArr = parsedCatMap[currentMainFolder];
+                        for (var cIdx = 0; cIdx < cArr.length; cIdx++) {
+                            customCatOrderMap[cArr[cIdx]] = cIdx + 1;
+                        }
+                    }
+                } catch(e) {}
+            }
+
             // จัดเรียง
             catsToDisplay.sort(function(a, b) {
                 var dataA = catStats[a] || { count: 0, latestDate: 0, hasPinned: false };
                 var dataB = catStats[b] || { count: 0, latestDate: 0, hasPinned: false };
+
+                // หากมีลำดับที่แอดมินจัดเรียงไว้ ให้ยึดตามลำดับที่แอดมินกำหนดก่อน
+                if (customCatOrderMap && (sortVal === "items_desc" || sortVal === "default" || !sortVal)) {
+                    var ordA = customCatOrderMap[a] || 999;
+                    var ordB = customCatOrderMap[b] || 999;
+                    if (ordA !== ordB) return ordA - ordB;
+                }
 
                 if (sortVal === "pinned_first") {
                     var pA = dataA.hasPinned ? 1 : 0;
@@ -7897,6 +7936,9 @@ function openAudienceFolder(aud) {
                 return timeB - timeA;
             });
 
+            currentFilteredAdminKnowledge = filteredData;
+            var isOrderMode = (adminKnowledgeSort === 'order_asc' || adminKnowledgeSort === 'subfolder_order_asc');
+
             var startIndex = (adminKnowledgePage - 1) * itemsPerPage;
             var endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
             for (var i = startIndex; i < endIndex; i++) {
@@ -7933,6 +7975,19 @@ function openAudienceFolder(aud) {
                 var orderBadge = (item.displayOrder !== undefined && item.displayOrder !== null && item.displayOrder !== "" && item.displayOrder !== 999 && !isNaN(parseInt(item.displayOrder, 10))) ?
                     ('<span class="bg-blue-100 text-blue-900 border border-blue-200 text-xs font-bold px-2 py-0.5 rounded-md inline-flex items-center gap-1 mr-1.5">🔢 ลำดับที่ ' + item.displayOrder + '</span>') : '';
 
+                var orderControlsHtml = "";
+                if (currentUser.canEdit && isOrderMode) {
+                    var itemDisplayNum = (item.displayOrder !== undefined && item.displayOrder !== null && item.displayOrder !== "" && item.displayOrder !== 999 && !isNaN(parseInt(item.displayOrder, 10))) ? item.displayOrder : (i + 1);
+                    orderControlsHtml = '<div class="inline-flex items-center gap-1 mr-2 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-xl shadow-2xs select-none">' +
+                        '<span class="text-gray-400 hover:text-indigo-600 cursor-grab active:cursor-grabbing font-black text-sm drag-handle px-0.5" title="กดค้างเพื่อลากเลื่อนอันดับ">⠿</span>' +
+                        '<div class="flex flex-col gap-0.5">' +
+                            '<button type="button" onclick="moveAdminKnowledgeTableRow(' + i + ', -1, event)" class="w-4 h-3.5 flex items-center justify-center bg-white hover:bg-blue-600 hover:text-white rounded text-[8px] font-black border border-gray-250 transition-colors cursor-pointer" title="เลื่อนขึ้น">▲</button>' +
+                            '<button type="button" onclick="moveAdminKnowledgeTableRow(' + i + ', 1, event)" class="w-4 h-3.5 flex items-center justify-center bg-white hover:bg-blue-600 hover:text-white rounded text-[8px] font-black border border-gray-250 transition-colors cursor-pointer" title="เลื่อนลง">▼</button>' +
+                        '</div>' +
+                        '<span class="text-xs font-black ' + (isPinned ? 'text-amber-600' : 'text-indigo-950') + '">#' + itemDisplayNum + '</span>' +
+                    '</div>';
+                }
+
                 var editDeleteBtnsHtml = "";
                 if (currentUser.canEdit) {
                     var safeTitle = (item.title || '').replace(/'/g, "\\'");
@@ -7950,7 +8005,7 @@ function openAudienceFolder(aud) {
                 var dateShort = item.timestamp ? formatThaiDateTimeShort(item.timestamp) : '-';
                 var dateFull = item.timestamp ? formatThaiDate(item.timestamp) : '';
 
-                container.innerHTML += '<tr class="border-b hover:bg-gray-50">' +
+                container.innerHTML += '<tr class="border-b hover:bg-gray-50 transition-colors ' + (isOrderMode ? 'cursor-pointer' : '') + '" data-reorder-index="' + i + '" data-reorder-type="table" data-id="' + item.id + '" ' + (isOrderMode ? 'draggable="true" ondragstart="onReorderDragStart(event, ' + i + ', \'table\')" ondragover="onReorderDragOver(event)" ondragleave="onReorderDragLeave(event)" ondrop="onReorderDrop(event, ' + i + ', \'table\')" ondragend="onReorderDragEnd(event)"' : '') + '>' +
                     '<td class="p-4">' +
                         '<div class="flex flex-col gap-1">' +
                             '<span class="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded text-xs font-bold border border-indigo-100 flex items-center gap-1 w-fit"><span>' + folderIcon + '</span> <span>' + itemFolder + '</span></span>' +
@@ -7959,7 +8014,7 @@ function openAudienceFolder(aud) {
                         '</div>' +
                     '</td>' +
                     '<td class="p-4">' +
-                        '<div class="flex items-center gap-1 flex-wrap mb-1">' + pinBadge + orderBadge + '</div>' +
+                        '<div class="flex items-center gap-1 flex-wrap mb-1">' + orderControlsHtml + pinBadge + orderBadge + '</div>' +
                         '<div class="font-bold text-gray-900">' + item.title + '</div>' +
                     '</td>' +
                     '<td class="p-4 text-sm">' +
@@ -7971,6 +8026,18 @@ function openAudienceFolder(aud) {
                     '<td class="p-4 text-center"><span class="px-3 py-1 rounded-full text-xs font-extrabold ' + statusColor + '">' + statusText + '</span></td>' +
                     '<td class="p-4 text-center"><div class="flex items-center justify-center gap-2 flex-wrap">' + toggleBtnHtml + editDeleteBtnsHtml + '</div></td>' +
                 '</tr>';
+            }
+            
+            if (isOrderMode) {
+                setTimeout(function() {
+                    var tableRows = container.querySelectorAll('tr[data-reorder-type="table"]');
+                    for (var trIdx = 0; trIdx < tableRows.length; trIdx++) {
+                        var tr = tableRows[trIdx];
+                        var idx = parseInt(tr.getAttribute('data-reorder-index'), 10);
+                        var handle = tr.querySelector('.drag-handle') || tr;
+                        setupReorderTouchEvents(handle, idx, 'table', tr);
+                    }
+                }, 40);
             }
             
             var paginationContainer = document.getElementById('adminKnowledgePagination');
@@ -8059,6 +8126,770 @@ function openAudienceFolder(aud) {
                 hideLoading();
                 alert("เกิดข้อผิดพลาดในการบันทึกลำดับ: " + err.toString());
             }).updateKnowledgeOrderDirect(id, newOrder);
+        }
+
+        // ==================== ระบบจัดเรียงลำดับโฟลเดอร์และหัวข้อเรื่อง (Knowledge Reorder System) ====================
+        var currentReorderTab = 'main'; // 'main' | 'sub' | 'topics'
+        var tempReorderMainFolders = [];
+        var tempReorderSubFolders = [];
+        var tempReorderTopics = [];
+        var currentFilteredAdminKnowledge = []; // แคชรายการที่กำลังแสดงผลบนตารางแอดมินเพื่อการเลื่อนสลับ
+        var reorderDragSrcIndex = -1;
+        var reorderDragSrcType = null;
+
+        // ดึงรายการโฟลเดอร์หลักทั้งหมด (มาตรฐาน + ที่ปรับแต่งแล้ว + ที่พบในคลัง)
+        function getReorderMainFoldersList() {
+            var standardFolders = ["ขั้นตอนการทำงาน", "ประกาศ", "นโยบาย", "รวมภาพสื่อประชาสัมพันธ์"];
+            var savedOrder = [];
+            if (systemConfigData && systemConfigData.main_folder_order) {
+                try {
+                    var parsed = (typeof systemConfigData.main_folder_order === 'string') ? JSON.parse(systemConfigData.main_folder_order) : systemConfigData.main_folder_order;
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        savedOrder = parsed.slice();
+                    }
+                } catch(e) {}
+            }
+            
+            var allFolders = (savedOrder.length > 0) ? savedOrder.slice() : standardFolders.slice();
+            
+            for (var i = 0; i < allDatabaseData.length; i++) {
+                var f = (allDatabaseData[i].mainFolder && allDatabaseData[i].mainFolder.trim() !== "") ? allDatabaseData[i].mainFolder.trim() : "ขั้นตอนการทำงาน";
+                if (allFolders.indexOf(f) === -1) {
+                    allFolders.push(f);
+                }
+            }
+            return allFolders;
+        }
+
+        // ดึงรายการโฟลเดอร์ย่อย (หมวดหมู่ย่อย) ของโฟลเดอร์หลักที่เลือก
+        function getReorderSubFoldersList(mainFolder) {
+            if (!mainFolder) mainFolder = "ขั้นตอนการทำงาน";
+            var savedMap = {};
+            if (systemConfigData && systemConfigData.category_order) {
+                try {
+                    savedMap = (typeof systemConfigData.category_order === 'string') ? JSON.parse(systemConfigData.category_order) : (systemConfigData.category_order || {});
+                } catch(e) {}
+            }
+            var savedList = (savedMap && Array.isArray(savedMap[mainFolder])) ? savedMap[mainFolder].slice() : [];
+            var subList = savedList.slice();
+            
+            for (var i = 0; i < allDatabaseData.length; i++) {
+                var item = allDatabaseData[i];
+                var itemF = (item.mainFolder && item.mainFolder.trim() !== "") ? item.mainFolder.trim() : "ขั้นตอนการทำงาน";
+                if (itemF === mainFolder) {
+                    var c = (item.category && item.category.trim() !== "") ? item.category.trim() : "ทั่วไป";
+                    if (subList.indexOf(c) === -1) {
+                        subList.push(c);
+                    }
+                }
+            }
+            return subList;
+        }
+
+        // ดึงรายการหัวข้อเรื่องของโฟลเดอร์หลัก + โฟลเดอร์ย่อย
+        function getReorderTopicsList(mainFolder, subFolder) {
+            if (!mainFolder) mainFolder = "ขั้นตอนการทำงาน";
+            if (!subFolder) subFolder = "ทั่วไป";
+            
+            var list = allDatabaseData.filter(function(item) {
+                var itemF = (item.mainFolder && item.mainFolder.trim() !== "") ? item.mainFolder.trim() : "ขั้นตอนการทำงาน";
+                var itemC = (item.category && item.category.trim() !== "") ? item.category.trim() : "ทั่วไป";
+                return itemF === mainFolder && itemC === subFolder;
+            });
+            
+            // เรียงตาม ปักหมุด ➔ displayOrder (1, 2, 3...) ➔ วันที่ล่าสุด
+            list.sort(function(a, b) {
+                var pinA = (a.isPinned === true || a.isPinned === "true" || a.isPinned === "TRUE" || a.isPinned === 1 || a.isPinned === "1");
+                var pinB = (b.isPinned === true || b.isPinned === "true" || b.isPinned === "TRUE" || b.isPinned === 1 || b.isPinned === "1");
+                if (pinA && !pinB) return -1;
+                if (!pinA && pinB) return 1;
+                
+                var ordA = (a.displayOrder !== undefined && a.displayOrder !== null && a.displayOrder !== "" && !isNaN(parseInt(a.displayOrder, 10))) ? parseInt(a.displayOrder, 10) : 999;
+                var ordB = (b.displayOrder !== undefined && b.displayOrder !== null && b.displayOrder !== "" && !isNaN(parseInt(b.displayOrder, 10))) ? parseInt(b.displayOrder, 10) : 999;
+                if (ordA !== ordB) return ordA - ordB;
+                
+                var dateA = parseKnowledgeDate(a.timestamp);
+                var dateB = parseKnowledgeDate(b.timestamp);
+                return dateB - dateA;
+            });
+            
+            return list;
+        }
+
+        // เปิดหน้าต่าง Modal จัดเรียงลำดับ
+        function openKnowledgeReorderModal(targetTab) {
+            var modal = document.getElementById('knowledgeReorderModal');
+            if (!modal) return;
+            
+            currentReorderTab = targetTab || 'main';
+            tempReorderMainFolders = getReorderMainFoldersList();
+            
+            populateReorderModalDropdowns();
+            switchKnowledgeReorderTab(currentReorderTab);
+            
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // ปิดหน้าต่าง Modal
+        function closeKnowledgeReorderModal() {
+            var modal = document.getElementById('knowledgeReorderModal');
+            if (modal) modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        // เติมตัวเลือกใน Dropdown ของ Modal
+        function populateReorderModalDropdowns() {
+            var folders = tempReorderMainFolders.length > 0 ? tempReorderMainFolders : getReorderMainFoldersList();
+            
+            // 1. Dropdown แฟ้มหลักในแท็บโฟลเดอร์ย่อย
+            var subMainSel = document.getElementById('reorderSubFolderMainSelect');
+            if (subMainSel) {
+                subMainSel.innerHTML = "";
+                for (var i = 0; i < folders.length; i++) {
+                    var f = folders[i];
+                    var icon = (typeof getMainFolderIcon === 'function') ? getMainFolderIcon(f) : '📂';
+                    subMainSel.innerHTML += '<option value="' + f + '">' + icon + ' ' + f + '</option>';
+                }
+            }
+            
+            // 2. Dropdown แฟ้มหลักในแท็บหัวข้อเรื่อง
+            var topMainSel = document.getElementById('reorderTopicMainSelect');
+            if (topMainSel) {
+                topMainSel.innerHTML = "";
+                for (var j = 0; j < folders.length; j++) {
+                    var fn = folders[j];
+                    var icn = (typeof getMainFolderIcon === 'function') ? getMainFolderIcon(fn) : '📂';
+                    topMainSel.innerHTML += '<option value="' + fn + '">' + icn + ' ' + fn + '</option>';
+                }
+            }
+            
+            // อัปเดต dropdown โฟลเดอร์ย่อยในแท็บหัวข้อเรื่อง
+            onReorderTopicMainChange();
+        }
+
+        // สลับแท็บใน Modal
+        function switchKnowledgeReorderTab(tab) {
+            currentReorderTab = tab;
+            var btnMain = document.getElementById('reorderTabBtnMain');
+            var btnSub = document.getElementById('reorderTabBtnSub');
+            var btnTopics = document.getElementById('reorderTabBtnTopics');
+            
+            var panelMain = document.getElementById('reorderPanelMain');
+            var panelSub = document.getElementById('reorderPanelSub');
+            var panelTopics = document.getElementById('reorderPanelTopics');
+            
+            var activeClass = "py-2 px-3.5 text-xs font-black border-b-2 border-blue-600 text-blue-600 transition-all flex items-center gap-1.5 shrink-0 rounded-t-lg bg-white shadow-2xs";
+            var inactiveClass = "py-2 px-3.5 text-xs font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-all flex items-center gap-1.5 shrink-0 rounded-t-lg hover:bg-white/60";
+            
+            if (btnMain) btnMain.className = (tab === 'main') ? activeClass : inactiveClass;
+            if (btnSub) btnSub.className = (tab === 'sub') ? activeClass : inactiveClass;
+            if (btnTopics) btnTopics.className = (tab === 'topics') ? activeClass : inactiveClass;
+            
+            if (panelMain) panelMain.classList.toggle('hidden', tab !== 'main');
+            if (panelSub) panelSub.classList.toggle('hidden', tab !== 'sub');
+            if (panelTopics) panelTopics.classList.toggle('hidden', tab !== 'topics');
+            
+            var saveBtnText = document.getElementById('reorderSaveBtnText');
+            if (saveBtnText) {
+                if (tab === 'main') saveBtnText.innerText = "💾 บันทึกลำดับโฟลเดอร์หลัก";
+                else if (tab === 'sub') saveBtnText.innerText = "💾 บันทึกลำดับโฟลเดอร์ย่อย";
+                else saveBtnText.innerText = "💾 บันทึกลำดับหัวข้อเรื่องทั้งหมด";
+            }
+            
+            var statusText = document.getElementById('reorderSaveStatusText');
+            if (statusText) statusText.innerText = "";
+            
+            if (tab === 'main') {
+                renderReorderMainFoldersList();
+            } else if (tab === 'sub') {
+                onReorderSubFolderMainChange();
+            } else if (tab === 'topics') {
+                onReorderTopicSubChange();
+            }
+        }
+
+        // เรนเดอร์แท็บที่ 1: โฟลเดอร์หลัก
+        function renderReorderMainFoldersList() {
+            var container = document.getElementById('reorderMainFoldersList');
+            if (!container) return;
+            container.innerHTML = "";
+            
+            var badge = document.getElementById('reorderCountBadgeMain');
+            if (badge) badge.innerText = tempReorderMainFolders.length;
+            
+            if (tempReorderMainFolders.length === 0) {
+                container.innerHTML = '<div class="p-6 text-center text-gray-500 text-xs font-bold bg-white rounded-2xl border border-dashed">ไม่มีโฟลเดอร์หลักในระบบ</div>';
+                return;
+            }
+            
+            for (var i = 0; i < tempReorderMainFolders.length; i++) {
+                var folderName = tempReorderMainFolders[i];
+                var fIcon = (typeof getMainFolderIcon === 'function') ? getMainFolderIcon(folderName) : '📂';
+                
+                var itemCount = 0;
+                for (var k = 0; k < allDatabaseData.length; k++) {
+                    var f = (allDatabaseData[k].mainFolder && allDatabaseData[k].mainFolder.trim() !== "") ? allDatabaseData[k].mainFolder.trim() : "ขั้นตอนการทำงาน";
+                    if (f === folderName) itemCount++;
+                }
+                
+                var isFirst = (i === 0);
+                var isLast = (i === tempReorderMainFolders.length - 1);
+                
+                container.innerHTML += '<div class="flex items-center justify-between gap-3 p-3 bg-white border border-gray-200 rounded-2xl shadow-2xs hover:border-blue-300 transition-all select-none" data-reorder-index="' + i + '" data-reorder-type="main" draggable="true" ondragstart="onReorderDragStart(event, ' + i + ', \'main\')" ondragover="onReorderDragOver(event)" ondragleave="onReorderDragLeave(event)" ondrop="onReorderDrop(event, ' + i + ', \'main\')" ondragend="onReorderDragEnd(event)">' +
+                    '<div class="flex items-center gap-3 min-w-0 flex-1">' +
+                        '<span class="text-gray-400 hover:text-blue-600 cursor-grab active:cursor-grabbing font-black text-base drag-handle px-1 py-0.5 rounded hover:bg-gray-100" title="กดค้างเพื่อลากเลื่อนอันดับ">⠿</span>' +
+                        '<span class="w-7 h-7 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 font-black text-xs flex items-center justify-center shrink-0">#' + (i + 1) + '</span>' +
+                        '<span class="text-2xl shrink-0">' + fIcon + '</span>' +
+                        '<div class="min-w-0 flex-1">' +
+                            '<div class="font-extrabold text-sm text-gray-900 truncate">' + folderName + '</div>' +
+                            '<div class="text-[11px] text-gray-500 font-semibold">' + itemCount + ' เรื่องในแฟ้มนี้</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="flex items-center gap-1 shrink-0">' +
+                        '<button type="button" onclick="moveReorderItem(' + i + ', -1, \'main\')" ' + (isFirst ? 'disabled class="w-8 h-8 rounded-xl bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 flex items-center justify-center text-xs font-black border border-blue-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนขึ้น">▲</button>' +
+                        '<button type="button" onclick="moveReorderItem(' + i + ', 1, \'main\')" ' + (isLast ? 'disabled class="w-8 h-8 rounded-xl bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 flex items-center justify-center text-xs font-black border border-blue-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนลง">▼</button>' +
+                    '</div>' +
+                '</div>';
+            }
+            
+            setTimeout(function() {
+                var rows = container.querySelectorAll('[data-reorder-type="main"]');
+                for (var r = 0; r < rows.length; r++) {
+                    var handle = rows[r].querySelector('.drag-handle') || rows[r];
+                    setupReorderTouchEvents(handle, r, 'main', rows[r]);
+                }
+            }, 30);
+        }
+
+        // คืนค่าเริ่มต้นโฟลเดอร์หลัก
+        function resetMainFolderOrderToDefault() {
+            tempReorderMainFolders = ["ขั้นตอนการทำงาน", "ประกาศ", "นโยบาย", "รวมภาพสื่อประชาสัมพันธ์"];
+            for (var i = 0; i < allDatabaseData.length; i++) {
+                var f = (allDatabaseData[i].mainFolder && allDatabaseData[i].mainFolder.trim() !== "") ? allDatabaseData[i].mainFolder.trim() : "ขั้นตอนการทำงาน";
+                if (tempReorderMainFolders.indexOf(f) === -1) {
+                    tempReorderMainFolders.push(f);
+                }
+            }
+            renderReorderMainFoldersList();
+        }
+
+        // เปลี่ยนตัวเลือกโฟลเดอร์หลักในแท็บที่ 2
+        function onReorderSubFolderMainChange() {
+            var sel = document.getElementById('reorderSubFolderMainSelect');
+            var mainFolder = sel ? sel.value : "ขั้นตอนการทำงาน";
+            tempReorderSubFolders = getReorderSubFoldersList(mainFolder);
+            renderReorderSubFoldersList();
+        }
+
+        // เรนเดอร์แท็บที่ 2: โฟลเดอร์ย่อย
+        function renderReorderSubFoldersList() {
+            var container = document.getElementById('reorderSubFoldersList');
+            if (!container) return;
+            container.innerHTML = "";
+            
+            var sel = document.getElementById('reorderSubFolderMainSelect');
+            var mainFolder = sel ? sel.value : "ขั้นตอนการทำงาน";
+            
+            var badge = document.getElementById('reorderCountBadgeSub');
+            if (badge) badge.innerText = tempReorderSubFolders.length;
+            
+            var infoLabel = document.getElementById('reorderSubFolderInfoLabel');
+            if (infoLabel) infoLabel.innerText = "โฟลเดอร์ย่อยใน \"" + mainFolder + "\": " + tempReorderSubFolders.length + " รายการ";
+            
+            if (tempReorderSubFolders.length === 0) {
+                container.innerHTML = '<div class="p-6 text-center text-gray-500 text-xs font-bold bg-white rounded-2xl border border-dashed">ไม่มีโฟลเดอร์ย่อยในแฟ้มนี้</div>';
+                return;
+            }
+            
+            for (var i = 0; i < tempReorderSubFolders.length; i++) {
+                var catName = tempReorderSubFolders[i];
+                var catItemCount = 0;
+                for (var k = 0; k < allDatabaseData.length; k++) {
+                    var itm = allDatabaseData[k];
+                    var itmF = (itm.mainFolder && itm.mainFolder.trim() !== "") ? itm.mainFolder.trim() : "ขั้นตอนการทำงาน";
+                    var itmC = (itm.category && itm.category.trim() !== "") ? itm.category.trim() : "ทั่วไป";
+                    if (itmF === mainFolder && itmC === catName) catItemCount++;
+                }
+                
+                var isFirst = (i === 0);
+                var isLast = (i === tempReorderSubFolders.length - 1);
+                
+                container.innerHTML += '<div class="flex items-center justify-between gap-3 p-3 bg-white border border-gray-200 rounded-2xl shadow-2xs hover:border-purple-300 transition-all select-none" data-reorder-index="' + i + '" data-reorder-type="sub" draggable="true" ondragstart="onReorderDragStart(event, ' + i + ', \'sub\')" ondragover="onReorderDragOver(event)" ondragleave="onReorderDragLeave(event)" ondrop="onReorderDrop(event, ' + i + ', \'sub\')" ondragend="onReorderDragEnd(event)">' +
+                    '<div class="flex items-center gap-3 min-w-0 flex-1">' +
+                        '<span class="text-gray-400 hover:text-purple-600 cursor-grab active:cursor-grabbing font-black text-base drag-handle px-1 py-0.5 rounded hover:bg-gray-100" title="กดค้างเพื่อลากเลื่อนอันดับ">⠿</span>' +
+                        '<span class="w-7 h-7 rounded-xl bg-purple-50 border border-purple-200 text-purple-900 font-black text-xs flex items-center justify-center shrink-0">#' + (i + 1) + '</span>' +
+                        '<span class="text-xl shrink-0">📁</span>' +
+                        '<div class="min-w-0 flex-1">' +
+                            '<div class="font-extrabold text-sm text-gray-900 truncate">' + catName + '</div>' +
+                            '<div class="text-[11px] text-gray-500 font-semibold">' + catItemCount + ' เรื่องในหมวดนี้</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="flex items-center gap-1 shrink-0">' +
+                        '<button type="button" onclick="moveReorderItem(' + i + ', -1, \'sub\')" ' + (isFirst ? 'disabled class="w-8 h-8 rounded-xl bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-8 h-8 rounded-xl bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 flex items-center justify-center text-xs font-black border border-purple-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนขึ้น">▲</button>' +
+                        '<button type="button" onclick="moveReorderItem(' + i + ', 1, \'sub\')" ' + (isLast ? 'disabled class="w-8 h-8 rounded-xl bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-8 h-8 rounded-xl bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 flex items-center justify-center text-xs font-black border border-purple-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนลง">▼</button>' +
+                    '</div>' +
+                '</div>';
+            }
+            
+            setTimeout(function() {
+                var rows = container.querySelectorAll('[data-reorder-type="sub"]');
+                for (var r = 0; r < rows.length; r++) {
+                    var handle = rows[r].querySelector('.drag-handle') || rows[r];
+                    setupReorderTouchEvents(handle, r, 'sub', rows[r]);
+                }
+            }, 30);
+        }
+
+        // จัดเรียงโฟลเดอร์ย่อยตามตัวอักษร ก - ฮ
+        function sortSubFoldersAlphabetical() {
+            tempReorderSubFolders.sort(function(a, b) {
+                return a.localeCompare(b, 'th');
+            });
+            renderReorderSubFoldersList();
+        }
+
+        // เปลี่ยนตัวเลือกโฟลเดอร์หลักในแท็บที่ 3
+        function onReorderTopicMainChange() {
+            var mainSel = document.getElementById('reorderTopicMainSelect');
+            var mainFolder = mainSel ? mainSel.value : "ขั้นตอนการทำงาน";
+            var subList = getReorderSubFoldersList(mainFolder);
+            
+            var subSel = document.getElementById('reorderTopicSubSelect');
+            if (subSel) {
+                subSel.innerHTML = "";
+                for (var i = 0; i < subList.length; i++) {
+                    subSel.innerHTML += '<option value="' + subList[i] + '">📁 ' + subList[i] + '</option>';
+                }
+            }
+            onReorderTopicSubChange();
+        }
+
+        // เปลี่ยนตัวเลือกโฟลเดอร์ย่อยในแท็บที่ 3
+        function onReorderTopicSubChange() {
+            var mainSel = document.getElementById('reorderTopicMainSelect');
+            var subSel = document.getElementById('reorderTopicSubSelect');
+            var mainFolder = mainSel ? mainSel.value : "ขั้นตอนการทำงาน";
+            var subFolder = subSel ? subSel.value : "ทั่วไป";
+            
+            tempReorderTopics = getReorderTopicsList(mainFolder, subFolder);
+            renderReorderTopicsList();
+        }
+
+        // เรียงหัวข้อเรื่องอย่างรวดเร็ว (ปักหมุดก่อน / วันที่ล่าสุด)
+        function sortReorderTopicsQuick(mode) {
+            if (mode === 'pin_first') {
+                tempReorderTopics.sort(function(a, b) {
+                    var pinA = (a.isPinned === true || a.isPinned === "true" || a.isPinned === 1 || a.isPinned === "1");
+                    var pinB = (b.isPinned === true || b.isPinned === "true" || b.isPinned === 1 || b.isPinned === "1");
+                    if (pinA && !pinB) return -1;
+                    if (!pinA && pinB) return 1;
+                    return parseKnowledgeDate(b.timestamp) - parseKnowledgeDate(a.timestamp);
+                });
+            } else if (mode === 'date_desc') {
+                tempReorderTopics.sort(function(a, b) {
+                    return parseKnowledgeDate(b.timestamp) - parseKnowledgeDate(a.timestamp);
+                });
+            }
+            for (var i = 0; i < tempReorderTopics.length; i++) {
+                tempReorderTopics[i].displayOrder = i + 1;
+            }
+            renderReorderTopicsList();
+        }
+
+        // สลับสถานะปักหมุดใน Modal จัดการ
+        function toggleReorderTopicPin(index) {
+            if (index < 0 || index >= tempReorderTopics.length) return;
+            var itm = tempReorderTopics[index];
+            var currentPin = (itm.isPinned === true || itm.isPinned === "true" || itm.isPinned === 1 || itm.isPinned === "1");
+            itm.isPinned = !currentPin;
+            renderReorderTopicsList();
+        }
+
+        // เรนเดอร์แท็บที่ 3: รายการหัวข้อเรื่อง
+        function renderReorderTopicsList() {
+            var container = document.getElementById('reorderTopicsList');
+            if (!container) return;
+            container.innerHTML = "";
+            
+            var mainSel = document.getElementById('reorderTopicMainSelect');
+            var subSel = document.getElementById('reorderTopicSubSelect');
+            var mainFolder = mainSel ? mainSel.value : "";
+            var subFolder = subSel ? subSel.value : "";
+            
+            var badge = document.getElementById('reorderCountBadgeTopics');
+            if (badge) badge.innerText = tempReorderTopics.length;
+            
+            var infoLabel = document.getElementById('reorderTopicInfoLabel');
+            if (infoLabel) infoLabel.innerText = "หัวข้อใน \"" + mainFolder + " > " + subFolder + "\": " + tempReorderTopics.length + " เรื่อง";
+            
+            if (tempReorderTopics.length === 0) {
+                container.innerHTML = '<div class="p-8 text-center text-gray-500 text-xs font-bold bg-white rounded-2xl border border-dashed">ไม่มีหัวข้อเรื่องในโฟลเดอร์ย่อยนี้</div>';
+                return;
+            }
+            
+            for (var i = 0; i < tempReorderTopics.length; i++) {
+                var top = tempReorderTopics[i];
+                var isPin = (top.isPinned === true || top.isPinned === "true" || top.isPinned === 1 || top.isPinned === "1");
+                var pinBtnClass = isPin ? "bg-amber-500 text-white shadow-2xs" : "bg-gray-100 text-gray-400 hover:text-amber-700 hover:bg-amber-50";
+                var pinTitle = isPin ? "ยกเลิกปักหมุด" : "ปักหมุดให้อยู่บนสุด";
+                var orderNum = (top.displayOrder !== undefined && top.displayOrder !== null && top.displayOrder !== "" && top.displayOrder !== 999) ? top.displayOrder : (i + 1);
+                
+                var typeIcon = top.type === 'pdf' ? '📄' : (top.type === 'video' ? '🎥' : '🖼️');
+                var dateStr = top.timestamp ? formatThaiDateTimeShort(top.timestamp) : '-';
+                
+                var isFirst = (i === 0);
+                var isLast = (i === tempReorderTopics.length - 1);
+                
+                container.innerHTML += '<div class="flex items-center justify-between gap-3 p-3 bg-white border ' + (isPin ? 'border-amber-300 ring-2 ring-amber-100 bg-amber-50/20' : 'border-gray-200') + ' rounded-2xl shadow-2xs hover:border-indigo-300 transition-all select-none" data-reorder-index="' + i + '" data-reorder-type="topics" draggable="true" ondragstart="onReorderDragStart(event, ' + i + ', \'topics\')" ondragover="onReorderDragOver(event)" ondragleave="onReorderDragLeave(event)" ondrop="onReorderDrop(event, ' + i + ', \'topics\')" ondragend="onReorderDragEnd(event)">' +
+                    '<div class="flex items-center gap-2.5 min-w-0 flex-1">' +
+                        '<span class="text-gray-400 hover:text-indigo-600 cursor-grab active:cursor-grabbing font-black text-base drag-handle px-1 py-0.5 rounded hover:bg-gray-100" title="กดค้างเพื่อลากเลื่อนอันดับ">⠿</span>' +
+                        '<span class="w-7 h-7 rounded-xl ' + (isPin ? 'bg-amber-500 text-white' : 'bg-indigo-50 border border-indigo-200 text-indigo-900') + ' font-black text-xs flex items-center justify-center shrink-0">#' + orderNum + '</span>' +
+                        '<button type="button" onclick="toggleReorderTopicPin(' + i + ')" class="p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ' + pinBtnClass + '" title="' + pinTitle + '">📌</button>' +
+                        '<span class="text-lg shrink-0">' + typeIcon + '</span>' +
+                        '<div class="min-w-0 flex-1">' +
+                            '<div class="font-extrabold text-sm text-gray-900 truncate">' + (top.title || 'ไม่มีชื่อเรื่อง') + '</div>' +
+                            '<div class="text-[11px] text-gray-500 font-semibold flex items-center gap-2 flex-wrap">' +
+                                '<span>โดย: ' + (top.uploadedBy || 'แอดมิน') + '</span>' +
+                                '<span>•</span>' +
+                                '<span>🕒 ' + dateStr + '</span>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="flex items-center gap-1 shrink-0">' +
+                        '<button type="button" onclick="moveReorderItem(' + i + ', -1, \'topics\')" ' + (isFirst ? 'disabled class="w-8 h-8 rounded-xl bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-8 h-8 rounded-xl bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 flex items-center justify-center text-xs font-black border border-indigo-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนขึ้น">▲</button>' +
+                        '<button type="button" onclick="moveReorderItem(' + i + ', 1, \'topics\')" ' + (isLast ? 'disabled class="w-8 h-8 rounded-xl bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-8 h-8 rounded-xl bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 flex items-center justify-center text-xs font-black border border-indigo-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนลง">▼</button>' +
+                    '</div>' +
+                '</div>';
+            }
+            
+            setTimeout(function() {
+                var rows = container.querySelectorAll('[data-reorder-type="topics"]');
+                for (var r = 0; r < rows.length; r++) {
+                    var handle = rows[r].querySelector('.drag-handle') || rows[r];
+                    setupReorderTouchEvents(handle, r, 'topics', rows[r]);
+                }
+            }, 30);
+        }
+
+        // จัดการเลื่อนไอเท็มใน Modal (ปุ่ม ▲ / ▼)
+        function moveReorderItem(index, direction, type) {
+            var targetIndex = index + direction;
+            if (type === 'main') {
+                if (targetIndex < 0 || targetIndex >= tempReorderMainFolders.length) return;
+                var tempM = tempReorderMainFolders[index];
+                tempReorderMainFolders[index] = tempReorderMainFolders[targetIndex];
+                tempReorderMainFolders[targetIndex] = tempM;
+                renderReorderMainFoldersList();
+            } else if (type === 'sub') {
+                if (targetIndex < 0 || targetIndex >= tempReorderSubFolders.length) return;
+                var tempS = tempReorderSubFolders[index];
+                tempReorderSubFolders[index] = tempReorderSubFolders[targetIndex];
+                tempReorderSubFolders[targetIndex] = tempS;
+                renderReorderSubFoldersList();
+            } else if (type === 'topics') {
+                if (targetIndex < 0 || targetIndex >= tempReorderTopics.length) return;
+                var tempT = tempReorderTopics[index];
+                tempReorderTopics[index] = tempReorderTopics[targetIndex];
+                tempReorderTopics[targetIndex] = tempT;
+                for (var i = 0; i < tempReorderTopics.length; i++) {
+                    tempReorderTopics[i].displayOrder = i + 1;
+                }
+                renderReorderTopicsList();
+            }
+        }
+
+        // สลับไอเท็มเมื่อทำการลากวาง (Drag & Drop หรือ Press-and-Hold Touch)
+        function applyReorderItemDrop(srcIndex, targetIndex, type) {
+            if (srcIndex === targetIndex) return;
+            if (type === 'main') {
+                var itemM = tempReorderMainFolders.splice(srcIndex, 1)[0];
+                tempReorderMainFolders.splice(targetIndex, 0, itemM);
+                renderReorderMainFoldersList();
+            } else if (type === 'sub') {
+                var itemS = tempReorderSubFolders.splice(srcIndex, 1)[0];
+                tempReorderSubFolders.splice(targetIndex, 0, itemS);
+                renderReorderSubFoldersList();
+            } else if (type === 'topics') {
+                var itemT = tempReorderTopics.splice(srcIndex, 1)[0];
+                tempReorderTopics.splice(targetIndex, 0, itemT);
+                for (var i = 0; i < tempReorderTopics.length; i++) {
+                    tempReorderTopics[i].displayOrder = i + 1;
+                }
+                renderReorderTopicsList();
+            } else if (type === 'table') {
+                applyAdminKnowledgeTableDrop(srcIndex, targetIndex);
+            }
+        }
+
+        // HTML5 Drag Handlers
+        function onReorderDragStart(e, index, type) {
+            reorderDragSrcIndex = index;
+            reorderDragSrcType = type;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', index);
+            var targetEl = e.currentTarget;
+            setTimeout(function() {
+                if (targetEl) targetEl.classList.add('opacity-40');
+            }, 0);
+        }
+
+        function onReorderDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            var row = e.currentTarget;
+            if (row) {
+                row.classList.add('border-blue-500', 'bg-blue-50/50');
+            }
+        }
+
+        function onReorderDragLeave(e) {
+            var row = e.currentTarget;
+            if (row) {
+                row.classList.remove('border-blue-500', 'bg-blue-50/50');
+            }
+        }
+
+        function onReorderDrop(e, targetIndex, type) {
+            e.preventDefault();
+            e.stopPropagation();
+            var row = e.currentTarget;
+            if (row) {
+                row.classList.remove('border-blue-500', 'bg-blue-50/50');
+            }
+            if (reorderDragSrcIndex !== -1 && reorderDragSrcIndex !== targetIndex && reorderDragSrcType === type) {
+                applyReorderItemDrop(reorderDragSrcIndex, targetIndex, type);
+            }
+        }
+
+        function onReorderDragEnd(e) {
+            var allRows = document.querySelectorAll('[data-reorder-index]');
+            for (var r = 0; r < allRows.length; r++) {
+                allRows[r].classList.remove('opacity-40', 'border-blue-500', 'bg-blue-50/50');
+            }
+            reorderDragSrcIndex = -1;
+            reorderDragSrcType = null;
+        }
+
+        // ระบบกดค้างเพื่อลากเลื่อนอันดับบนมือถือ (Touch Press & Hold to Drag)
+        function setupReorderTouchEvents(handleElement, index, type, rowElement) {
+            if (!handleElement) return;
+            var targetRow = rowElement || handleElement;
+            var touchStartX = 0;
+            var touchStartY = 0;
+            var isHeld = false;
+            var timer = null;
+            
+            handleElement.addEventListener('touchstart', function(e) {
+                var touch = e.touches[0];
+                touchStartX = touch.clientX;
+                touchStartY = touch.clientY;
+                isHeld = false;
+                
+                timer = setTimeout(function() {
+                    isHeld = true;
+                    targetRow.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50', 'scale-[1.02]', 'shadow-lg');
+                    if (navigator.vibrate) {
+                        try { navigator.vibrate(25); } catch(ev) {}
+                    }
+                }, 180); // กดค้าง 180ms เพื่อเปิดโหมดลากเลื่อน
+            }, { passive: true });
+            
+            handleElement.addEventListener('touchmove', function(e) {
+                if (!isHeld) {
+                    var touch = e.touches[0];
+                    if (Math.abs(touch.clientX - touchStartX) > 10 || Math.abs(touch.clientY - touchStartY) > 10) {
+                        clearTimeout(timer);
+                    }
+                    return;
+                }
+                e.preventDefault();
+                var touchM = e.touches[0];
+                var elemUnder = document.elementFromPoint(touchM.clientX, touchM.clientY);
+                if (!elemUnder) return;
+                var rowUnder = elemUnder.closest('[data-reorder-index]');
+                
+                var allRows = document.querySelectorAll('[data-reorder-index][data-reorder-type="' + type + '"]');
+                for (var r = 0; r < allRows.length; r++) {
+                    if (allRows[r] !== targetRow) {
+                        allRows[r].classList.remove('border-blue-500', 'border-t-4', 'border-b-4');
+                    }
+                }
+                
+                if (rowUnder && rowUnder !== targetRow && rowUnder.getAttribute('data-reorder-type') === type) {
+                    var targetIdx = parseInt(rowUnder.getAttribute('data-reorder-index'), 10);
+                    if (targetIdx < index) {
+                        rowUnder.classList.add('border-t-4', 'border-blue-500');
+                    } else {
+                        rowUnder.classList.add('border-b-4', 'border-blue-500');
+                    }
+                }
+            }, { passive: false });
+            
+            handleElement.addEventListener('touchend', function(e) {
+                clearTimeout(timer);
+                if (isHeld) {
+                    targetRow.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50', 'scale-[1.02]', 'shadow-lg');
+                    var touchE = e.changedTouches[0];
+                    var elemUnder = document.elementFromPoint(touchE.clientX, touchE.clientY);
+                    if (elemUnder) {
+                        var rowUnder = elemUnder.closest('[data-reorder-index]');
+                        if (rowUnder && rowUnder.getAttribute('data-reorder-type') === type) {
+                            var targetIdx = parseInt(rowUnder.getAttribute('data-reorder-index'), 10);
+                            if (!isNaN(targetIdx) && targetIdx !== index) {
+                                applyReorderItemDrop(index, targetIdx, type);
+                            }
+                        }
+                    }
+                    var allRows = document.querySelectorAll('[data-reorder-index][data-reorder-type="' + type + '"]');
+                    for (var r = 0; r < allRows.length; r++) {
+                        allRows[r].classList.remove('border-blue-500', 'border-t-4', 'border-b-4');
+                    }
+                    isHeld = false;
+                }
+            }, { passive: true });
+        }
+
+        // บันทึกการเปลี่ยนแปลงในแท็บที่กำลังเปิดอยู่
+        function saveCurrentReorderTabChanges() {
+            var saveBtn = document.getElementById('reorderSaveBtn');
+            var statusText = document.getElementById('reorderSaveStatusText');
+            
+            if (currentReorderTab === 'main') {
+                showLoading("กำลังบันทึกลำดับโฟลเดอร์หลัก...");
+                systemConfigData.main_folder_order = JSON.stringify(tempReorderMainFolders);
+                
+                google.script.run
+                    .withSuccessHandler(function(res) {
+                        hideLoading();
+                        if (statusText) statusText.innerText = "✅ บันทึกลำดับโฟลเดอร์หลักสำเร็จ!";
+                        alert("✅ บันทึกลำดับโฟลเดอร์หลักเรียบร้อยแล้ว!");
+                        renderMainCategories();
+                        renderAdminKnowledgeList();
+                    })
+                    .withFailureHandler(function(err) {
+                        hideLoading();
+                        alert("เกิดข้อผิดพลาดในการบันทึก: " + err.toString());
+                    })
+                    .saveKnowledgeFolderOrder(JSON.stringify(tempReorderMainFolders), systemConfigData.category_order || "{}");
+                    
+            } else if (currentReorderTab === 'sub') {
+                var mainSel = document.getElementById('reorderSubFolderMainSelect');
+                var mainFolder = mainSel ? mainSel.value : "ขั้นตอนการทำงาน";
+                
+                var catMap = {};
+                if (systemConfigData && systemConfigData.category_order) {
+                    try {
+                        catMap = (typeof systemConfigData.category_order === 'string') ? JSON.parse(systemConfigData.category_order) : (systemConfigData.category_order || {});
+                    } catch(e) {}
+                }
+                catMap[mainFolder] = tempReorderSubFolders.slice();
+                systemConfigData.category_order = JSON.stringify(catMap);
+                
+                showLoading("กำลังบันทึกลำดับโฟลเดอร์ย่อย...");
+                google.script.run
+                    .withSuccessHandler(function(res) {
+                        hideLoading();
+                        if (statusText) statusText.innerText = "✅ บันทึกลำดับโฟลเดอร์ย่อยสำเร็จ!";
+                        alert("✅ บันทึกลำดับโฟลเดอร์ย่อยใน \"" + mainFolder + "\" เรียบร้อยแล้ว!");
+                        renderCategories();
+                        renderAdminKnowledgeList();
+                    })
+                    .withFailureHandler(function(err) {
+                        hideLoading();
+                        alert("เกิดข้อผิดพลาดในการบันทึก: " + err.toString());
+                    })
+                    .saveKnowledgeFolderOrder(systemConfigData.main_folder_order || "[]", JSON.stringify(catMap));
+                    
+            } else if (currentReorderTab === 'topics') {
+                var payload = [];
+                for (var i = 0; i < tempReorderTopics.length; i++) {
+                    var top = tempReorderTopics[i];
+                    top.displayOrder = i + 1;
+                    payload.push({
+                        id: top.id,
+                        displayOrder: i + 1,
+                        isPinned: (top.isPinned === true || top.isPinned === "true" || top.isPinned === 1 || top.isPinned === "1")
+                    });
+                    
+                    var orig = allDatabaseData.find(function(k) { return String(k.id).trim() === String(top.id).trim(); });
+                    if (orig) {
+                        orig.displayOrder = i + 1;
+                        orig.isPinned = top.isPinned;
+                    }
+                }
+                
+                showLoading("กำลังบันทึกลำดับหัวข้อเรื่อง...");
+                google.script.run
+                    .withSuccessHandler(function(res) {
+                        hideLoading();
+                        if (statusText) statusText.innerText = "✅ บันทึกลำดับหัวข้อเรื่องสำเร็จ!";
+                        alert("✅ บันทึกลำดับหัวข้อเรื่องสำเร็จ " + payload.length + " รายการ!");
+                        renderAdminKnowledgeList();
+                        if (typeof renderFilteredTopics === 'function') renderFilteredTopics();
+                    })
+                    .withFailureHandler(function(err) {
+                        hideLoading();
+                        alert("เกิดข้อผิดพลาดในการบันทึก: " + err.toString());
+                    })
+                    .updateKnowledgeOrdersBulk(payload);
+            }
+        }
+
+        // ==================== สลับลำดับบนตารางแอดมินโดยตรง (Inline Table Reorder) ====================
+        function moveAdminKnowledgeTableRow(displayedIndex, direction, e) {
+            if (e) e.stopPropagation();
+            if (!currentFilteredAdminKnowledge || currentFilteredAdminKnowledge.length === 0) return;
+            
+            var targetIndex = displayedIndex + direction;
+            if (targetIndex < 0 || targetIndex >= currentFilteredAdminKnowledge.length) return;
+            
+            // สลับรายการ
+            var temp = currentFilteredAdminKnowledge[displayedIndex];
+            currentFilteredAdminKnowledge[displayedIndex] = currentFilteredAdminKnowledge[targetIndex];
+            currentFilteredAdminKnowledge[targetIndex] = temp;
+            
+            // อัปเดต displayOrder และบันทึก
+            saveAdminKnowledgeTableOrderImmediate(currentFilteredAdminKnowledge);
+        }
+
+        function applyAdminKnowledgeTableDrop(srcIndex, targetIndex) {
+            if (!currentFilteredAdminKnowledge || currentFilteredAdminKnowledge.length === 0) return;
+            if (srcIndex === targetIndex || targetIndex < 0 || targetIndex >= currentFilteredAdminKnowledge.length) return;
+            
+            var item = currentFilteredAdminKnowledge.splice(srcIndex, 1)[0];
+            currentFilteredAdminKnowledge.splice(targetIndex, 0, item);
+            
+            saveAdminKnowledgeTableOrderImmediate(currentFilteredAdminKnowledge);
+        }
+
+        function saveAdminKnowledgeTableOrderImmediate(list) {
+            var payload = [];
+            for (var i = 0; i < list.length; i++) {
+                list[i].displayOrder = i + 1;
+                payload.push({
+                    id: list[i].id,
+                    displayOrder: i + 1,
+                    isPinned: (list[i].isPinned === true || list[i].isPinned === "true" || list[i].isPinned === 1 || list[i].isPinned === "1")
+                });
+                
+                var orig = allDatabaseData.find(function(k) { return String(k.id).trim() === String(list[i].id).trim(); });
+                if (orig) {
+                    orig.displayOrder = i + 1;
+                }
+            }
+            
+            renderAdminKnowledgeList();
+            if (typeof renderFilteredTopics === 'function') renderFilteredTopics();
+            
+            google.script.run
+                .withSuccessHandler(function(res) {
+                    console.log("บันทึกลำดับตารางแอดมินสำเร็จ:", res);
+                })
+                .withFailureHandler(function(err) {
+                    console.error("เกิดข้อผิดพลาดในการบันทึกลำดับตารางแอดมิน:", err);
+                })
+                .updateKnowledgeOrdersBulk(payload);
         }
 
         // ==================== ส่วน Q&A (Q&A Module) ====================
@@ -12148,8 +12979,142 @@ function cancelKnowledgeEdit() {
         </div>
     </div>
 
-    <!-- ========================================================================= -->
-    <!-- แถบเมนูด้านล่างสำหรับมือถือ (Mobile Bottom Navigation Bar) -->
+    <!-- ==================== โมดอลจัดเรียงลำดับโฟลเดอร์และหัวข้อเรื่อง (Knowledge Reorder Modal) ==================== -->
+    <div id="knowledgeReorderModal" class="fixed inset-0 bg-slate-950 bg-opacity-80 flex items-center justify-center z-[99999] hidden backdrop-blur-sm p-3 sm:p-4 overflow-y-auto" onclick="if(event.target === this) closeKnowledgeReorderModal()">
+        <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all my-auto flex flex-col max-h-[92vh]" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="py-3 px-4 sm:px-6 bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 text-white flex justify-between items-center gap-3 shrink-0 shadow-md">
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">🔄</span>
+                        <h3 class="text-base sm:text-lg font-black tracking-wide truncate">ระบบจัดเรียงลำดับโฟลเดอร์และเรื่อง</h3>
+                    </div>
+                    <p class="text-xs text-blue-200 mt-0.5 font-medium flex items-center gap-1.5 flex-wrap">
+                        <span class="bg-white/20 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md">💡 กดค้าง ⠿ เพื่อลากเลื่อน</span>
+                        <span>หรือใช้ปุ่ม 🔼 / 🔽 เพื่อจัดเรียงลำดับได้ตามต้องการ</span>
+                    </p>
+                </div>
+                <button type="button" onclick="closeKnowledgeReorderModal()" class="text-white hover:text-white bg-white/20 hover:bg-white/30 rounded-xl w-8 h-8 flex items-center justify-center text-lg font-bold transition-all shrink-0 active:scale-90 shadow-sm cursor-pointer" title="ปิดหน้าต่าง">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Tabs inside modal (โฟลเดอร์หลัก vs โฟลเดอร์ย่อย vs หัวข้อเรื่อง) -->
+            <div class="flex border-b border-gray-200 px-4 bg-slate-50 shrink-0 overflow-x-auto gap-2 pt-2">
+                <button type="button" onclick="switchKnowledgeReorderTab('main')" id="reorderTabBtnMain" class="py-2 px-3.5 text-xs font-black border-b-2 border-blue-600 text-blue-600 transition-all flex items-center gap-1.5 shrink-0 rounded-t-lg bg-white shadow-2xs">
+                    <span>📂</span> <span>โฟลเดอร์หลัก</span>
+                    <span id="reorderCountBadgeMain" class="bg-blue-100 text-blue-800 text-[10px] font-black px-1.5 py-0.5 rounded-full">0</span>
+                </button>
+                <button type="button" onclick="switchKnowledgeReorderTab('sub')" id="reorderTabBtnSub" class="py-2 px-3.5 text-xs font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-all flex items-center gap-1.5 shrink-0 rounded-t-lg hover:bg-white/60">
+                    <span>📁</span> <span>โฟลเดอร์ย่อย</span>
+                    <span id="reorderCountBadgeSub" class="bg-gray-200 text-gray-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">0</span>
+                </button>
+                <button type="button" onclick="switchKnowledgeReorderTab('topics')" id="reorderTabBtnTopics" class="py-2 px-3.5 text-xs font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-all flex items-center gap-1.5 shrink-0 rounded-t-lg hover:bg-white/60">
+                    <span>📄</span> <span>หัวข้อเรื่อง / คู่มือ</span>
+                    <span id="reorderCountBadgeTopics" class="bg-gray-200 text-gray-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">0</span>
+                </button>
+            </div>
+
+            <!-- Modal Content Body -->
+            <div class="p-4 sm:p-5 overflow-y-auto overscroll-contain flex-1 space-y-4 bg-slate-50/40">
+                <!-- ================= PANEL 1: โฟลเดอร์หลัก (Main Folders) ================= -->
+                <div id="reorderPanelMain" class="space-y-3">
+                    <div class="flex items-center justify-between gap-2 flex-wrap bg-blue-50/70 border border-blue-150 p-3 rounded-2xl">
+                        <div class="text-xs text-blue-950 font-bold flex items-center gap-1.5">
+                            <span>📂</span>
+                            <span>จัดลำดับการแสดงผลของโฟลเดอร์หลักในหน้าศูนย์เรียนรู้</span>
+                        </div>
+                        <button type="button" onclick="resetMainFolderOrderToDefault()" class="text-[11px] font-bold text-blue-700 hover:text-blue-900 bg-white border border-blue-250 px-2.5 py-1 rounded-lg transition-all active:scale-95 shadow-2xs cursor-pointer">
+                            🔄 คืนค่าลำดับมาตรฐาน
+                        </button>
+                    </div>
+
+                    <div id="reorderMainFoldersList" class="space-y-2">
+                        <!-- รายการโฟลเดอร์หลักจะถูกเรนเดอร์ที่นี่ -->
+                    </div>
+                </div>
+
+                <!-- ================= PANEL 2: โฟลเดอร์ย่อย (Sub-Folders) ================= -->
+                <div id="reorderPanelSub" class="space-y-3 hidden">
+                    <div class="bg-purple-50/70 border border-purple-150 p-3.5 rounded-2xl space-y-2">
+                        <label for="reorderSubFolderMainSelect" class="block text-xs font-black text-purple-950 flex items-center gap-1.5">
+                            <span>📂</span> <span>เลือกโฟลเดอร์หลักที่ต้องการจัดเรียงโฟลเดอร์ย่อย:</span>
+                        </label>
+                        <select id="reorderSubFolderMainSelect" onchange="onReorderSubFolderMainChange()" class="w-full p-2.5 bg-white border-2 border-purple-250 rounded-xl text-xs sm:text-sm font-bold text-purple-950 outline-none focus:border-purple-600 shadow-2xs cursor-pointer">
+                            <!-- ตัวเลือกโฟลเดอร์หลัก -->
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <span id="reorderSubFolderInfoLabel" class="text-xs font-bold text-gray-650">โฟลเดอร์ย่อยทั้งหมด: 0 รายการ</span>
+                        <button type="button" onclick="sortSubFoldersAlphabetical()" class="text-[11px] font-bold text-purple-700 hover:text-purple-900 bg-white border border-purple-250 px-2.5 py-1 rounded-lg transition-all active:scale-95 shadow-2xs cursor-pointer">
+                            🔤 จัดเรียง ก - ฮ
+                        </button>
+                    </div>
+
+                    <div id="reorderSubFoldersList" class="space-y-2">
+                        <!-- รายการโฟลเดอร์ย่อยจะถูกเรนเดอร์ที่นี่ -->
+                    </div>
+                </div>
+
+                <!-- ================= PANEL 3: หัวข้อเรื่อง (Topics) ================= -->
+                <div id="reorderPanelTopics" class="space-y-3 hidden">
+                    <div class="bg-indigo-50/70 border border-indigo-150 p-3.5 rounded-2xl space-y-2.5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div>
+                                <label for="reorderTopicMainSelect" class="block text-xs font-black text-indigo-950 mb-1 flex items-center gap-1">
+                                    <span>📂</span> <span>1. โฟลเดอร์หลัก:</span>
+                                </label>
+                                <select id="reorderTopicMainSelect" onchange="onReorderTopicMainChange()" class="w-full p-2.5 bg-white border-2 border-indigo-250 rounded-xl text-xs sm:text-sm font-bold text-indigo-950 outline-none focus:border-indigo-600 shadow-2xs cursor-pointer">
+                                    <!-- ตัวเลือกโฟลเดอร์หลัก -->
+                                </select>
+                            </div>
+                            <div>
+                                <label for="reorderTopicSubSelect" class="block text-xs font-black text-indigo-950 mb-1 flex items-center gap-1">
+                                    <span>📁</span> <span>2. โฟลเดอร์ย่อย:</span>
+                                </label>
+                                <select id="reorderTopicSubSelect" onchange="onReorderTopicSubChange()" class="w-full p-2.5 bg-white border-2 border-indigo-250 rounded-xl text-xs sm:text-sm font-bold text-indigo-950 outline-none focus:border-indigo-600 shadow-2xs cursor-pointer">
+                                    <!-- ตัวเลือกโฟลเดอร์ย่อย -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-2 flex-wrap pt-1 border-t border-indigo-150">
+                            <span id="reorderTopicInfoLabel" class="text-xs font-bold text-indigo-950">หัวข้อคู่มือ: 0 รายการ</span>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button type="button" onclick="sortReorderTopicsQuick('pin_first')" class="text-[11px] font-bold text-indigo-700 bg-white border border-indigo-250 hover:bg-indigo-50 px-2 py-1 rounded-lg transition-all active:scale-95 shadow-2xs cursor-pointer">
+                                    📌 นำปักหมุดขึ้นก่อน
+                                </button>
+                                <button type="button" onclick="sortReorderTopicsQuick('date_desc')" class="text-[11px] font-bold text-gray-700 bg-white border border-gray-250 hover:bg-gray-50 px-2 py-1 rounded-lg transition-all active:scale-95 shadow-2xs cursor-pointer">
+                                    🕒 เรียงตามวันที่ล่าสุด
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="reorderTopicsList" class="space-y-2">
+                        <!-- รายการหัวข้อเรื่องจะถูกเรนเดอร์ที่นี่ -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="py-3 px-4 sm:px-6 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-3 shrink-0 flex-wrap">
+                <div class="flex items-center gap-2">
+                    <span id="reorderSaveStatusText" class="text-xs font-bold text-gray-500"></span>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <button type="button" onclick="closeKnowledgeReorderModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-gray-650 hover:text-gray-850 hover:bg-gray-200 transition-all cursor-pointer">
+                        ยกเลิก
+                    </button>
+                    <button type="button" id="reorderSaveBtn" onclick="saveCurrentReorderTabChanges()" class="w-full sm:w-auto bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs sm:text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
+                        <span>💾</span>
+                        <span id="reorderSaveBtnText">บันทึกลำดับทั้งหมด</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- ออกแบบเฉพาะสำหรับหน้าจอมือถือ (sm:hidden) ใช้งานง่ายด้วยนิ้วโป้ง -->
     <!-- ========================================================================= -->
     <nav id="mobileBottomNav" class="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-[0_-4px_25px_rgba(0,0,0,0.1)] sm:hidden transition-all pb-[max(env(safe-area-inset-bottom),8px)] pt-1.5 px-1 hidden">

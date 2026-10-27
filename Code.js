@@ -902,6 +902,8 @@ function getSystemConfig() {
       } else if (key === "auto_answer_status") {
         config.auto_answer_status = rows[i][1].toString().trim();
         foundAutoAnswer = true;
+      } else if (key !== "") {
+        config[key] = rows[i][1] ? rows[i][1].toString().trim() : "";
       }
     }
     
@@ -962,6 +964,48 @@ function saveSystemConfig(systemStatus, notebooklmUrl, autoAnswerStatus) {
     return "บันทึกการตั้งค่าระบบเรียบร้อยแล้ว!";
   } catch (error) {
     return "เกิดข้อผิดพลาด: " + error.toString();
+  }
+}
+
+// 17.1 บันทึกลำดับของโฟลเดอร์หลักและโฟลเดอร์ย่อยในศูนย์การเรียนรู้
+function saveKnowledgeFolderOrder(mainFolderOrder, categoryOrderMap) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("SystemConfig");
+    if (!sheet) {
+      sheet = ss.insertSheet("SystemConfig");
+      sheet.appendRow(["หัวข้อคอนฟิก (Parameter)", "ค่าตั้งค่า (Value)", "คำอธิบาย (Description)"]);
+      sheet.getRange("A1:C1").setFontWeight("bold").setBackground("#F1F5F9");
+    }
+    
+    var rows = sheet.getDataRange().getValues();
+    var mainStr = typeof mainFolderOrder === 'string' ? mainFolderOrder : JSON.stringify(mainFolderOrder || []);
+    var catStr = typeof categoryOrderMap === 'string' ? categoryOrderMap : JSON.stringify(categoryOrderMap || {});
+    
+    var foundMain = false;
+    var foundCat = false;
+    
+    for (var i = 1; i < rows.length; i++) {
+      var key = rows[i][0].toString().trim();
+      if (key === "main_folder_order") {
+        sheet.getRange(i + 1, 2).setValue(mainStr);
+        foundMain = true;
+      } else if (key === "category_order") {
+        sheet.getRange(i + 1, 2).setValue(catStr);
+        foundCat = true;
+      }
+    }
+    
+    if (!foundMain) {
+      sheet.appendRow(["main_folder_order", mainStr, "ลำดับการแสดงผลของโฟลเดอร์หลัก (JSON Array)"]);
+    }
+    if (!foundCat) {
+      sheet.appendRow(["category_order", catStr, "ลำดับการแสดงผลของโฟลเดอร์ย่อยแยกตามโฟลเดอร์หลัก (JSON Map)"]);
+    }
+    
+    return { success: true, message: "บันทึกลำดับโฟลเดอร์เรียบร้อยแล้ว!" };
+  } catch (err) {
+    return { success: false, message: "เกิดข้อผิดพลาดในการบันทึกลำดับโฟลเดอร์: " + err.toString() };
   }
 }
 
@@ -2307,6 +2351,54 @@ function updateKnowledgeOrderDirect(id, newOrder) {
     return "ไม่พบข้อมูลคู่มือ";
   } catch(e) {
     return "เกิดข้อผิดพลาด: " + e.toString();
+  }
+}
+
+// อัปเดตลำดับการแสดงผล (และสถานะปักหมุด) ของคู่มือในศูนย์การเรียนรู้แบบเป็นชุด (Bulk Update)
+function updateKnowledgeOrdersBulk(items) {
+  try {
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return { success: false, message: "ไม่มีข้อมูลรายการที่ต้องบันทึก" };
+    }
+    
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Knowledge");
+    if (!sheet) return { success: false, message: "ไม่พบชีตศูนย์การเรียนรู้ (Knowledge)" };
+    
+    var rows = sheet.getDataRange().getValues();
+    if (rows.length <= 1) return { success: false, message: "ไม่มีข้อมูลคู่มือในชีต" };
+    
+    // สร้าง lookup map เพื่อค้นหา index รวดเร็ว
+    var itemMap = {};
+    for (var k = 0; k < items.length; k++) {
+      var itm = items[k];
+      if (itm && itm.id !== undefined && itm.id !== null) {
+        itemMap[String(itm.id).trim()] = itm;
+      }
+    }
+    
+    var updatedCount = 0;
+    for (var i = 1; i < rows.length; i++) {
+      var rowId = String(rows[i][0]).trim();
+      if (itemMap.hasOwnProperty(rowId)) {
+        var target = itemMap[rowId];
+        // คอลัมน์ M (index 13) คือ displayOrder
+        if (target.displayOrder !== undefined && target.displayOrder !== null) {
+          var orderVal = (target.displayOrder !== "" && !isNaN(parseInt(target.displayOrder, 10))) ? parseInt(target.displayOrder, 10) : "";
+          sheet.getRange(i + 1, 13).setValue(orderVal);
+        }
+        // คอลัมน์ N (index 14) คือ isPinned
+        if (target.isPinned !== undefined && target.isPinned !== null) {
+          var pinVal = (target.isPinned === true || target.isPinned === "true" || target.isPinned === 1 || target.isPinned === "1");
+          sheet.getRange(i + 1, 14).setValue(pinVal);
+        }
+        updatedCount++;
+      }
+    }
+    
+    return { success: true, updatedCount: updatedCount, message: "บันทึกลำดับคู่มือสำเร็จ " + updatedCount + " รายการ!" };
+  } catch (err) {
+    return { success: false, message: "เกิดข้อผิดพลาดในการบันทึก: " + err.toString() };
   }
 }
 
@@ -4000,7 +4092,11 @@ function doPost(e) {
       "toggleAnnouncementPin": toggleAnnouncementPin,
       "deleteAnnouncement": deleteAnnouncement,
       "toggleAnnouncementStatus": toggleAnnouncementStatus,
-      "getAnnouncements": getAnnouncements
+      "getAnnouncements": getAnnouncements,
+      "saveKnowledgeFolderOrder": saveKnowledgeFolderOrder,
+      "updateKnowledgeOrdersBulk": updateKnowledgeOrdersBulk,
+      "toggleKnowledgePin": toggleKnowledgePin,
+      "updateKnowledgeOrderDirect": updateKnowledgeOrderDirect
     };
     
     var fn = null;
@@ -4080,6 +4176,10 @@ if (typeof module !== 'undefined' && module.exports) {
     reorderAnnouncements: reorderAnnouncements,
     toggleAnnouncementPin: toggleAnnouncementPin,
     getAnnouncements: getAnnouncements,
+    saveKnowledgeFolderOrder: saveKnowledgeFolderOrder,
+    updateKnowledgeOrdersBulk: updateKnowledgeOrdersBulk,
+    toggleKnowledgePin: toggleKnowledgePin,
+    updateKnowledgeOrderDirect: updateKnowledgeOrderDirect,
     doPost: doPost
   };
 }
