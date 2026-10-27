@@ -2295,6 +2295,13 @@
                         <span id="adminKnowledgeCountBadge" class="bg-blue-100 text-blue-800 text-xs font-black px-3 py-1 rounded-full border border-blue-200 shadow-2xs">0 รายการ</span>
                     </div>
                     <div class="flex items-center gap-3 flex-wrap w-full lg:w-auto">
+                        <!-- ปุ่มกรองโฟลเดอร์ / แฟ้มหลัก -->
+                        <div class="flex items-center gap-2">
+                            <label for="adminKnowledgeFolderFilter" class="text-xs font-extrabold text-gray-700 whitespace-nowrap">📂 โฟลเดอร์:</label>
+                            <select id="adminKnowledgeFolderFilter" onchange="changeAdminKnowledgeFolderFilter(this.value)" class="px-3.5 py-2.5 border-2 border-indigo-200 rounded-xl bg-white font-bold text-xs sm:text-sm text-indigo-950 outline-none focus:border-indigo-600 shadow-2xs cursor-pointer transition-all">
+                                <option value="all">📁 ทุกโฟลเดอร์ / แฟ้ม</option>
+                            </select>
+                        </div>
                         <!-- ปุ่มจัดเรียงข้อมูล -->
                         <div class="flex items-center gap-2">
                             <label for="adminKnowledgeSortSelect" class="text-xs font-extrabold text-gray-700 whitespace-nowrap">🔄 จัดเรียง:</label>
@@ -2318,6 +2325,8 @@
                         </div>
                     </div>
                 </div>
+                <!-- แบนเนอร์แสดงสถานะการกรองโฟลเดอร์ -->
+                <div id="adminKnowledgeActiveFilterBanner" class="hidden"></div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-base">
                         <thead>
@@ -3682,6 +3691,9 @@
                     }
                 }
                 populateCategoryDropdowns();
+                if (typeof populateAdminKnowledgeFolderOptions === 'function') {
+                    populateAdminKnowledgeFolderOptions();
+                }
             }
             
             // 2. ข้อมูล Q&A
@@ -7074,8 +7086,8 @@ function openAudienceFolder(aud) {
 
             // จัดเรียงหัวข้อเพื่อโชว์ในหน้าศูนย์เรียนรู้
             items.sort(function(a, b) {
-                // หากเลือกตามวันที่ล่าสุด หรือตามลำดับมาตรฐาน ให้ตรวจเช็คปักหมุดและลำดับที่ก่อนเสมอ
-                if (sortVal === "date_desc" || !sortVal) {
+                // หากเลือกตามวันที่ล่าสุด หรือตามลำดับมาตรฐาน หรือตามลำดับที่กำหนด ให้ตรวจเช็คปักหมุดและลำดับที่ก่อนเสมอ
+                if (sortVal === "date_desc" || sortVal === "order_asc" || !sortVal) {
                     var pinA = (a.isPinned === true || a.isPinned === "true" || a.isPinned === "TRUE" || a.isPinned === 1 || a.isPinned === "1");
                     var pinB = (b.isPinned === true || b.isPinned === "true" || b.isPinned === "TRUE" || b.isPinned === 1 || b.isPinned === "1");
                     if (pinA && !pinB) return -1;
@@ -7091,7 +7103,7 @@ function openAudienceFolder(aud) {
                 var dateA = parseKnowledgeDate(a.timestamp);
                 var dateB = parseKnowledgeDate(b.timestamp);
 
-                if (sortVal === "date_desc" || !sortVal) {
+                if (sortVal === "date_desc" || sortVal === "order_asc" || !sortVal) {
                     if (dateB !== dateA) return dateB - dateA;
                     return (a.title || "").localeCompare(b.title || "", 'th');
                 } else if (sortVal === "date_asc") {
@@ -7473,6 +7485,51 @@ function openAudienceFolder(aud) {
 
         // ==================== ส่วนหลังบ้าน จัดการแสดงรายการทั้งหมด (Admin Management Grid) ====================
         var adminKnowledgeSort = 'date_desc';
+        var adminKnowledgeFolderFilterVal = 'all';
+
+        function changeAdminKnowledgeFolderFilter(val) {
+            adminKnowledgeFolderFilterVal = val || 'all';
+            var sel = document.getElementById('adminKnowledgeFolderFilter');
+            if (sel && sel.value !== val) sel.value = val;
+            adminKnowledgePage = 1;
+            renderAdminKnowledgeList();
+        }
+
+        function populateAdminKnowledgeFolderOptions() {
+            var sel = document.getElementById('adminKnowledgeFolderFilter');
+            if (!sel) return;
+            var currentVal = adminKnowledgeFolderFilterVal || 'all';
+            
+            var folderCounts = {};
+            var totalCount = 0;
+            if (allDatabaseData && Array.isArray(allDatabaseData)) {
+                for (var i = 0; i < allDatabaseData.length; i++) {
+                    var itm = allDatabaseData[i];
+                    var f = (itm.mainFolder && itm.mainFolder.trim() !== '') ? itm.mainFolder.trim() : 'ขั้นตอนการทำงาน';
+                    folderCounts[f] = (folderCounts[f] || 0) + 1;
+                    totalCount++;
+                }
+            }
+
+            var html = '<option value="all">📁 ทุกโฟลเดอร์ / แฟ้ม (' + totalCount + ')</option>';
+            var sortedFolders = Object.keys(folderCounts).sort(function(a, b) {
+                return a.localeCompare(b, 'th');
+            });
+
+            for (var j = 0; j < sortedFolders.length; j++) {
+                var fName = sortedFolders[j];
+                var icon = (typeof getMainFolderIcon === 'function') ? getMainFolderIcon(fName) : '📂';
+                html += '<option value="' + fName.replace(/"/g, '&quot;') + '">' + icon + ' ' + fName + ' (' + folderCounts[fName] + ')</option>';
+            }
+
+            sel.innerHTML = html;
+            if (currentVal && (currentVal === 'all' || folderCounts[currentVal])) {
+                sel.value = currentVal;
+            } else {
+                adminKnowledgeFolderFilterVal = 'all';
+                sel.value = 'all';
+            }
+        }
 
         function changeAdminKnowledgeSort(val) {
             adminKnowledgeSort = val;
@@ -7567,19 +7624,40 @@ function openAudienceFolder(aud) {
             if (!container) return;
             container.innerHTML = "";
             
+            // ตรวจสอบและอัปเดตตัวเลือกโฟลเดอร์ถ้ายังไม่มี
+            var fSel = document.getElementById('adminKnowledgeFolderFilter');
+            if (fSel && (fSel.options.length <= 1 || fSel.getAttribute('data-count') != allDatabaseData.length)) {
+                populateAdminKnowledgeFolderOptions();
+                if (fSel) fSel.setAttribute('data-count', allDatabaseData.length);
+            }
+
             var countBadge = document.getElementById('adminKnowledgeCountBadge');
             if (allDatabaseData.length === 0) {
                 if (countBadge) countBadge.innerText = "0 รายการ";
                 container.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-500">ไม่มีข้อมูลศูนย์การเรียนรู้ในระบบ</td></tr>';
+                var activeBannerEmpty = document.getElementById('adminKnowledgeActiveFilterBanner');
+                if (activeBannerEmpty) {
+                    activeBannerEmpty.className = "hidden";
+                    activeBannerEmpty.innerHTML = "";
+                }
                 return;
             }
             
-            // กรองข้อมูลด้วยคำค้นหา
-            var query = adminKnowledgeSearchQuery || "";
+            // 1. กรองข้อมูลตามโฟลเดอร์ที่เลือก
+            var folderFilter = adminKnowledgeFolderFilterVal || "all";
             var filteredData = allDatabaseData;
-            
-            if (query !== "") {
+
+            if (folderFilter !== "all") {
                 filteredData = allDatabaseData.filter(function(item) {
+                    var f = (item.mainFolder && item.mainFolder.trim() !== "") ? item.mainFolder.trim() : "ขั้นตอนการทำงาน";
+                    return f === folderFilter;
+                });
+            }
+
+            // 2. กรองข้อมูลด้วยคำค้นหา
+            var query = adminKnowledgeSearchQuery || "";
+            if (query !== "") {
+                filteredData = filteredData.filter(function(item) {
                     var titleMatch = item.title && item.title.toLowerCase().indexOf(query) !== -1;
                     var categoryMatch = item.category && item.category.toLowerCase().indexOf(query) !== -1;
                     var folderMatch = item.mainFolder && item.mainFolder.toLowerCase().indexOf(query) !== -1;
@@ -7590,11 +7668,25 @@ function openAudienceFolder(aud) {
             }
             
             if (countBadge) {
-                countBadge.innerText = filteredData.length + " รายการ";
+                countBadge.innerText = filteredData.length + " รายการ" + (folderFilter !== "all" ? (" (ใน " + folderFilter + ")") : "");
+            }
+
+            // แบนเนอร์แสดงสถานะการกรองโฟลเดอร์
+            var activeBanner = document.getElementById('adminKnowledgeActiveFilterBanner');
+            if (activeBanner) {
+                if (folderFilter !== "all") {
+                    var fIcon = (typeof getMainFolderIcon === 'function') ? getMainFolderIcon(folderFilter) : '📂';
+                    activeBanner.className = "flex items-center justify-between gap-3 bg-indigo-50 border-2 border-indigo-200 text-indigo-950 px-4 py-3 rounded-2xl mb-4 text-xs sm:text-sm font-bold shadow-2xs";
+                    activeBanner.innerHTML = '<div class="flex items-center gap-2"><span>' + fIcon + '</span> <span>กำลังดูเฉพาะโฟลเดอร์: <span class="text-indigo-700 font-black">"' + folderFilter + '"</span> (' + filteredData.length + ' รายการ)</span></div>' +
+                        '<button onclick="changeAdminKnowledgeFolderFilter(\'all\')" class="bg-white hover:bg-indigo-100 text-indigo-900 border border-indigo-300 px-3.5 py-1.5 rounded-xl font-black text-xs transition-all active:scale-95 shadow-2xs cursor-pointer">✕ แสดงทุกโฟลเดอร์</button>';
+                } else {
+                    activeBanner.className = "hidden";
+                    activeBanner.innerHTML = "";
+                }
             }
 
             if (filteredData.length === 0) {
-                container.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-500">ไม่พบข้อมูลคู่มือหรือหมวดหมู่ที่ระบุ</td></tr>';
+                container.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-500">ไม่พบข้อมูลคู่มือในโฟลเดอร์หรือหมวดหมู่ที่ระบุ</td></tr>';
                 var paginationContainer = document.getElementById('adminKnowledgePagination');
                 if (paginationContainer) paginationContainer.innerHTML = "";
                 return;
@@ -7610,6 +7702,14 @@ function openAudienceFolder(aud) {
                     var pinB = (b.isPinned === true || b.isPinned === "true" || b.isPinned === "TRUE" || b.isPinned === 1 || b.isPinned === "1");
                     if (pinA && !pinB) return -1;
                     if (!pinA && pinB) return 1;
+
+                    // ถ้าเลือกดูทุกโฟลเดอร์ ให้เกาะกลุ่มตามโฟลเดอร์ก่อน เพื่อให้ลำดับ 1, 2, 3 ของแต่ละโฟลเดอร์เรียงเป็นกลุ่มอย่างเป็นระเบียบ
+                    if (folderFilter === "all") {
+                        var fA = (a.mainFolder && a.mainFolder.trim() !== "") ? a.mainFolder.trim() : "ขั้นตอนการทำงาน";
+                        var fB = (b.mainFolder && b.mainFolder.trim() !== "") ? b.mainFolder.trim() : "ขั้นตอนการทำงาน";
+                        var fCmp = fA.localeCompare(fB, 'th');
+                        if (fCmp !== 0) return fCmp;
+                    }
 
                     var ordA = (a.displayOrder !== undefined && a.displayOrder !== null && a.displayOrder !== "" && !isNaN(parseInt(a.displayOrder, 10))) ? parseInt(a.displayOrder, 10) : 999;
                     var ordB = (b.displayOrder !== undefined && b.displayOrder !== null && b.displayOrder !== "" && !isNaN(parseInt(b.displayOrder, 10))) ? parseInt(b.displayOrder, 10) : 999;
@@ -7770,12 +7870,35 @@ function openAudienceFolder(aud) {
             }).toggleKnowledgePin(id);
         }
 
-        // ทางลัดกำหนดลำดับการแสดงผลของคู่มือสำหรับแอดมิน
+        // ทางลัดกำหนดลำดับการแสดงผลของคู่มือสำหรับแอดมิน (แยกอิสระตามแต่ละโฟลเดอร์)
         function quickChangeKnowledgeOrder(id, currentOrder, e) {
             if (e) e.stopPropagation();
             var item = allDatabaseData.find(function(k) { return String(k.id).trim() === String(id).trim(); });
-            var curVal = (item && item.displayOrder !== undefined && item.displayOrder !== null && item.displayOrder !== 999) ? item.displayOrder : "";
-            var newOrder = prompt("🔢 กำหนดลำดับการแสดงผลในหน้าศูนย์การเรียนรู้\n(ใส่ตัวเลข เช่น 1, 2, 3... ค่าน้อยจะขึ้นก่อน หรือเว้นว่างไว้เพื่อจัดตามวันที่):", curVal);
+            if (!item) return;
+            var itemFolder = (item.mainFolder && item.mainFolder.trim() !== "") ? item.mainFolder.trim() : "ขั้นตอนการทำงาน";
+
+            // รวบรวมลำดับตัวเลขที่ใช้งานไปแล้วในโฟลเดอร์เดียวกัน
+            var usedOrders = [];
+            for (var u = 0; u < allDatabaseData.length; u++) {
+                var other = allDatabaseData[u];
+                var otherFolder = (other.mainFolder && other.mainFolder.trim() !== "") ? other.mainFolder.trim() : "ขั้นตอนการทำงาน";
+                if (otherFolder === itemFolder && String(other.id).trim() !== String(id).trim()) {
+                    if (other.displayOrder !== undefined && other.displayOrder !== null && other.displayOrder !== "" && other.displayOrder !== 999 && !isNaN(parseInt(other.displayOrder, 10))) {
+                        var oNum = parseInt(other.displayOrder, 10);
+                        if (usedOrders.indexOf(oNum) === -1) usedOrders.push(oNum);
+                    }
+                }
+            }
+            usedOrders.sort(function(a, b) { return a - b; });
+
+            var curVal = (item.displayOrder !== undefined && item.displayOrder !== null && item.displayOrder !== 999) ? item.displayOrder : "";
+            var usedStr = usedOrders.length > 0 ? usedOrders.join(", ") : "ยังไม่มี";
+            var promptMsg = "🔢 กำหนดลำดับการแสดงผลในโฟลเดอร์: \"" + itemFolder + "\"\n" +
+                "• หัวข้อ: " + item.title + "\n" +
+                "• ลำดับที่ใช้แล้วในโฟลเดอร์นี้: [" + usedStr + "]\n\n" +
+                "ใส่ตัวเลขลำดับ (เช่น 1, 2, 3... ค่าน้อยจะขึ้นก่อน) หรือเว้นว่างไว้เพื่อจัดตามวันที่:";
+
+            var newOrder = prompt(promptMsg, curVal);
             if (newOrder === null) return;
             newOrder = newOrder.trim();
             if (newOrder !== "" && isNaN(parseInt(newOrder, 10))) {
