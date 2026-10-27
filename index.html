@@ -8336,19 +8336,19 @@ function openAudienceFolder(aud) {
                 var isFirst = (i === 0);
                 var isLast = (i === tempReorderMainFolders.length - 1);
                 
-                container.innerHTML += '<div class="flex items-center justify-between gap-3 p-3 bg-white border border-gray-200 rounded-2xl shadow-2xs hover:border-blue-300 transition-all select-none" data-reorder-index="' + i + '" data-reorder-type="main" draggable="true" ondragstart="onReorderDragStart(event, ' + i + ', \'main\')" ondragover="onReorderDragOver(event)" ondragleave="onReorderDragLeave(event)" ondrop="onReorderDrop(event, ' + i + ', \'main\')" ondragend="onReorderDragEnd(event)">' +
-                    '<div class="flex items-center gap-3 min-w-0 flex-1">' +
-                        '<span class="text-gray-400 hover:text-blue-600 cursor-grab active:cursor-grabbing font-black text-base drag-handle px-1 py-0.5 rounded hover:bg-gray-100" title="กดค้างเพื่อลากเลื่อนอันดับ">⠿</span>' +
-                        '<span class="w-7 h-7 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 font-black text-xs flex items-center justify-center shrink-0">#' + (i + 1) + '</span>' +
-                        '<span class="text-2xl shrink-0">' + fIcon + '</span>' +
+                container.innerHTML += '<div class="flex items-center justify-between gap-2.5 p-2 sm:p-2.5 bg-white border border-gray-200 rounded-xl shadow-2xs hover:border-blue-300 transition-all select-none" data-reorder-index="' + i + '" data-reorder-type="main" draggable="true" ondragstart="onReorderDragStart(event, ' + i + ', \'main\')" ondragover="onReorderDragOver(event)" ondragleave="onReorderDragLeave(event)" ondrop="onReorderDrop(event, ' + i + ', \'main\')" ondragend="onReorderDragEnd(event)">' +
+                    '<div class="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">' +
+                        '<span class="text-gray-400 hover:text-blue-600 cursor-grab active:cursor-grabbing font-black text-sm drag-handle px-1 py-0.5 rounded hover:bg-gray-100 shrink-0" title="กดค้างเพื่อลากเลื่อนอันดับ">⠿</span>' +
+                        '<span class="w-6 h-6 rounded-lg bg-blue-50 border border-blue-200 text-blue-900 font-black text-xs flex items-center justify-center shrink-0">#' + (i + 1) + '</span>' +
+                        '<span class="text-xl shrink-0">' + fIcon + '</span>' +
                         '<div class="min-w-0 flex-1">' +
-                            '<div class="font-extrabold text-sm text-gray-900 truncate">' + folderName + '</div>' +
-                            '<div class="text-[11px] text-gray-500 font-semibold">' + itemCount + ' เรื่องในแฟ้มนี้</div>' +
+                            '<div class="font-extrabold text-xs sm:text-sm text-gray-900 truncate">' + folderName + '</div>' +
+                            '<div class="text-[10px] sm:text-[11px] text-gray-500 font-semibold">' + itemCount + ' เรื่องในแฟ้มนี้</div>' +
                         '</div>' +
                     '</div>' +
                     '<div class="flex items-center gap-1 shrink-0">' +
-                        '<button type="button" onclick="moveReorderItem(' + i + ', -1, \'main\')" ' + (isFirst ? 'disabled class="w-8 h-8 rounded-xl bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 flex items-center justify-center text-xs font-black border border-blue-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนขึ้น">▲</button>' +
-                        '<button type="button" onclick="moveReorderItem(' + i + ', 1, \'main\')" ' + (isLast ? 'disabled class="w-8 h-8 rounded-xl bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 flex items-center justify-center text-xs font-black border border-blue-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนลง">▼</button>' +
+                        '<button type="button" onclick="moveReorderItem(' + i + ', -1, \'main\')" ' + (isFirst ? 'disabled class="w-7 h-7 rounded-lg bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 flex items-center justify-center text-xs font-black border border-blue-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนขึ้น">▲</button>' +
+                        '<button type="button" onclick="moveReorderItem(' + i + ', 1, \'main\')" ' + (isLast ? 'disabled class="w-7 h-7 rounded-lg bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 flex items-center justify-center text-xs font-black border border-blue-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนลง">▼</button>' +
                     '</div>' +
                 '</div>';
             }
@@ -8415,19 +8415,19 @@ function openAudienceFolder(aud) {
                 var isFirst = (i === 0);
                 var isLast = (i === tempReorderSubFolders.length - 1);
                 
-                container.innerHTML += '<div class="flex items-center justify-between gap-3 p-3 bg-white border border-gray-200 rounded-2xl shadow-2xs hover:border-purple-300 transition-all select-none" data-reorder-index="' + i + '" data-reorder-type="sub" draggable="true" ondragstart="onReorderDragStart(event, ' + i + ', \'sub\')" ondragover="onReorderDragOver(event)" ondragleave="onReorderDragLeave(event)" ondrop="onReorderDrop(event, ' + i + ', \'sub\')" ondragend="onReorderDragEnd(event)">' +
-                    '<div class="flex items-center gap-3 min-w-0 flex-1">' +
-                        '<span class="text-gray-400 hover:text-purple-600 cursor-grab active:cursor-grabbing font-black text-base drag-handle px-1 py-0.5 rounded hover:bg-gray-100" title="กดค้างเพื่อลากเลื่อนอันดับ">⠿</span>' +
-                        '<span class="w-7 h-7 rounded-xl bg-purple-50 border border-purple-200 text-purple-900 font-black text-xs flex items-center justify-center shrink-0">#' + (i + 1) + '</span>' +
-                        '<span class="text-xl shrink-0">📁</span>' +
+                container.innerHTML += '<div class="flex items-center justify-between gap-2.5 p-2 sm:p-2.5 bg-white border border-gray-200 rounded-xl shadow-2xs hover:border-purple-300 transition-all select-none" data-reorder-index="' + i + '" data-reorder-type="sub" draggable="true" ondragstart="onReorderDragStart(event, ' + i + ', \'sub\')" ondragover="onReorderDragOver(event)" ondragleave="onReorderDragLeave(event)" ondrop="onReorderDrop(event, ' + i + ', \'sub\')" ondragend="onReorderDragEnd(event)">' +
+                    '<div class="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">' +
+                        '<span class="text-gray-400 hover:text-purple-600 cursor-grab active:cursor-grabbing font-black text-sm drag-handle px-1 py-0.5 rounded hover:bg-gray-100 shrink-0" title="กดค้างเพื่อลากเลื่อนอันดับ">⠿</span>' +
+                        '<span class="w-6 h-6 rounded-lg bg-purple-50 border border-purple-200 text-purple-900 font-black text-xs flex items-center justify-center shrink-0">#' + (i + 1) + '</span>' +
+                        '<span class="text-lg shrink-0">📁</span>' +
                         '<div class="min-w-0 flex-1">' +
-                            '<div class="font-extrabold text-sm text-gray-900 truncate">' + catName + '</div>' +
-                            '<div class="text-[11px] text-gray-500 font-semibold">' + catItemCount + ' เรื่องในหมวดนี้</div>' +
+                            '<div class="font-extrabold text-xs sm:text-sm text-gray-900 truncate">' + catName + '</div>' +
+                            '<div class="text-[10px] sm:text-[11px] text-gray-500 font-semibold">' + catItemCount + ' เรื่องในหมวดนี้</div>' +
                         '</div>' +
                     '</div>' +
                     '<div class="flex items-center gap-1 shrink-0">' +
-                        '<button type="button" onclick="moveReorderItem(' + i + ', -1, \'sub\')" ' + (isFirst ? 'disabled class="w-8 h-8 rounded-xl bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-8 h-8 rounded-xl bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 flex items-center justify-center text-xs font-black border border-purple-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนขึ้น">▲</button>' +
-                        '<button type="button" onclick="moveReorderItem(' + i + ', 1, \'sub\')" ' + (isLast ? 'disabled class="w-8 h-8 rounded-xl bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-8 h-8 rounded-xl bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 flex items-center justify-center text-xs font-black border border-purple-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนลง">▼</button>' +
+                        '<button type="button" onclick="moveReorderItem(' + i + ', -1, \'sub\')" ' + (isFirst ? 'disabled class="w-7 h-7 rounded-lg bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-7 h-7 rounded-lg bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 flex items-center justify-center text-xs font-black border border-purple-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนขึ้น">▲</button>' +
+                        '<button type="button" onclick="moveReorderItem(' + i + ', 1, \'sub\')" ' + (isLast ? 'disabled class="w-7 h-7 rounded-lg bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-7 h-7 rounded-lg bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 flex items-center justify-center text-xs font-black border border-purple-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนลง">▼</button>' +
                     '</div>' +
                 '</div>';
             }
@@ -8541,15 +8541,15 @@ function openAudienceFolder(aud) {
                 var isFirst = (i === 0);
                 var isLast = (i === tempReorderTopics.length - 1);
                 
-                container.innerHTML += '<div class="flex items-center justify-between gap-3 p-3 bg-white border ' + (isPin ? 'border-amber-300 ring-2 ring-amber-100 bg-amber-50/20' : 'border-gray-200') + ' rounded-2xl shadow-2xs hover:border-indigo-300 transition-all select-none" data-reorder-index="' + i + '" data-reorder-type="topics" draggable="true" ondragstart="onReorderDragStart(event, ' + i + ', \'topics\')" ondragover="onReorderDragOver(event)" ondragleave="onReorderDragLeave(event)" ondrop="onReorderDrop(event, ' + i + ', \'topics\')" ondragend="onReorderDragEnd(event)">' +
-                    '<div class="flex items-center gap-2.5 min-w-0 flex-1">' +
-                        '<span class="text-gray-400 hover:text-indigo-600 cursor-grab active:cursor-grabbing font-black text-base drag-handle px-1 py-0.5 rounded hover:bg-gray-100" title="กดค้างเพื่อลากเลื่อนอันดับ">⠿</span>' +
-                        '<span class="w-7 h-7 rounded-xl ' + (isPin ? 'bg-amber-500 text-white' : 'bg-indigo-50 border border-indigo-200 text-indigo-900') + ' font-black text-xs flex items-center justify-center shrink-0">#' + orderNum + '</span>' +
-                        '<button type="button" onclick="toggleReorderTopicPin(' + i + ')" class="p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ' + pinBtnClass + '" title="' + pinTitle + '">📌</button>' +
-                        '<span class="text-lg shrink-0">' + typeIcon + '</span>' +
+                container.innerHTML += '<div class="flex items-center justify-between gap-2.5 p-2 sm:p-2.5 bg-white border ' + (isPin ? 'border-amber-300 ring-2 ring-amber-100 bg-amber-50/20' : 'border-gray-200') + ' rounded-xl shadow-2xs hover:border-indigo-300 transition-all select-none" data-reorder-index="' + i + '" data-reorder-type="topics" draggable="true" ondragstart="onReorderDragStart(event, ' + i + ', \'topics\')" ondragover="onReorderDragOver(event)" ondragleave="onReorderDragLeave(event)" ondrop="onReorderDrop(event, ' + i + ', \'topics\')" ondragend="onReorderDragEnd(event)">' +
+                    '<div class="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">' +
+                        '<span class="text-gray-400 hover:text-indigo-600 cursor-grab active:cursor-grabbing font-black text-sm drag-handle px-1 py-0.5 rounded hover:bg-gray-100 shrink-0" title="กดค้างเพื่อลากเลื่อนอันดับ">⠿</span>' +
+                        '<span class="w-6 h-6 rounded-lg ' + (isPin ? 'bg-amber-500 text-white' : 'bg-indigo-50 border border-indigo-200 text-indigo-900') + ' font-black text-xs flex items-center justify-center shrink-0">#' + orderNum + '</span>' +
+                        '<button type="button" onclick="toggleReorderTopicPin(' + i + ')" class="p-1 rounded-md text-xs font-bold transition-all cursor-pointer ' + pinBtnClass + '" title="' + pinTitle + '">📌</button>' +
+                        '<span class="text-base shrink-0">' + typeIcon + '</span>' +
                         '<div class="min-w-0 flex-1">' +
-                            '<div class="font-extrabold text-sm text-gray-900 truncate">' + (top.title || 'ไม่มีชื่อเรื่อง') + '</div>' +
-                            '<div class="text-[11px] text-gray-500 font-semibold flex items-center gap-2 flex-wrap">' +
+                            '<div class="font-extrabold text-xs sm:text-sm text-gray-900 truncate">' + (top.title || 'ไม่มีชื่อเรื่อง') + '</div>' +
+                            '<div class="text-[10px] sm:text-[11px] text-gray-500 font-semibold flex items-center gap-1.5 flex-wrap">' +
                                 '<span>โดย: ' + (top.uploadedBy || 'แอดมิน') + '</span>' +
                                 '<span>•</span>' +
                                 '<span>🕒 ' + dateStr + '</span>' +
@@ -8557,8 +8557,8 @@ function openAudienceFolder(aud) {
                         '</div>' +
                     '</div>' +
                     '<div class="flex items-center gap-1 shrink-0">' +
-                        '<button type="button" onclick="moveReorderItem(' + i + ', -1, \'topics\')" ' + (isFirst ? 'disabled class="w-8 h-8 rounded-xl bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-8 h-8 rounded-xl bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 flex items-center justify-center text-xs font-black border border-indigo-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนขึ้น">▲</button>' +
-                        '<button type="button" onclick="moveReorderItem(' + i + ', 1, \'topics\')" ' + (isLast ? 'disabled class="w-8 h-8 rounded-xl bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-8 h-8 rounded-xl bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 flex items-center justify-center text-xs font-black border border-indigo-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนลง">▼</button>' +
+                        '<button type="button" onclick="moveReorderItem(' + i + ', -1, \'topics\')" ' + (isFirst ? 'disabled class="w-7 h-7 rounded-lg bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-7 h-7 rounded-lg bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 flex items-center justify-center text-xs font-black border border-indigo-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนขึ้น">▲</button>' +
+                        '<button type="button" onclick="moveReorderItem(' + i + ', 1, \'topics\')" ' + (isLast ? 'disabled class="w-7 h-7 rounded-lg bg-gray-100 text-gray-300 flex items-center justify-center text-xs font-black cursor-not-allowed"' : 'class="w-7 h-7 rounded-lg bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 flex items-center justify-center text-xs font-black border border-indigo-200 transition-all active:scale-90 cursor-pointer"') + ' title="เลื่อนลง">▼</button>' +
                     '</div>' +
                 '</div>';
             }
@@ -12980,43 +12980,43 @@ function cancelKnowledgeEdit() {
     </div>
 
     <!-- ==================== โมดอลจัดเรียงลำดับโฟลเดอร์และหัวข้อเรื่อง (Knowledge Reorder Modal) ==================== -->
-    <div id="knowledgeReorderModal" class="fixed inset-0 bg-slate-950 bg-opacity-80 flex items-center justify-center z-[99999] hidden backdrop-blur-sm p-3 sm:p-4 overflow-y-auto" onclick="if(event.target === this) closeKnowledgeReorderModal()">
-        <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all my-auto flex flex-col max-h-[92vh]" onclick="event.stopPropagation()">
+    <div id="knowledgeReorderModal" class="fixed inset-0 bg-slate-950 bg-opacity-80 flex items-center justify-center z-50 hidden backdrop-blur-sm p-2 sm:p-4 overflow-hidden" style="z-index: 99999;" onclick="if(event.target === this) closeKnowledgeReorderModal()">
+        <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col" style="max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); height: min(85vh, 640px); height: min(85dvh, 640px); display: flex; flex-direction: column;" onclick="event.stopPropagation()">
             <!-- Modal Header -->
-            <div class="py-3 px-4 sm:px-6 bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 text-white flex justify-between items-center gap-3 shrink-0 shadow-md">
+            <div class="py-2.5 px-4 sm:px-6 bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 text-white flex justify-between items-center gap-3 shrink-0 shadow-md">
                 <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2">
                         <span class="text-xl">🔄</span>
-                        <h3 class="text-base sm:text-lg font-black tracking-wide truncate">ระบบจัดเรียงลำดับโฟลเดอร์และเรื่อง</h3>
+                        <h3 class="text-sm sm:text-base font-black tracking-wide truncate">ระบบจัดเรียงลำดับโฟลเดอร์และเรื่อง</h3>
                     </div>
-                    <p class="text-xs text-blue-200 mt-0.5 font-medium flex items-center gap-1.5 flex-wrap">
-                        <span class="bg-white/20 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md">💡 กดค้าง ⠿ เพื่อลากเลื่อน</span>
-                        <span>หรือใช้ปุ่ม 🔼 / 🔽 เพื่อจัดเรียงลำดับได้ตามต้องการ</span>
+                    <p class="text-[11px] sm:text-xs text-blue-200 mt-0.5 font-medium flex items-center gap-1.5 flex-wrap">
+                        <span class="bg-white/20 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-md">💡 กดค้าง ⠿ เพื่อลากเลื่อน</span>
+                        <span>หรือใช้ปุ่ม 🔼 / 🔽 เพื่อจัดเรียงลำดับ</span>
                     </p>
                 </div>
-                <button type="button" onclick="closeKnowledgeReorderModal()" class="text-white hover:text-white bg-white/20 hover:bg-white/30 rounded-xl w-8 h-8 flex items-center justify-center text-lg font-bold transition-all shrink-0 active:scale-90 shadow-sm cursor-pointer" title="ปิดหน้าต่าง">
+                <button type="button" onclick="closeKnowledgeReorderModal()" class="text-white hover:text-white bg-white/20 hover:bg-white/30 rounded-xl w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-base sm:text-lg font-bold transition-all shrink-0 active:scale-90 shadow-sm cursor-pointer" title="ปิดหน้าต่าง">
                     ✕
                 </button>
             </div>
 
             <!-- Tabs inside modal (โฟลเดอร์หลัก vs โฟลเดอร์ย่อย vs หัวข้อเรื่อง) -->
-            <div class="flex border-b border-gray-200 px-4 bg-slate-50 shrink-0 overflow-x-auto gap-2 pt-2">
-                <button type="button" onclick="switchKnowledgeReorderTab('main')" id="reorderTabBtnMain" class="py-2 px-3.5 text-xs font-black border-b-2 border-blue-600 text-blue-600 transition-all flex items-center gap-1.5 shrink-0 rounded-t-lg bg-white shadow-2xs">
+            <div class="flex border-b border-gray-200 px-3 sm:px-4 bg-slate-50 shrink-0 overflow-x-auto gap-1.5 pt-2">
+                <button type="button" onclick="switchKnowledgeReorderTab('main')" id="reorderTabBtnMain" class="py-1.5 px-3 sm:px-3.5 text-xs font-black border-b-2 border-blue-600 text-blue-600 transition-all flex items-center gap-1.5 shrink-0 rounded-t-lg bg-white shadow-2xs">
                     <span>📂</span> <span>โฟลเดอร์หลัก</span>
                     <span id="reorderCountBadgeMain" class="bg-blue-100 text-blue-800 text-[10px] font-black px-1.5 py-0.5 rounded-full">0</span>
                 </button>
-                <button type="button" onclick="switchKnowledgeReorderTab('sub')" id="reorderTabBtnSub" class="py-2 px-3.5 text-xs font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-all flex items-center gap-1.5 shrink-0 rounded-t-lg hover:bg-white/60">
+                <button type="button" onclick="switchKnowledgeReorderTab('sub')" id="reorderTabBtnSub" class="py-1.5 px-3 sm:px-3.5 text-xs font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-all flex items-center gap-1.5 shrink-0 rounded-t-lg hover:bg-white/60">
                     <span>📁</span> <span>โฟลเดอร์ย่อย</span>
                     <span id="reorderCountBadgeSub" class="bg-gray-200 text-gray-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">0</span>
                 </button>
-                <button type="button" onclick="switchKnowledgeReorderTab('topics')" id="reorderTabBtnTopics" class="py-2 px-3.5 text-xs font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-all flex items-center gap-1.5 shrink-0 rounded-t-lg hover:bg-white/60">
+                <button type="button" onclick="switchKnowledgeReorderTab('topics')" id="reorderTabBtnTopics" class="py-1.5 px-3 sm:px-3.5 text-xs font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition-all flex items-center gap-1.5 shrink-0 rounded-t-lg hover:bg-white/60">
                     <span>📄</span> <span>หัวข้อเรื่อง / คู่มือ</span>
                     <span id="reorderCountBadgeTopics" class="bg-gray-200 text-gray-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">0</span>
                 </button>
             </div>
 
             <!-- Modal Content Body -->
-            <div class="p-4 sm:p-5 overflow-y-auto overscroll-contain flex-1 space-y-4 bg-slate-50/40">
+            <div class="p-3 sm:p-4 overflow-y-auto overscroll-contain flex-1 space-y-3 bg-slate-50/40" style="min-height: 0; flex: 1 1 auto; overflow-y: auto;">
                 <!-- ================= PANEL 1: โฟลเดอร์หลัก (Main Folders) ================= -->
                 <div id="reorderPanelMain" class="space-y-3">
                     <div class="flex items-center justify-between gap-2 flex-wrap bg-blue-50/70 border border-blue-150 p-3 rounded-2xl">
@@ -13099,15 +13099,15 @@ function cancelKnowledgeEdit() {
             </div>
 
             <!-- Modal Footer -->
-            <div class="py-3 px-4 sm:px-6 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-3 shrink-0 flex-wrap">
+            <div class="py-2.5 px-4 sm:px-6 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-2 shrink-0">
                 <div class="flex items-center gap-2">
                     <span id="reorderSaveStatusText" class="text-xs font-bold text-gray-500"></span>
                 </div>
                 <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-                    <button type="button" onclick="closeKnowledgeReorderModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-gray-650 hover:text-gray-850 hover:bg-gray-200 transition-all cursor-pointer">
+                    <button type="button" onclick="closeKnowledgeReorderModal()" class="px-3.5 py-2 rounded-xl text-xs font-bold text-gray-650 hover:text-gray-850 hover:bg-gray-200 transition-all cursor-pointer">
                         ยกเลิก
                     </button>
-                    <button type="button" id="reorderSaveBtn" onclick="saveCurrentReorderTabChanges()" class="w-full sm:w-auto bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs sm:text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
+                    <button type="button" id="reorderSaveBtn" onclick="saveCurrentReorderTabChanges()" class="w-full sm:w-auto bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
                         <span>💾</span>
                         <span id="reorderSaveBtnText">บันทึกลำดับทั้งหมด</span>
                     </button>
