@@ -1384,10 +1384,11 @@
                             <span class="text-blue-600">🔀</span> <span>จัดเรียงตาม:</span>
                             <select id="subCatSortSelect" onchange="renderCategories()" class="bg-gray-50 border border-gray-250 rounded-xl px-3 py-2 text-xs sm:text-sm font-extrabold text-blue-950 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs hover:bg-white transition-all">
                                 <option value="items_desc">🔥 จำนวนเรื่อง (มาก ➔ น้อย)</option>
-                                <option value="items_asc">❄️ จำนวนเรื่อง (น้อย ➔ มาก)</option>
                                 <option value="date_desc">🕒 วันที่อัปเดตล่าสุด (ใหม่ ➔ เก่า)</option>
-                                <option value="name_asc">🔤 ชื่อหมวดหมู่ (ก - ฮ)</option>
-                                <option value="name_desc">🔤 ชื่อหมวดหมู่ (ฮ - ก)</option>
+                                <option value="pinned_first">📌 มีเอกสารปักหมุดก่อน</option>
+                                <option value="name_asc">🔤 ชื่อโฟลเดอร์ย่อย (ก - ฮ)</option>
+                                <option value="name_desc">🔤 ชื่อโฟลเดอร์ย่อย (ฮ - ก)</option>
+                                <option value="items_asc">❄️ จำนวนเรื่อง (น้อย ➔ มาก)</option>
                             </select>
                         </div>
                     </div>
@@ -2302,11 +2303,19 @@
                                 <option value="all">📁 ทุกโฟลเดอร์ / แฟ้ม</option>
                             </select>
                         </div>
+                        <!-- ปุ่มกรองโฟลเดอร์ย่อย (หมวดหมู่ย่อย) -->
+                        <div class="flex items-center gap-2">
+                            <label for="adminKnowledgeSubFolderFilter" class="text-xs font-extrabold text-gray-700 whitespace-nowrap">📁 โฟลเดอร์ย่อย:</label>
+                            <select id="adminKnowledgeSubFolderFilter" onchange="changeAdminKnowledgeSubFolderFilter(this.value)" class="px-3.5 py-2.5 border-2 border-purple-200 rounded-xl bg-white font-bold text-xs sm:text-sm text-purple-950 outline-none focus:border-purple-600 shadow-2xs cursor-pointer transition-all">
+                                <option value="all">📁 ทุกโฟลเดอร์ย่อย</option>
+                            </select>
+                        </div>
                         <!-- ปุ่มจัดเรียงข้อมูล -->
                         <div class="flex items-center gap-2">
                             <label for="adminKnowledgeSortSelect" class="text-xs font-extrabold text-gray-700 whitespace-nowrap">🔄 จัดเรียง:</label>
                             <select id="adminKnowledgeSortSelect" onchange="changeAdminKnowledgeSort(this.value)" class="px-3.5 py-2.5 border-2 border-blue-200 rounded-xl bg-white font-bold text-xs sm:text-sm text-gray-800 outline-none focus:border-blue-600 shadow-2xs cursor-pointer transition-all">
                                 <option value="order_asc">📌 ตามหน้าศูนย์เรียนรู้ (ปักหมุด ➔ ลำดับ 1, 2, 3...)</option>
+                                <option value="subfolder_order_asc">📁 ตามโฟลเดอร์ย่อย ➔ ลำดับ (ก - ฮ แล้วเรียง 1, 2, 3...)</option>
                                 <option value="date_desc">🕒 วันที่ (ใหม่ล่าสุดก่อน)</option>
                                 <option value="date_asc">🕒 วันที่ (เก่าสุดก่อน)</option>
                                 <option value="title_asc">🔤 ชื่อคู่มือ (ก - ฮ / A - Z)</option>
@@ -3693,6 +3702,9 @@
                 populateCategoryDropdowns();
                 if (typeof populateAdminKnowledgeFolderOptions === 'function') {
                     populateAdminKnowledgeFolderOptions();
+                }
+                if (typeof populateAdminKnowledgeSubFolderOptions === 'function') {
+                    populateAdminKnowledgeSubFolderOptions();
                 }
             }
             
@@ -6888,10 +6900,14 @@ function openAudienceFolder(aud) {
                     if (currentUser.canEdit || item.status !== 'ปิดใช้งาน') {
                         var cName = item.category ? item.category.trim() : "ทั่วไป";
                         if (!catStats[cName]) {
-                            catStats[cName] = { count: 0, latestDate: 0, containedFolders: {} };
+                            catStats[cName] = { count: 0, latestDate: 0, hasPinned: false, containedFolders: {} };
                             allCats.push(cName);
                         }
                         catStats[cName].count++;
+                        var isItemPinned = (item.isPinned === true || item.isPinned === "true" || item.isPinned === "TRUE" || item.isPinned === 1 || item.isPinned === "1");
+                        if (isItemPinned) {
+                            catStats[cName].hasPinned = true;
+                        }
                         var itemDate = parseKnowledgeDate(item.timestamp);
                         if (itemDate > catStats[cName].latestDate) {
                             catStats[cName].latestDate = itemDate;
@@ -6911,10 +6927,16 @@ function openAudienceFolder(aud) {
 
             // จัดเรียง
             catsToDisplay.sort(function(a, b) {
-                var dataA = catStats[a] || { count: 0, latestDate: 0 };
-                var dataB = catStats[b] || { count: 0, latestDate: 0 };
+                var dataA = catStats[a] || { count: 0, latestDate: 0, hasPinned: false };
+                var dataB = catStats[b] || { count: 0, latestDate: 0, hasPinned: false };
 
-                if (sortVal === "items_desc") {
+                if (sortVal === "pinned_first") {
+                    var pA = dataA.hasPinned ? 1 : 0;
+                    var pB = dataB.hasPinned ? 1 : 0;
+                    if (pB !== pA) return pB - pA;
+                    if (dataB.latestDate !== dataA.latestDate) return dataB.latestDate - dataA.latestDate;
+                    return dataB.count - dataA.count;
+                } else if (sortVal === "items_desc") {
                     if (dataB.count !== dataA.count) return dataB.count - dataA.count;
                     return a.localeCompare(b, 'th');
                 } else if (sortVal === "items_asc") {
@@ -7486,10 +7508,21 @@ function openAudienceFolder(aud) {
         // ==================== ส่วนหลังบ้าน จัดการแสดงรายการทั้งหมด (Admin Management Grid) ====================
         var adminKnowledgeSort = 'date_desc';
         var adminKnowledgeFolderFilterVal = 'all';
+        var adminKnowledgeSubFolderFilterVal = 'all';
 
         function changeAdminKnowledgeFolderFilter(val) {
             adminKnowledgeFolderFilterVal = val || 'all';
             var sel = document.getElementById('adminKnowledgeFolderFilter');
+            if (sel && sel.value !== val) sel.value = val;
+            adminKnowledgeSubFolderFilterVal = 'all';
+            populateAdminKnowledgeSubFolderOptions();
+            adminKnowledgePage = 1;
+            renderAdminKnowledgeList();
+        }
+
+        function changeAdminKnowledgeSubFolderFilter(val) {
+            adminKnowledgeSubFolderFilterVal = val || 'all';
+            var sel = document.getElementById('adminKnowledgeSubFolderFilter');
             if (sel && sel.value !== val) sel.value = val;
             adminKnowledgePage = 1;
             renderAdminKnowledgeList();
@@ -7529,6 +7562,57 @@ function openAudienceFolder(aud) {
                 adminKnowledgeFolderFilterVal = 'all';
                 sel.value = 'all';
             }
+        }
+
+        function populateAdminKnowledgeSubFolderOptions() {
+            var sel = document.getElementById('adminKnowledgeSubFolderFilter');
+            if (!sel) return;
+            var currentVal = adminKnowledgeSubFolderFilterVal || 'all';
+            var mainFilter = adminKnowledgeFolderFilterVal || 'all';
+
+            var subCounts = {};
+            var totalCount = 0;
+            if (allDatabaseData && Array.isArray(allDatabaseData)) {
+                for (var i = 0; i < allDatabaseData.length; i++) {
+                    var itm = allDatabaseData[i];
+                    var mFolder = (itm.mainFolder && itm.mainFolder.trim() !== '') ? itm.mainFolder.trim() : 'ขั้นตอนการทำงาน';
+                    if (mainFilter === 'all' || mFolder === mainFilter) {
+                        var cat = (itm.category && itm.category.trim() !== '') ? itm.category.trim() : 'ทั่วไป';
+                        subCounts[cat] = (subCounts[cat] || 0) + 1;
+                        totalCount++;
+                    }
+                }
+            }
+
+            var html = '<option value="all">📁 ทุกโฟลเดอร์ย่อย (' + totalCount + ')</option>';
+            var sortedCats = Object.keys(subCounts).sort(function(a, b) {
+                return a.localeCompare(b, 'th');
+            });
+
+            for (var j = 0; j < sortedCats.length; j++) {
+                var cName = sortedCats[j];
+                html += '<option value="' + cName.replace(/"/g, '&quot;') + '">📁 ' + cName + ' (' + subCounts[cName] + ')</option>';
+            }
+
+            sel.innerHTML = html;
+            if (currentVal && (currentVal === 'all' || subCounts[currentVal])) {
+                sel.value = currentVal;
+            } else {
+                adminKnowledgeSubFolderFilterVal = 'all';
+                sel.value = 'all';
+            }
+        }
+
+        function clearAdminKnowledgeFilters() {
+            adminKnowledgeFolderFilterVal = 'all';
+            adminKnowledgeSubFolderFilterVal = 'all';
+            var fSel = document.getElementById('adminKnowledgeFolderFilter');
+            if (fSel) fSel.value = 'all';
+            populateAdminKnowledgeSubFolderOptions();
+            var sfSel = document.getElementById('adminKnowledgeSubFolderFilter');
+            if (sfSel) sfSel.value = 'all';
+            adminKnowledgePage = 1;
+            renderAdminKnowledgeList();
         }
 
         function changeAdminKnowledgeSort(val) {
@@ -7630,6 +7714,11 @@ function openAudienceFolder(aud) {
                 populateAdminKnowledgeFolderOptions();
                 if (fSel) fSel.setAttribute('data-count', allDatabaseData.length);
             }
+            var sfSel = document.getElementById('adminKnowledgeSubFolderFilter');
+            if (sfSel && (sfSel.options.length <= 1 || sfSel.getAttribute('data-count') != allDatabaseData.length)) {
+                populateAdminKnowledgeSubFolderOptions();
+                if (sfSel) sfSel.setAttribute('data-count', allDatabaseData.length);
+            }
 
             var countBadge = document.getElementById('adminKnowledgeCountBadge');
             if (allDatabaseData.length === 0) {
@@ -7643,18 +7732,27 @@ function openAudienceFolder(aud) {
                 return;
             }
             
-            // 1. กรองข้อมูลตามโฟลเดอร์ที่เลือก
+            // 1. กรองข้อมูลตามโฟลเดอร์หลักที่เลือก
             var folderFilter = adminKnowledgeFolderFilterVal || "all";
+            var subFolderFilter = adminKnowledgeSubFolderFilterVal || "all";
             var filteredData = allDatabaseData;
 
             if (folderFilter !== "all") {
-                filteredData = allDatabaseData.filter(function(item) {
+                filteredData = filteredData.filter(function(item) {
                     var f = (item.mainFolder && item.mainFolder.trim() !== "") ? item.mainFolder.trim() : "ขั้นตอนการทำงาน";
                     return f === folderFilter;
                 });
             }
 
-            // 2. กรองข้อมูลด้วยคำค้นหา
+            // 2. กรองข้อมูลตามโฟลเดอร์ย่อย (หมวดหมู่ย่อย) ที่เลือก
+            if (subFolderFilter !== "all") {
+                filteredData = filteredData.filter(function(item) {
+                    var c = (item.category && item.category.trim() !== "") ? item.category.trim() : "ทั่วไป";
+                    return c === subFolderFilter;
+                });
+            }
+
+            // 3. กรองข้อมูลด้วยคำค้นหา
             var query = adminKnowledgeSearchQuery || "";
             if (query !== "") {
                 filteredData = filteredData.filter(function(item) {
@@ -7668,17 +7766,33 @@ function openAudienceFolder(aud) {
             }
             
             if (countBadge) {
-                countBadge.innerText = filteredData.length + " รายการ" + (folderFilter !== "all" ? (" (ใน " + folderFilter + ")") : "");
+                var filterDesc = "";
+                if (folderFilter !== "all" && subFolderFilter !== "all") {
+                    filterDesc = " (ใน " + folderFilter + " > " + subFolderFilter + ")";
+                } else if (folderFilter !== "all") {
+                    filterDesc = " (ใน " + folderFilter + ")";
+                } else if (subFolderFilter !== "all") {
+                    filterDesc = " (ในโฟลเดอร์ย่อย: " + subFolderFilter + ")";
+                }
+                countBadge.innerText = filteredData.length + " รายการ" + filterDesc;
             }
 
-            // แบนเนอร์แสดงสถานะการกรองโฟลเดอร์
+            // แบนเนอร์แสดงสถานะการกรองโฟลเดอร์และโฟลเดอร์ย่อย
             var activeBanner = document.getElementById('adminKnowledgeActiveFilterBanner');
             if (activeBanner) {
-                if (folderFilter !== "all") {
+                if (folderFilter !== "all" || subFolderFilter !== "all") {
                     var fIcon = (typeof getMainFolderIcon === 'function') ? getMainFolderIcon(folderFilter) : '📂';
+                    var labelHtml = '';
+                    if (folderFilter !== "all" && subFolderFilter !== "all") {
+                        labelHtml = '<span>' + fIcon + '</span> <span>กำลังดู: <span class="text-indigo-700 font-black">"' + folderFilter + '"</span> ➔ โฟลเดอร์ย่อย: <span class="text-purple-700 font-black">"' + subFolderFilter + '"</span> (' + filteredData.length + ' รายการ)</span>';
+                    } else if (folderFilter !== "all") {
+                        labelHtml = '<span>' + fIcon + '</span> <span>กำลังดูเฉพาะโฟลเดอร์: <span class="text-indigo-700 font-black">"' + folderFilter + '"</span> (' + filteredData.length + ' รายการ)</span>';
+                    } else {
+                        labelHtml = '<span>📁</span> <span>กำลังดูเฉพาะโฟลเดอร์ย่อย: <span class="text-purple-700 font-black">"' + subFolderFilter + '"</span> (' + filteredData.length + ' รายการ)</span>';
+                    }
                     activeBanner.className = "flex items-center justify-between gap-3 bg-indigo-50 border-2 border-indigo-200 text-indigo-950 px-4 py-3 rounded-2xl mb-4 text-xs sm:text-sm font-bold shadow-2xs";
-                    activeBanner.innerHTML = '<div class="flex items-center gap-2"><span>' + fIcon + '</span> <span>กำลังดูเฉพาะโฟลเดอร์: <span class="text-indigo-700 font-black">"' + folderFilter + '"</span> (' + filteredData.length + ' รายการ)</span></div>' +
-                        '<button onclick="changeAdminKnowledgeFolderFilter(\'all\')" class="bg-white hover:bg-indigo-100 text-indigo-900 border border-indigo-300 px-3.5 py-1.5 rounded-xl font-black text-xs transition-all active:scale-95 shadow-2xs cursor-pointer">✕ แสดงทุกโฟลเดอร์</button>';
+                    activeBanner.innerHTML = '<div class="flex items-center gap-2">' + labelHtml + '</div>' +
+                        '<button onclick="clearAdminKnowledgeFilters()" class="bg-white hover:bg-indigo-100 text-indigo-900 border border-indigo-300 px-3.5 py-1.5 rounded-xl font-black text-xs transition-all active:scale-95 shadow-2xs cursor-pointer">✕ แสดงทั้งหมด</button>';
                 } else {
                     activeBanner.className = "hidden";
                     activeBanner.innerHTML = "";
@@ -7697,7 +7811,25 @@ function openAudienceFolder(aud) {
                 var timeA = parseKnowledgeDate(a.timestamp);
                 var timeB = parseKnowledgeDate(b.timestamp);
 
-                if (adminKnowledgeSort === 'order_asc') {
+                if (adminKnowledgeSort === 'subfolder_order_asc') {
+                    // เรียงตามโฟลเดอร์ย่อย (ก-ฮ) ก่อน ➔ ปักหมุด ➔ ลำดับ 1, 2, 3... ➔ วันที่
+                    var catA = (a.category && a.category.trim() !== "") ? a.category.trim() : "ทั่วไป";
+                    var catB = (b.category && b.category.trim() !== "") ? b.category.trim() : "ทั่วไป";
+                    var cCmp = catA.localeCompare(catB, 'th');
+                    if (cCmp !== 0) return cCmp;
+
+                    var pinA = (a.isPinned === true || a.isPinned === "true" || a.isPinned === "TRUE" || a.isPinned === 1 || a.isPinned === "1");
+                    var pinB = (b.isPinned === true || b.isPinned === "true" || b.isPinned === "TRUE" || b.isPinned === 1 || b.isPinned === "1");
+                    if (pinA && !pinB) return -1;
+                    if (!pinA && pinB) return 1;
+
+                    var ordA = (a.displayOrder !== undefined && a.displayOrder !== null && a.displayOrder !== "" && !isNaN(parseInt(a.displayOrder, 10))) ? parseInt(a.displayOrder, 10) : 999;
+                    var ordB = (b.displayOrder !== undefined && b.displayOrder !== null && b.displayOrder !== "" && !isNaN(parseInt(b.displayOrder, 10))) ? parseInt(b.displayOrder, 10) : 999;
+                    if (ordA !== ordB) return ordA - ordB;
+
+                    if (timeB !== timeA) return timeB - timeA;
+                    return (a.title || '').localeCompare(b.title || '', 'th');
+                } else if (adminKnowledgeSort === 'order_asc') {
                     var pinA = (a.isPinned === true || a.isPinned === "true" || a.isPinned === "TRUE" || a.isPinned === 1 || a.isPinned === "1");
                     var pinB = (b.isPinned === true || b.isPinned === "true" || b.isPinned === "TRUE" || b.isPinned === 1 || b.isPinned === "1");
                     if (pinA && !pinB) return -1;
@@ -7709,6 +7841,14 @@ function openAudienceFolder(aud) {
                         var fB = (b.mainFolder && b.mainFolder.trim() !== "") ? b.mainFolder.trim() : "ขั้นตอนการทำงาน";
                         var fCmp = fA.localeCompare(fB, 'th');
                         if (fCmp !== 0) return fCmp;
+                    }
+
+                    // ถ้าเลือกดูโฟลเดอร์หลักแต่ยังไม่ได้เจาะจงโฟลเดอร์ย่อย ให้จัดกลุ่มตามโฟลเดอร์ย่อยก่อน
+                    if (subFolderFilter === "all") {
+                        var subA = (a.category && a.category.trim() !== "") ? a.category.trim() : "ทั่วไป";
+                        var subB = (b.category && b.category.trim() !== "") ? b.category.trim() : "ทั่วไป";
+                        var subCmp = subA.localeCompare(subB, 'th');
+                        if (subCmp !== 0) return subCmp;
                     }
 
                     var ordA = (a.displayOrder !== undefined && a.displayOrder !== null && a.displayOrder !== "" && !isNaN(parseInt(a.displayOrder, 10))) ? parseInt(a.displayOrder, 10) : 999;
@@ -7870,32 +8010,34 @@ function openAudienceFolder(aud) {
             }).toggleKnowledgePin(id);
         }
 
-        // ทางลัดกำหนดลำดับการแสดงผลของคู่มือสำหรับแอดมิน (แยกอิสระตามแต่ละโฟลเดอร์)
+        // ทางลัดกำหนดลำดับการแสดงผลของคู่มือสำหรับแอดมิน (แยกอิสระตามโฟลเดอร์และโฟลเดอร์ย่อย)
         function quickChangeKnowledgeOrder(id, currentOrder, e) {
             if (e) e.stopPropagation();
             var item = allDatabaseData.find(function(k) { return String(k.id).trim() === String(id).trim(); });
             if (!item) return;
             var itemFolder = (item.mainFolder && item.mainFolder.trim() !== "") ? item.mainFolder.trim() : "ขั้นตอนการทำงาน";
+            var itemSubFolder = (item.category && item.category.trim() !== "") ? item.category.trim() : "ทั่วไป";
 
-            // รวบรวมลำดับตัวเลขที่ใช้งานไปแล้วในโฟลเดอร์เดียวกัน
-            var usedOrders = [];
+            // รวบรวมลำดับตัวเลขที่ใช้งานไปแล้วในโฟลเดอร์ย่อยเดียวกัน
+            var usedSubOrders = [];
             for (var u = 0; u < allDatabaseData.length; u++) {
                 var other = allDatabaseData[u];
                 var otherFolder = (other.mainFolder && other.mainFolder.trim() !== "") ? other.mainFolder.trim() : "ขั้นตอนการทำงาน";
-                if (otherFolder === itemFolder && String(other.id).trim() !== String(id).trim()) {
+                var otherSub = (other.category && other.category.trim() !== "") ? other.category.trim() : "ทั่วไป";
+                if (otherFolder === itemFolder && otherSub === itemSubFolder && String(other.id).trim() !== String(id).trim()) {
                     if (other.displayOrder !== undefined && other.displayOrder !== null && other.displayOrder !== "" && other.displayOrder !== 999 && !isNaN(parseInt(other.displayOrder, 10))) {
                         var oNum = parseInt(other.displayOrder, 10);
-                        if (usedOrders.indexOf(oNum) === -1) usedOrders.push(oNum);
+                        if (usedSubOrders.indexOf(oNum) === -1) usedSubOrders.push(oNum);
                     }
                 }
             }
-            usedOrders.sort(function(a, b) { return a - b; });
+            usedSubOrders.sort(function(a, b) { return a - b; });
 
             var curVal = (item.displayOrder !== undefined && item.displayOrder !== null && item.displayOrder !== 999) ? item.displayOrder : "";
-            var usedStr = usedOrders.length > 0 ? usedOrders.join(", ") : "ยังไม่มี";
-            var promptMsg = "🔢 กำหนดลำดับการแสดงผลในโฟลเดอร์: \"" + itemFolder + "\"\n" +
+            var usedStr = usedSubOrders.length > 0 ? usedSubOrders.join(", ") : "ยังไม่มี";
+            var promptMsg = "🔢 กำหนดลำดับการแสดงผลในโฟลเดอร์ย่อย: \"" + itemSubFolder + "\" (แฟ้ม: " + itemFolder + ")\n" +
                 "• หัวข้อ: " + item.title + "\n" +
-                "• ลำดับที่ใช้แล้วในโฟลเดอร์นี้: [" + usedStr + "]\n\n" +
+                "• ลำดับที่ใช้แล้วในโฟลเดอร์ย่อยนี้: [" + usedStr + "]\n\n" +
                 "ใส่ตัวเลขลำดับ (เช่น 1, 2, 3... ค่าน้อยจะขึ้นก่อน) หรือเว้นว่างไว้เพื่อจัดตามวันที่:";
 
             var newOrder = prompt(promptMsg, curVal);
