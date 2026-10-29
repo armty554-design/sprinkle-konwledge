@@ -5,7 +5,19 @@
   "outputDirectory": ".",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/firebase-messaging-sw.js",
+      "destination": "/firebase-messaging-sw.js"
+    },
+    {
+      "source": "/sprinkle-firestore-adapter.js",
+      "destination": "/sprinkle-firestore-adapter.js"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/((?!.*\\.).*)",
       "destination": "/index.html"
     }
   ]
