@@ -2142,12 +2142,15 @@
                     <div>
                         <label class="block text-lg font-bold text-gray-700 mb-2">🗂️ แฟ้มหลัก (กลุ่มหมวดหมู่ใหญ่ - เช่น ขั้นตอนการทำงาน, ประกาศ, นโยบาย)</label>
                         <div class="flex gap-2">
-                            <select id="addMainFolderSelect" onchange="onAdminMainFolderSelectChange()" class="flex-1 p-4 border-2 border-blue-200 rounded-xl text-lg bg-gray-50 outline-none focus:border-blue-600 transition-all">
-                                <option value="ขั้นตอนการทำงาน">📋 ขั้นตอนการทำงาน (SOP / คู่มือการทำงาน)</option>
-                                <option value="ประกาศ">📢 ประกาศ (ข่าวสาร / ประชาสัมพันธ์)</option>
-                                <option value="นโยบาย">📜 นโยบาย (ข้อบังคับ / ระเบียบบริษัท)</option>
-                                <option value="รวมภาพสื่อประชาสัมพันธ์">📢 รวมภาพสื่อประชาสัมพันธ์ (ข่าวสาร / สื่อประชาสัมพันธ์องค์กร)</option>
-                                <option value="แฟ้มประชาสัมพันธ์" class="hidden">แฟ้มประชาสัมพันธ์ (เดิม)</option>
+                            <select id="addMainFolderSelect" onchange="onAdminMainFolderSelectChange()" class="flex-1 p-4 border-2 border-blue-200 rounded-xl text-lg bg-gray-50 outline-none focus:border-blue-600 transition-all font-semibold">
+                                <option value="ขั้นตอนการทำงาน">📋 ขั้นตอนการทำงาน</option>
+                                <option value="นโยบาย">📜 นโยบาย</option>
+                                <option value="ประกาศ">📢 ประกาศ</option>
+                                <option value="Sprinkle Training">🎓 Sprinkle Training</option>
+                                <option value="คนดีสปริงเคิล">🌟 คนดีสปริงเคิล</option>
+                                <option value="โครงการ 3 ลด">🛡️ โครงการ 3 ลด</option>
+                                <option value="แฟ้มประชาสัมพันธ์">📰 แฟ้มประชาสัมพันธ์</option>
+                                <option value="รวมภาพสื่อประชาสัมพันธ์">🖼️ รวมภาพสื่อประชาสัมพันธ์</option>
                                 <option value="_custom">➕ สร้างแฟ้มหลักใหม่...</option>
                             </select>
                         </div>
@@ -3977,10 +3980,57 @@
 
         function populateCategoryDropdowns() {
             var select = document.getElementById('addCatSelect');
-            select.innerHTML = '<option value="">-- เลือกหมวดหมู่ที่มีอยู่ --</option>';
-            for (var i = 0; i < uniqueCategories.length; i++) {
-                var cat = uniqueCategories[i];
-                select.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
+            if (select) {
+                select.innerHTML = '<option value="">-- เลือกหมวดหมู่ที่มีอยู่ --</option>';
+                for (var i = 0; i < uniqueCategories.length; i++) {
+                    var cat = uniqueCategories[i];
+                    select.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
+                }
+            }
+            if (typeof populateAdminMainFolderSelect === 'function') {
+                populateAdminMainFolderSelect();
+            }
+        }
+
+        function populateAdminMainFolderSelect() {
+            var select = document.getElementById('addMainFolderSelect');
+            if (!select) return;
+            
+            var standardFolders = [
+                { value: "ขั้นตอนการทำงาน", label: "📋 ขั้นตอนการทำงาน" },
+                { value: "นโยบาย", label: "📜 นโยบาย" },
+                { value: "ประกาศ", label: "📢 ประกาศ" },
+                { value: "Sprinkle Training", label: "🎓 Sprinkle Training" },
+                { value: "คนดีสปริงเคิล", label: "🌟 คนดีสปริงเคิล" },
+                { value: "โครงการ 3 ลด", label: "🛡️ โครงการ 3 ลด" },
+                { value: "แฟ้มประชาสัมพันธ์", label: "📰 แฟ้มประชาสัมพันธ์" },
+                { value: "รวมภาพสื่อประชาสัมพันธ์", label: "🖼️ รวมภาพสื่อประชาสัมพันธ์" }
+            ];
+
+            var standardValues = standardFolders.map(function(f) { return f.value; });
+            var extraFolders = [];
+
+            if (allDatabaseData && Array.isArray(allDatabaseData)) {
+                for (var i = 0; i < allDatabaseData.length; i++) {
+                    var f = allDatabaseData[i].mainFolder;
+                    if (f && typeof f === 'string' && f.trim() !== "" && standardValues.indexOf(f.trim()) === -1 && extraFolders.indexOf(f.trim()) === -1) {
+                        extraFolders.push(f.trim());
+                    }
+                }
+            }
+
+            var currentVal = select.value || "ขั้นตอนการทำงาน";
+            var html = '';
+            for (var j = 0; j < standardFolders.length; j++) {
+                html += '<option value="' + standardFolders[j].value + '">' + standardFolders[j].label + '</option>';
+            }
+            for (var k = 0; k < extraFolders.length; k++) {
+                html += '<option value="' + extraFolders[k] + '">📁 ' + extraFolders[k] + '</option>';
+            }
+            html += '<option value="_custom">➕ สร้างแฟ้มหลักใหม่...</option>';
+            select.innerHTML = html;
+            if (currentVal && (standardValues.indexOf(currentVal) !== -1 || extraFolders.indexOf(currentVal) !== -1 || currentVal === '_custom')) {
+                select.value = currentVal;
             }
         }
 
