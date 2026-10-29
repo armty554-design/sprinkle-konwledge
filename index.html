@@ -1232,11 +1232,15 @@
 
             <!-- ช่องค้นหาข้อมูล -->
             <div class="bg-white p-4 sm:p-8 rounded-3xl shadow-md border border-gray-100 transition-all focus-within:shadow-lg">
-                <label class="block text-xl font-extrabold mb-4 text-blue-950 flex items-center gap-2">
-                    <span>🔍</span> ค้นหาด่วน: พิมพ์หัวเรื่อง หมวดหมู่ หรือประเภทแฟ้มได้เลยครับ
+                <label for="searchInput" class="block text-lg sm:text-xl font-extrabold mb-3 text-blue-950 flex items-center justify-between gap-2 flex-wrap">
+                    <span class="flex items-center gap-2"><span>🔍</span> ค้นหาด่วน: พิมพ์หัวเรื่อง หมวดหมู่ หรือประเภทแฟ้มได้เลยครับ</span>
+                    <span id="searchStatusIndicator" class="text-xs font-semibold text-gray-400 hidden">กำลังค้นหา...</span>
                 </label>
-                <input type="text" id="searchInput" placeholder="ตัวอย่างเช่น: สวัสดิการ, ประกาศ, นโยบาย, คู่มือการใช้อีเมล..." onkeyup="searchContent()"
-                       class="w-full p-5 border border-gray-250 rounded-2xl text-2xl outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 shadow-sm bg-gray-50 focus:bg-white transition-all">
+                <div class="relative w-full">
+                    <input type="text" id="searchInput" placeholder="ตัวอย่างเช่น: สวัสดิการ, ประกาศ, นโยบาย, คู่มือการใช้อีเมล..." oninput="debounceSearchContent()" onkeydown="if(event.key==='Enter'){ clearTimeout(_searchContentDebounceTimer); searchContent(); }"
+                           class="w-full p-4 sm:p-5 pr-12 sm:pr-14 border border-gray-250 rounded-2xl text-lg sm:text-2xl outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 shadow-sm bg-gray-50 focus:bg-white transition-all">
+                    <button type="button" id="mainSearchClearBtn" onclick="clearMainSearch()" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-650 hidden text-xl font-black cursor-pointer transition-colors" title="ล้างคำค้นหา">✕</button>
+                </div>
             </div>
 
             <!-- แท็บย่อยแบ่งกลุ่มเนื้อหา (ข้อมูลเอกสาร / คลิปวิดีโอ) -->
@@ -1330,7 +1334,7 @@
                 <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-200 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
                     <div class="relative flex-1 min-w-[200px]">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 text-base pointer-events-none">🔍</span>
-                        <input type="text" id="mainCatSearchInput" oninput="renderMainCategories()" placeholder="ค้นหาหมวดหมู่หลัก..." class="w-full pl-10 pr-9 py-2 bg-gray-50 border border-gray-250 rounded-xl text-xs sm:text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all">
+                        <input type="text" id="mainCatSearchInput" oninput="debounceRenderMainCategories()" placeholder="ค้นหาหมวดหมู่หลัก..." class="w-full pl-10 pr-9 py-2 bg-gray-50 border border-gray-250 rounded-xl text-xs sm:text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all">
                         <button id="mainCatSearchClearBtn" onclick="clearMainCatSearch()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 hidden text-xs font-extrabold">✖</button>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap">
@@ -1376,7 +1380,7 @@
                 <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-200 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
                     <div class="relative flex-1 min-w-[200px]">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 text-base pointer-events-none">🔍</span>
-                        <input type="text" id="subCatSearchInput" oninput="renderCategories()" placeholder="ค้นหาหมวดหมู่ย่อย..." class="w-full pl-10 pr-9 py-2 bg-gray-50 border border-gray-250 rounded-xl text-xs sm:text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all">
+                        <input type="text" id="subCatSearchInput" oninput="debounceRenderCategories()" placeholder="ค้นหาหมวดหมู่ย่อย..." class="w-full pl-10 pr-9 py-2 bg-gray-50 border border-gray-250 rounded-xl text-xs sm:text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all">
                         <button id="subCatSearchClearBtn" onclick="clearSubCatSearch()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 hidden text-xs font-extrabold">✖</button>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap">
@@ -1412,7 +1416,7 @@
                 <div class="bg-blue-50/70 p-3 sm:p-4 rounded-2xl border border-blue-100 mb-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
                     <div class="relative flex-1 min-w-[200px]">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 text-base pointer-events-none">🔍</span>
-                        <input type="text" id="topicSearchInput" oninput="renderFilteredTopics()" placeholder="ค้นหาชื่อคู่มือ / หัวข้อในหมวดนี้..." class="w-full pl-10 pr-9 py-2 bg-white border border-gray-250 rounded-xl text-xs sm:text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                        <input type="text" id="topicSearchInput" oninput="debounceRenderFilteredTopics()" placeholder="ค้นหาชื่อคู่มือ / หัวข้อในหมวดนี้..." class="w-full pl-10 pr-9 py-2 bg-white border border-gray-250 rounded-xl text-xs sm:text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
                         <button id="topicSearchClearBtn" onclick="clearTopicSearch()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 hidden text-xs font-extrabold">✖</button>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap">
@@ -1602,7 +1606,7 @@
                                 <p id="recommendEmpCardSubTitle" class="text-gray-500 text-xs sm:text-sm font-semibold">แสดงรายชื่อบุคลากรทั้งหมด พร้อมยอดเข้าศึกษา และสามารถคลิกดูประวัติการเข้าชมรายบุคคลได้</p>
                             </div>
                             <div class="relative w-full sm:w-72 shrink-0">
-                                <input type="text" id="recommendEmpSearchInput" oninput="onRecommendEmpSearch()" placeholder="🔍 ค้นหาชื่อ, รหัส, สาขา, เบอร์รถ..." class="w-full px-3.5 py-2.5 border border-gray-250 rounded-xl bg-gray-50 outline-none focus:bg-white focus:border-blue-600 text-sm font-bold transition-all shadow-xs">
+                                <input type="text" id="recommendEmpSearchInput" oninput="debounceRecommendEmpSearch()" placeholder="🔍 ค้นหาชื่อ, รหัส, สาขา, เบอร์รถ..." class="w-full px-3.5 py-2.5 border border-gray-250 rounded-xl bg-gray-50 outline-none focus:bg-white focus:border-blue-600 text-sm font-bold transition-all shadow-xs">
                             </div>
                         </div>
                         
@@ -2021,7 +2025,7 @@
                     <!-- ช่องค้นหาและตัวกรองสถานะ -->
                     <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                         <div class="relative min-w-[220px]">
-                            <input type="text" id="annSearchInput" oninput="onAdminAnnSearch(this.value)" placeholder="🔍 ค้นหาหัวข้อ หรือ เนื้อหา..." class="w-full pl-3 pr-8 py-2 border border-gray-250 rounded-xl text-xs font-bold bg-gray-50 outline-none focus:bg-white focus:border-blue-600">
+                            <input type="text" id="annSearchInput" oninput="debounceAdminAnnSearch(this.value)" placeholder="🔍 ค้นหาหัวข้อ หรือ เนื้อหา..." class="w-full pl-3 pr-8 py-2 border border-gray-250 rounded-xl text-xs font-bold bg-gray-50 outline-none focus:bg-white focus:border-blue-600">
                             <button type="button" onclick="document.getElementById('annSearchInput').value=''; onAdminAnnSearch('');" class="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 text-xs font-bold cursor-pointer">✕</button>
                         </div>
                         <div class="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
@@ -2335,7 +2339,7 @@
                         </div>
                         <!-- กล่องค้นหา -->
                         <div class="relative w-full sm:w-72">
-                            <input type="text" id="adminKnowledgeSearchInput" oninput="adminKnowledgeSearch()" placeholder="🔍 ค้นหาหัวข้อ หรือหมวดหมู่..." class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 outline-none focus:bg-white focus:border-blue-600 font-bold transition-all text-xs sm:text-sm">
+                            <input type="text" id="adminKnowledgeSearchInput" oninput="debounceAdminKnowledgeSearch()" placeholder="🔍 ค้นหาหัวข้อ หรือหมวดหมู่..." class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 outline-none focus:bg-white focus:border-blue-600 font-bold transition-all text-xs sm:text-sm">
                         </div>
                     </div>
                 </div>
@@ -3695,6 +3699,7 @@
             
             // 1. จัดการข้อมูลหมวดหมู่และความรู้ (เรียงหัวข้อใหม่ล่าสุดให้อยู่บนสุดเสมอ)
             if (res.knowledge && Array.isArray(res.knowledge)) {
+                _dateParseCache = {};
                 allDatabaseData = sortKnowledgeLatestFirst(res.knowledge);
                 
                 var visibleKnowledge = getUserVisibleKnowledgeData();
@@ -6552,12 +6557,17 @@ function openAudienceFolder(aud) {
             grid.innerHTML += opHtml;
         }
 
+        var _dateParseCache = {};
         function parseKnowledgeDate(dateStr) {
             if (!dateStr) return 0;
             if (dateStr instanceof Date) return dateStr.getTime();
             if (typeof dateStr === 'number') return dateStr;
+            var str = String(dateStr).trim();
+            if (!str) return 0;
+            if (_dateParseCache[str] !== undefined) return _dateParseCache[str];
+            
+            var result = 0;
             try {
-                var str = dateStr.toString().trim();
                 // 1. ISO format: YYYY-MM-DDTHH:mm or YYYY-MM-DD HH:mm
                 var isoMatch = str.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
                 if (isoMatch) {
@@ -6568,30 +6578,79 @@ function openAudienceFolder(aud) {
                     var min = parseInt(isoMatch[5], 10);
                     var s = isoMatch[6] ? parseInt(isoMatch[6], 10) : 0;
                     var dt = new Date(y, m, d, h, min, s);
-                    if (!isNaN(dt.getTime())) return dt.getTime();
+                    if (!isNaN(dt.getTime())) result = dt.getTime();
                 }
                 
-                // 2. Thai Buddhist Era format: DD/MM/YYYY HH:mm
-                var thaiMatch = str.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
-                if (thaiMatch) {
-                    var day = parseInt(thaiMatch[1], 10);
-                    var month = parseInt(thaiMatch[2], 10) - 1;
-                    var year = parseInt(thaiMatch[3], 10);
-                    if (year > 2400) year -= 543;
-                    var hour = parseInt(thaiMatch[4], 10);
-                    var minute = parseInt(thaiMatch[5], 10);
-                    var sec = thaiMatch[6] ? parseInt(thaiMatch[6], 10) : 0;
-                    var dt2 = new Date(year, month, day, hour, minute, sec);
-                    if (!isNaN(dt2.getTime())) return dt2.getTime();
+                if (!result) {
+                    // 2. Thai Buddhist Era format: DD/MM/YYYY HH:mm
+                    var thaiMatch = str.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+                    if (thaiMatch) {
+                        var day = parseInt(thaiMatch[1], 10);
+                        var month = parseInt(thaiMatch[2], 10) - 1;
+                        var year = parseInt(thaiMatch[3], 10);
+                        if (year > 2400) year -= 543;
+                        var hour = parseInt(thaiMatch[4], 10);
+                        var minute = parseInt(thaiMatch[5], 10);
+                        var sec = thaiMatch[6] ? parseInt(thaiMatch[6], 10) : 0;
+                        var dt2 = new Date(year, month, day, hour, minute, sec);
+                        if (!isNaN(dt2.getTime())) result = dt2.getTime();
+                    }
                 }
 
-                var cleanStr = str.replace(/\s*\(.*\)\s*/g, '').trim();
-                var dObj = new Date(cleanStr);
-                if (!isNaN(dObj.getTime())) return dObj.getTime();
-                var dObj2 = new Date(cleanStr.replace(/-/g, '/'));
-                if (!isNaN(dObj2.getTime())) return dObj2.getTime();
+                if (!result) {
+                    var cleanStr = str.replace(/\s*\(.*\)\s*/g, '').trim();
+                    var dObj = new Date(cleanStr);
+                    if (!isNaN(dObj.getTime())) result = dObj.getTime();
+                    else {
+                        var dObj2 = new Date(cleanStr.replace(/-/g, '/'));
+                        if (!isNaN(dObj2.getTime())) result = dObj2.getTime();
+                    }
+                }
             } catch(e) {}
-            return 0;
+            _dateParseCache[str] = result;
+            return result;
+        }
+
+        var _mainCatSearchDebounceTimer = null;
+        function debounceRenderMainCategories() {
+            var el = document.getElementById('mainCatSearchInput');
+            var btn = document.getElementById('mainCatSearchClearBtn');
+            if (btn && el) {
+                if (el.value.trim().length > 0) btn.classList.remove('hidden');
+                else btn.classList.add('hidden');
+            }
+            clearTimeout(_mainCatSearchDebounceTimer);
+            _mainCatSearchDebounceTimer = setTimeout(function() {
+                renderMainCategories();
+            }, 200);
+        }
+
+        var _subCatSearchDebounceTimer = null;
+        function debounceRenderCategories() {
+            var el = document.getElementById('subCatSearchInput');
+            var btn = document.getElementById('subCatSearchClearBtn');
+            if (btn && el) {
+                if (el.value.trim().length > 0) btn.classList.remove('hidden');
+                else btn.classList.add('hidden');
+            }
+            clearTimeout(_subCatSearchDebounceTimer);
+            _subCatSearchDebounceTimer = setTimeout(function() {
+                renderCategories();
+            }, 200);
+        }
+
+        var _topicSearchDebounceTimer = null;
+        function debounceRenderFilteredTopics() {
+            var el = document.getElementById('topicSearchInput');
+            var btn = document.getElementById('topicSearchClearBtn');
+            if (btn && el) {
+                if (el.value.trim().length > 0) btn.classList.remove('hidden');
+                else btn.classList.add('hidden');
+            }
+            clearTimeout(_topicSearchDebounceTimer);
+            _topicSearchDebounceTimer = setTimeout(function() {
+                renderFilteredTopics();
+            }, 200);
         }
 
         function clearMainCatSearch() {
@@ -6599,6 +6658,7 @@ function openAudienceFolder(aud) {
             if (el) el.value = '';
             var btn = document.getElementById('mainCatSearchClearBtn');
             if (btn) btn.classList.add('hidden');
+            clearTimeout(_mainCatSearchDebounceTimer);
             renderMainCategories();
         }
 
@@ -6607,6 +6667,7 @@ function openAudienceFolder(aud) {
             if (el) el.value = '';
             var btn = document.getElementById('subCatSearchClearBtn');
             if (btn) btn.classList.add('hidden');
+            clearTimeout(_subCatSearchDebounceTimer);
             renderCategories();
         }
 
@@ -6615,6 +6676,7 @@ function openAudienceFolder(aud) {
             if (el) el.value = '';
             var btn = document.getElementById('topicSearchClearBtn');
             if (btn) btn.classList.add('hidden');
+            clearTimeout(_topicSearchDebounceTimer);
             renderFilteredTopics();
         }
 
@@ -6765,6 +6827,7 @@ function openAudienceFolder(aud) {
             });
 
             var renderedCardsCount = 0;
+            var cardsHtml = [];
 
             for (var f = 0; f < foldersToDisplay.length; f++) {
                 var fName = foldersToDisplay[f];
@@ -6781,7 +6844,7 @@ function openAudienceFolder(aud) {
                     latestDateHtml = '<span class="text-[11px] text-gray-400 font-semibold mt-1 block">🕒 อัปเดตล่าสุด: ' + dObj.getDate() + ' ' + dMonths[dObj.getMonth()] + ' ' + (dObj.getFullYear() + 543) + '</span>';
                 }
 
-                grid.innerHTML += '<div onclick="openMainCategory(\'' + safeFolderName + '\')" class="group cursor-pointer bg-gradient-to-br ' + style.bg + ' border-2 p-6 rounded-3xl shadow-sm hover:shadow-md transition-all active:scale-[0.98] flex flex-col justify-between min-h-[160px] relative overflow-hidden">' +
+                cardsHtml.push('<div onclick="openMainCategory(\'' + safeFolderName + '\')" class="group cursor-pointer bg-gradient-to-br ' + style.bg + ' border-2 p-6 rounded-3xl shadow-sm hover:shadow-md transition-all active:scale-[0.98] flex flex-col justify-between min-h-[160px] relative overflow-hidden">' +
                     '<div class="flex items-start justify-between gap-3">' +
                         '<div class="flex items-center gap-3.5">' +
                             '<div class="w-14 h-14 rounded-2xl ' + style.iconBg + ' text-white flex items-center justify-center text-3xl shadow-sm group-hover:scale-110 transition-all shrink-0">' +
@@ -6799,7 +6862,7 @@ function openAudienceFolder(aud) {
                         '<span class="flex items-center gap-1 text-gray-800 font-extrabold">📁 ' + catCount + ' หมวดหมู่</span>' +
                         '<span class="text-blue-600 font-extrabold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">เปิดดูหมวด ➔</span>' +
                     '</div>' +
-                '</div>';
+                '</div>');
                 renderedCardsCount++;
             }
 
@@ -6821,7 +6884,7 @@ function openAudienceFolder(aud) {
                     allLatestDateHtml = '<span class="text-[11px] text-gray-400 font-semibold mt-1 block">🕒 อัปเดตล่าสุด: ' + dObjAll.getDate() + ' ' + dMonthsAll[dObjAll.getMonth()] + ' ' + (dObjAll.getFullYear() + 543) + '</span>';
                 }
 
-                grid.innerHTML += '<div onclick="openMainCategory(\'all\')" class="group cursor-pointer bg-gradient-to-br from-slate-50 to-gray-50 hover:from-slate-100 hover:to-gray-100 border-2 border-slate-300 hover:border-slate-400 p-6 rounded-3xl shadow-sm hover:shadow-md transition-all active:scale-[0.98] flex flex-col justify-between min-h-[160px] relative overflow-hidden">' +
+                cardsHtml.push('<div onclick="openMainCategory(\'all\')" class="group cursor-pointer bg-gradient-to-br from-slate-50 to-gray-50 hover:from-slate-100 hover:to-gray-100 border-2 border-slate-300 hover:border-slate-400 p-6 rounded-3xl shadow-sm hover:shadow-md transition-all active:scale-[0.98] flex flex-col justify-between min-h-[160px] relative overflow-hidden">' +
                     '<div class="flex items-start justify-between gap-3">' +
                         '<div class="flex items-center gap-3.5">' +
                             '<div class="w-14 h-14 rounded-2xl bg-slate-700 text-white flex items-center justify-center text-3xl shadow-sm group-hover:scale-110 transition-all shrink-0">' +
@@ -6839,7 +6902,7 @@ function openAudienceFolder(aud) {
                         '<span class="flex items-center gap-1 text-slate-900 font-extrabold">📁 ' + totalCatsCount + ' หมวดหมู่</span>' +
                         '<span class="text-slate-700 font-extrabold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">เปิดดูทั้งหมด ➔</span>' +
                     '</div>' +
-                '</div>';
+                '</div>');
                 renderedCardsCount++;
             }
 
@@ -6848,8 +6911,10 @@ function openAudienceFolder(aud) {
                     '<span class="text-4xl block mb-2">🔍</span>' +
                     '<p class="font-extrabold text-gray-700 text-base">ไม่พบหมวดหมู่หลักที่ตรงกับเงื่อนไข</p>' +
                     '<p class="text-xs text-gray-400 font-semibold mt-1">ลองเปลี่ยนคำค้นหาหรือตัวเลือกการจัดเรียงดูใหม่ครับ</p>' +
-                    '<button onclick="clearMainCatSearch(); if(document.getElementById(\'mainCatHideEmptyCheckbox\')) document.getElementById(\'mainCatHideEmptyCheckbox\').checked=false; renderMainCategories();" class="mt-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-4 py-2 rounded-xl text-xs transition-all shadow-sm">ล้างตัวกรองทั้งหมด</button>' +
+                    '<button onclick="clearMainCatSearch(); if(document.getElementById(\'mainCatHideEmptyCheckbox\')) document.getElementById(\'mainCatHideEmptyCheckbox\').checked=false; renderMainCategories();" class="mt-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-4 py-2 rounded-xl text-xs transition-all shadow-sm cursor-pointer">ล้างตัวกรองทั้งหมด</button>' +
                 '</div>';
+            } else {
+                grid.innerHTML = cardsHtml.join('');
             }
         }
 
@@ -6992,6 +7057,7 @@ function openAudienceFolder(aud) {
                 return dataB.count - dataA.count;
             });
 
+            var cardsHtml = [];
             for (var i = 0; i < catsToDisplay.length; i++) {
                 var cat = catsToDisplay[i];
                 var count = catStats[cat] ? catStats[cat].count : 0;
@@ -7022,7 +7088,7 @@ function openAudienceFolder(aud) {
 
                 var safeCat = cat.replace(/'/g, "\\'");
                 
-                container.innerHTML += '<button onclick="selectCategory(\'' + safeCat + '\')" class="' + colorClass + ' p-5 sm:p-6 border-2 rounded-3xl text-xl font-bold shadow-sm card-hover-effect flex justify-between items-center text-left transition-all active:scale-[0.98]">' +
+                cardsHtml.push('<button onclick="selectCategory(\'' + safeCat + '\')" class="' + colorClass + ' p-5 sm:p-6 border-2 rounded-3xl text-xl font-bold shadow-sm card-hover-effect flex justify-between items-center text-left transition-all active:scale-[0.98] cursor-pointer">' +
                     '<span class="flex items-start gap-3.5 flex-1 min-w-0">' +
                         '<span class="text-4xl shrink-0 mt-0.5">📁</span>' +
                         '<div class="min-w-0 flex-1">' +
@@ -7033,7 +7099,7 @@ function openAudienceFolder(aud) {
                         '</div>' +
                     '</span>' +
                     '<span class="text-2xl ml-3 shrink-0 text-blue-600 font-extrabold">➔</span>' +
-                '</button>';
+                '</button>');
             }
 
             if (catsToDisplay.length === 0) {
@@ -7041,16 +7107,18 @@ function openAudienceFolder(aud) {
                     container.innerHTML = "<div class='text-gray-500 py-12 text-center text-base col-span-2 bg-gray-50 rounded-3xl border border-dashed border-gray-300 p-6'>" +
                         "<span class='text-4xl block mb-2'>🔍</span>" +
                         "<p class='font-bold text-gray-700'>ไม่พบหมวดหมู่ย่อยที่ตรงกับคำค้นหา \"" + searchVal + "\"</p>" +
-                        "<button onclick=\"clearSubCatSearch()\" class='mt-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-4 py-2 rounded-xl text-xs transition-all shadow-sm'>ล้างคำค้นหา</button>" +
+                        "<button onclick=\"clearSubCatSearch()\" class='mt-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-4 py-2 rounded-xl text-xs transition-all shadow-sm cursor-pointer'>ล้างคำค้นหา</button>" +
                     "</div>";
                 } else {
                     var folderText = currentMainFolder === 'all' ? (isPrSelected ? 'ในรวมภาพสื่อประชาสัมพันธ์' : (isOpSelected ? 'ในแฟ้มพี่สปริงเคิล' : 'ในแฟ้มพนักงาน')) : ('ในหมวดหลัก "' + currentMainFolder + '"');
                     container.innerHTML = "<div class='text-gray-500 py-12 text-center text-base col-span-2 bg-gray-50 rounded-2xl border border-gray-200 p-6'>" +
                         "<span class='text-4xl block mb-2'>📭</span>" +
                         "<p class='font-bold text-gray-700'>ยังไม่มีหมวดหมู่ย่อย " + folderText + " ในกลุ่มนี้ครับ</p>" +
-                        "<button onclick=\"navigateToLevel('main_categories')\" class='mt-3 bg-blue-600 text-white font-extrabold px-4 py-2 rounded-xl text-xs'>ย้อนกลับไปหมวดหมู่หลัก</button>" +
+                        "<button onclick=\"navigateToLevel('main_categories')\" class='mt-3 bg-blue-600 text-white font-extrabold px-4 py-2 rounded-xl text-xs cursor-pointer'>ย้อนกลับไปหมวดหมู่หลัก</button>" +
                     "</div>";
                 }
+            } else {
+                container.innerHTML = cardsHtml.join('');
             }
         }
 
@@ -7216,12 +7284,13 @@ function openAudienceFolder(aud) {
                 return;
             }
 
+            var cardsHtml = [];
             for (var i = 0; i < items.length; i++) {
                 var item = items[i];
                 var icon = item.type === 'pdf' ? '📄' : (item.type === 'video' ? '🎥' : '🖼️');
                 var fileTypeLabel = item.type === 'pdf' ? 'ไฟล์ PDF' : (item.type === 'video' ? 'วิดีโอ' : 'ไฟล์รูปภาพ');
-                var itemFolder = (item.mainFolder && item.mainFolder.trim() !== "") ? item.mainFolder.trim() : "ขั้นตอนการทำงาน";
-                var folderIcon = getMainFolderIcon(itemFolder);
+                var itemFolder = (item.mainFolder && typeof item.mainFolder === 'string' && item.mainFolder.trim() !== "") ? item.mainFolder.trim() : "ขั้นตอนการทำงาน";
+                var folderIcon = (typeof getMainFolderIcon === 'function') ? getMainFolderIcon(itemFolder) : '📂';
                 
                 var statusBadge = "";
                 if (item.status === 'ปิดใช้งาน') {
@@ -7232,8 +7301,9 @@ function openAudienceFolder(aud) {
                 var dateBadgeHtml = displayDate ? ('<span class="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-lg flex items-center gap-1 border border-gray-200"><span>🕒</span><span>' + displayDate + '</span></span>') : '';
 
                 var actionBtnHtml = "";
-                if (currentUser.canEdit) {
-                    actionBtnHtml = '<button onclick="confirmDeleteKnowledge(\'' + item.id + '\', \'' + (item.title || '').replace(/'/g, "\\'") + '\', event)" class="bg-red-50 hover:bg-red-600 text-red-700 hover:text-white px-4 py-2.5 rounded-xl font-bold text-sm transition-all border border-red-200 active:scale-95">🗑️ ลบหัวข้อนี้</button>';
+                if (currentUser && currentUser.canEdit) {
+                    var safeDelTitle = String(item.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    actionBtnHtml = '<button onclick="confirmDeleteKnowledge(\'' + item.id + '\', \'' + safeDelTitle + '\', event)" class="bg-red-50 hover:bg-red-600 text-red-700 hover:text-white px-4 py-2.5 rounded-xl font-bold text-sm transition-all border border-red-200 active:scale-95 cursor-pointer">🗑️ ลบหัวข้อนี้</button>';
                 }
 
                 var isPinnedItem = (item.isPinned === true || item.isPinned === "true" || item.isPinned === "TRUE" || item.isPinned === 1 || item.isPinned === "1");
@@ -7241,29 +7311,30 @@ function openAudienceFolder(aud) {
                 var orderBadgeHtml = (item.displayOrder !== undefined && item.displayOrder !== null && item.displayOrder !== "" && item.displayOrder !== 999 && !isNaN(parseInt(item.displayOrder, 10))) ?
                     ('<span class="bg-blue-100 text-blue-900 text-xs font-bold px-2 py-0.5 rounded-lg border border-blue-200">ลำดับที่ ' + item.displayOrder + '</span>') : '';
 
-                listContainer.innerHTML += '<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-white hover:bg-blue-50 border border-gray-200 rounded-2xl transition-all shadow-2xs hover:shadow-sm ' + (isPinnedItem ? 'ring-2 ring-indigo-200 bg-indigo-50/20' : '') + '">' +
-                    '<button onclick="openContentViewer(\'' + item.id + '\')" class="flex-1 text-left flex items-start gap-3.5 focus:outline-none">' +
+                cardsHtml.push('<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-white hover:bg-blue-50 border border-gray-200 rounded-2xl transition-all shadow-2xs hover:shadow-sm ' + (isPinnedItem ? 'ring-2 ring-indigo-200 bg-indigo-50/20' : '') + '">' +
+                    '<button onclick="openContentViewer(\'' + item.id + '\')" class="flex-1 text-left flex items-start gap-3.5 focus:outline-none cursor-pointer">' +
                         '<span class="text-3xl p-2.5 bg-gray-50 rounded-2xl shadow-2xs border border-gray-200 shrink-0">' + icon + '</span>' +
                         '<div class="flex-1 min-w-0">' +
                             '<div class="flex items-center gap-2 flex-wrap mb-1">' +
                                 pinBadgeHtml +
                                 orderBadgeHtml +
                                 '<span class="bg-indigo-50 text-indigo-800 text-xs font-bold px-2.5 py-0.5 rounded-lg border border-indigo-200 flex items-center gap-1">' +
-                                    '<span>' + folderIcon + '</span> <span>' + itemFolder + '</span>' +
+                                    '<span>' + folderIcon + '</span> <span>' + escapeHtml(itemFolder) + '</span>' +
                                 '</span>' +
-                                '<span class="bg-blue-50 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded-lg border border-blue-200">' + item.category + '</span>' +
+                                '<span class="bg-blue-50 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded-lg border border-blue-200">' + escapeHtml(item.category || "ทั่วไป") + '</span>' +
                                 dateBadgeHtml +
                             '</div>' +
-                            '<h3 class="text-lg sm:text-xl font-bold text-blue-950">' + statusBadge + item.title + '</h3>' +
-                            '<span class="text-xs font-semibold text-gray-400 block mt-1">ประเภท: ' + fileTypeLabel + ' • อัปโหลดโดย: ' + item.uploadedBy + '</span>' +
+                            '<h3 class="text-lg sm:text-xl font-bold text-blue-950">' + statusBadge + escapeHtml(item.title || "ไม่มีชื่อเรื่อง") + '</h3>' +
+                            '<span class="text-xs font-semibold text-gray-400 block mt-1">ประเภท: ' + fileTypeLabel + ' • อัปโหลดโดย: ' + escapeHtml(item.uploadedBy || "แอดมิน") + '</span>' +
                         '</div>' +
                     '</button>' +
                     '<div class="flex justify-end gap-2 shrink-0">' +
-                        '<button onclick="openContentViewer(\'' + item.id + '\')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-extrabold text-sm shadow-sm transition-all active:scale-95">📖 กดเพื่ออ่านคู่มือ</button>' +
+                        '<button onclick="openContentViewer(\'' + item.id + '\')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-extrabold text-sm shadow-sm transition-all active:scale-95 cursor-pointer">📖 กดเพื่ออ่านคู่มือ</button>' +
                         actionBtnHtml +
                     '</div>' +
-                '</div>';
+                '</div>');
             }
+            listContainer.innerHTML = cardsHtml.join('');
         }
 
         function backToCategories() {
@@ -7397,132 +7468,216 @@ function openAudienceFolder(aud) {
             document.body.style.overflow = ''; // คืนค่าการเลื่อนหน้าจอหลัก
         }
 
-        // ค้นหาข้อมูลคู่มือ
-        function searchContent() {
-            var keyword = document.getElementById('searchInput').value.toLowerCase().trim();
-            var listContainer = document.getElementById('topicsList');
+        var _searchContentDebounceTimer = null;
+        function debounceSearchContent() {
+            var inputEl = document.getElementById('searchInput');
+            var clearBtn = document.getElementById('mainSearchClearBtn');
+            var indicator = document.getElementById('searchStatusIndicator');
+            var val = inputEl ? inputEl.value.trim() : "";
             
-            if(keyword.length > 0) {
-                var visibleData = getUserVisibleKnowledgeData();
-                var filtered = [];
-                for (var i = 0; i < visibleData.length; i++) {
-                    var item = visibleData[i];
-                    var itemFolder = (item.mainFolder && item.mainFolder.trim() !== "") ? item.mainFolder.trim() : "ขั้นตอนการทำงาน";
-                    var matchTitle = item.title.toLowerCase().includes(keyword);
-                    var matchCat = item.category.toLowerCase().includes(keyword);
-                    var matchFolder = itemFolder.toLowerCase().includes(keyword);
-
-                    if ((matchTitle || matchCat || matchFolder) && item.groupType === currentKnowledgeSubTab) {
-                        if (currentUser.canEdit) {
-                            filtered.push(item);
-                        } else if (item.status !== 'ปิดใช้งาน') {
-                            filtered.push(item);
-                        }
-                    }
-                }
-                
-                document.getElementById('mainFoldersSection').classList.add('hidden');
-                var mainCatsSec = document.getElementById('mainCategoriesSection');
-                if (mainCatsSec) mainCatsSec.classList.add('hidden');
-                document.getElementById('categoryContainer').classList.add('hidden');
-                document.getElementById('topicsSection').classList.remove('hidden');
-                document.getElementById('selectedCategoryTitle').innerHTML = '🔍 ผลลัพธ์การค้นหาสำหรับ: "<strong>' + keyword + '</strong>"';
-                
-                // อัปเดต Breadcrumb
-                var sep1 = document.getElementById('breadcrumbSep1');
-                var audBtn = document.getElementById('breadcrumbAudienceBtn');
-                var sep2 = document.getElementById('breadcrumbSep2');
-                var folderBtn = document.getElementById('breadcrumbFolderBtn');
-                var sep3 = document.getElementById('breadcrumbSep3');
-                var catText = document.getElementById('breadcrumbCategoryText');
-                var backBtnCont = document.getElementById('breadcrumbBackBtnContainer');
-                if (sep1) sep1.classList.remove('hidden');
-                if (audBtn) audBtn.classList.add('hidden');
-                if (sep2) sep2.classList.add('hidden');
-                if (folderBtn) {
-                    folderBtn.classList.remove('hidden');
-                    document.getElementById('breadcrumbFolderIcon').innerText = '🔍';
-                    document.getElementById('breadcrumbFolderText').innerText = 'ค้นหา: "' + keyword + '"';
-                }
-                if (sep3) sep3.classList.add('hidden');
-                if (catText) catText.classList.add('hidden');
-                if (backBtnCont) backBtnCont.classList.remove('hidden');
-                
-                listContainer.innerHTML = "";
-                if(filtered.length === 0) {
-                    listContainer.innerHTML = "<p class='text-gray-500 py-8 text-center text-xl'>❌ ไม่พบเรื่องที่ค้นหา ลองค้นหาด้วยคำสั้นๆ เช่น 'สวัสดิการ' หรือ 'คู่มือ' อีกครั้งนะคับ</p>";
-                    return;
-                }
-
-                // จัดเรียงผลการค้นหาตามลำดับที่กำหนดและปักหมุด
-                filtered.sort(function(a, b) {
-                    var pinA = (a.isPinned === true || a.isPinned === "true" || a.isPinned === "TRUE" || a.isPinned === 1 || a.isPinned === "1");
-                    var pinB = (b.isPinned === true || b.isPinned === "true" || b.isPinned === "TRUE" || b.isPinned === 1 || b.isPinned === "1");
-                    if (pinA && !pinB) return -1;
-                    if (!pinA && pinB) return 1;
-
-                    var ordA = (a.displayOrder !== undefined && a.displayOrder !== null && a.displayOrder !== "" && !isNaN(parseInt(a.displayOrder, 10))) ? parseInt(a.displayOrder, 10) : 999;
-                    var ordB = (b.displayOrder !== undefined && b.displayOrder !== null && b.displayOrder !== "" && !isNaN(parseInt(b.displayOrder, 10))) ? parseInt(b.displayOrder, 10) : 999;
-                    if (ordA !== 999 || ordB !== 999) {
-                        if (ordA !== ordB) return ordA - ordB;
-                    }
-
-                    var dateA = parseKnowledgeDate(a.timestamp);
-                    var dateB = parseKnowledgeDate(b.timestamp);
-                    if (dateB !== dateA) return dateB - dateA;
-                    return (a.title || "").localeCompare(b.title || "", 'th');
-                });
-
-                for (var i = 0; i < filtered.length; i++) {
-                    var item = filtered[i];
-                    var icon = item.type === 'pdf' ? '📄' : (item.type === 'video' ? '🎥' : '🖼️');
-                    var fileTypeLabel = item.type === 'pdf' ? 'ไฟล์ PDF' : (item.type === 'video' ? 'วิดีโอ' : 'ไฟล์รูปภาพ');
-                    var itemFolder = (item.mainFolder && item.mainFolder.trim() !== "") ? item.mainFolder.trim() : "ขั้นตอนการทำงาน";
-                    var folderIcon = getMainFolderIcon(itemFolder);
-                    
-                    var statusBadge = "";
-                    if (item.status === 'ปิดใช้งาน') {
-                        statusBadge = ' <span class="bg-red-500 text-white px-2 py-0.5 rounded text-xs font-bold mr-2">🔴 ปิดใช้งานอยู่</span>';
-                    }
-
-                    var isPinnedItem = (item.isPinned === true || item.isPinned === "true" || item.isPinned === "TRUE" || item.isPinned === 1 || item.isPinned === "1");
-                    var pinBadgeHtml = isPinnedItem ? '<span class="bg-indigo-600 text-white text-xs font-black px-2.5 py-0.5 rounded-lg shadow-2xs flex items-center gap-1">📌 ปักหมุด</span>' : '';
-                    var orderBadgeHtml = (item.displayOrder !== undefined && item.displayOrder !== null && item.displayOrder !== "" && item.displayOrder !== 999 && !isNaN(parseInt(item.displayOrder, 10))) ?
-                        ('<span class="bg-blue-100 text-blue-900 text-xs font-bold px-2 py-0.5 rounded-lg border border-blue-200">ลำดับที่ ' + item.displayOrder + '</span>') : '';
-                    var displayDate = item.timestamp ? (formatThaiDate(item.timestamp) || item.timestamp) : "";
-                    var dateBadgeHtml = displayDate ? ('<span class="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-lg flex items-center gap-1 border border-gray-200"><span>🕒</span><span>' + displayDate + '</span></span>') : '';
-
-                    var actionBtnHtml = "";
-                    if (currentUser.canEdit) {
-                        actionBtnHtml = '<button onclick="confirmDeleteKnowledge(\'' + item.id + '\', \'' + (item.title || '').replace(/'/g, "\\'") + '\', event)" class="bg-red-50 hover:bg-red-600 text-red-700 hover:text-white px-4 py-2.5 rounded-xl font-bold text-sm transition-all border border-red-200 active:scale-95">🗑️ ลบ</button>';
-                    }
-
-                    listContainer.innerHTML += '<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-white border border-gray-200 rounded-2xl shadow-2xs hover:bg-blue-50 transition-all ' + (isPinnedItem ? 'ring-2 ring-indigo-200 bg-indigo-50/20' : '') + '">' +
-                        '<button onclick="openContentViewer(\'' + item.id + '\')" class="flex-1 text-left flex items-start gap-3.5">' +
-                            '<span class="text-3xl p-2.5 bg-gray-50 rounded-2xl shadow-2xs border border-gray-200 shrink-0">' + icon + '</span>' +
-                            '<div class="flex-1 min-w-0">' +
-                                '<div class="flex items-center gap-2 flex-wrap mb-1">' +
-                                    pinBadgeHtml +
-                                    orderBadgeHtml +
-                                    '<span class="bg-indigo-50 text-indigo-800 text-xs font-bold px-2.5 py-0.5 rounded-lg border border-indigo-200 flex items-center gap-1">' +
-                                        '<span>' + folderIcon + '</span> <span>' + itemFolder + '</span>' +
-                                    '</span>' +
-                                    '<span class="bg-blue-50 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded-lg border border-blue-200">' + item.category + '</span>' +
-                                    dateBadgeHtml +
-                                '</div>' +
-                                '<h3 class="text-lg sm:text-xl font-bold text-blue-950">' + statusBadge + item.title + '</h3>' +
-                                '<span class="text-xs font-semibold text-gray-500 block mt-1">ประเภท: ' + fileTypeLabel + ' • อัปโหลดโดย: ' + item.uploadedBy + '</span>' +
-                            '</div>' +
-                        '</button>' +
-                        '<div class="flex justify-end gap-2 shrink-0">' +
-                            '<button onclick="openContentViewer(\'' + item.id + '\')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-extrabold text-sm shadow-sm transition-all">📖 เปิดอ่าน</button>' +
-                            actionBtnHtml +
-                        '</div>' +
-                    '</div>';
-                }
-            } else {
-                navigateToLevel(currentKnowledgeLevel);
+            if (clearBtn) {
+                if (val.length > 0) clearBtn.classList.remove('hidden');
+                else clearBtn.classList.add('hidden');
             }
+            if (indicator && val.length > 0) {
+                indicator.classList.remove('hidden');
+            }
+            
+            clearTimeout(_searchContentDebounceTimer);
+            _searchContentDebounceTimer = setTimeout(function() {
+                searchContent();
+                if (indicator) indicator.classList.add('hidden');
+            }, 250);
+        }
+
+        function clearMainSearch() {
+            var input = document.getElementById('searchInput');
+            if (input) input.value = "";
+            var clearBtn = document.getElementById('mainSearchClearBtn');
+            if (clearBtn) clearBtn.classList.add('hidden');
+            var indicator = document.getElementById('searchStatusIndicator');
+            if (indicator) indicator.classList.add('hidden');
+            clearTimeout(_searchContentDebounceTimer);
+            searchContent();
+            if (input) input.focus();
+        }
+
+        // ค้นหาข้อมูลคู่มือ (ปรับปรุงประสิทธิภาพแบบ Asynchronous & Debounced ป้องกันอาการค้าง)
+        function searchContent() {
+            var inputEl = document.getElementById('searchInput');
+            var keyword = inputEl ? inputEl.value.toLowerCase().trim() : "";
+            var listContainer = document.getElementById('topicsList');
+            var clearBtn = document.getElementById('mainSearchClearBtn');
+            if (clearBtn) {
+                if (keyword.length > 0) clearBtn.classList.remove('hidden');
+                else clearBtn.classList.add('hidden');
+            }
+
+            if (!listContainer) return;
+
+            if (keyword.length === 0) {
+                // คืนค่าหน้าจอเดิมอย่างราบรื่น
+                if (currentKnowledgeLevel === 'topics') {
+                    renderFilteredTopics();
+                } else if (currentKnowledgeLevel === 'categories') {
+                    renderCategories();
+                } else if (currentKnowledgeLevel === 'main_categories') {
+                    renderMainCategories();
+                } else {
+                    navigateToLevel('folders');
+                }
+                return;
+            }
+
+            var visibleData = getUserVisibleKnowledgeData();
+            var searchTerms = keyword.split(/\s+/).filter(Boolean);
+            var filtered = [];
+
+            for (var i = 0; i < visibleData.length; i++) {
+                var item = visibleData[i];
+                if (!item) continue;
+                if (item.groupType !== currentKnowledgeSubTab) continue;
+
+                var itemFolder = (item.mainFolder && typeof item.mainFolder === 'string' && item.mainFolder.trim() !== "") ? item.mainFolder.trim() : "ขั้นตอนการทำงาน";
+                var titleStr = String(item.title || "").toLowerCase();
+                var catStr = String(item.category || "").toLowerCase();
+                var folderStr = String(itemFolder).toLowerCase();
+                var uploaderStr = String(item.uploadedBy || "").toLowerCase();
+
+                // รองรับการค้นหาแบบคำเดียว หรือหลายคำเว้นวรรค
+                var match = false;
+                if (searchTerms.length > 1) {
+                    match = searchTerms.every(function(term) {
+                        return titleStr.indexOf(term) !== -1 || catStr.indexOf(term) !== -1 || folderStr.indexOf(term) !== -1 || uploaderStr.indexOf(term) !== -1;
+                    });
+                } else {
+                    match = titleStr.indexOf(keyword) !== -1 || catStr.indexOf(keyword) !== -1 || folderStr.indexOf(keyword) !== -1 || uploaderStr.indexOf(keyword) !== -1;
+                }
+
+                if (match) {
+                    if (currentUser && currentUser.canEdit) {
+                        filtered.push(item);
+                    } else if (item.status !== 'ปิดใช้งาน') {
+                        filtered.push(item);
+                    }
+                }
+            }
+
+            var foldersSec = document.getElementById('mainFoldersSection');
+            if (foldersSec) foldersSec.classList.add('hidden');
+            var mainCatsSec = document.getElementById('mainCategoriesSection');
+            if (mainCatsSec) mainCatsSec.classList.add('hidden');
+            var catSec = document.getElementById('categoryContainer');
+            if (catSec) catSec.classList.add('hidden');
+            var topSec = document.getElementById('topicsSection');
+            if (topSec) topSec.classList.remove('hidden');
+
+            var titleEl = document.getElementById('selectedCategoryTitle');
+            if (titleEl) {
+                titleEl.innerHTML = '🔍 ผลลัพธ์การค้นหาสำหรับ: "<strong>' + escapeHtml(keyword) + '</strong>" <span class="text-xs sm:text-sm font-bold bg-blue-100 text-blue-800 px-2.5 py-1 rounded-xl ml-2 inline-flex items-center gap-1">พบ ' + filtered.length + ' เรื่อง</span>';
+            }
+
+            // อัปเดต Breadcrumb
+            var sep1 = document.getElementById('breadcrumbSep1');
+            var audBtn = document.getElementById('breadcrumbAudienceBtn');
+            var sep2 = document.getElementById('breadcrumbSep2');
+            var folderBtn = document.getElementById('breadcrumbFolderBtn');
+            var sep3 = document.getElementById('breadcrumbSep3');
+            var catText = document.getElementById('breadcrumbCategoryText');
+            var backBtnCont = document.getElementById('breadcrumbBackBtnContainer');
+            if (sep1) sep1.classList.remove('hidden');
+            if (audBtn) audBtn.classList.add('hidden');
+            if (sep2) sep2.classList.add('hidden');
+            if (folderBtn) {
+                folderBtn.classList.remove('hidden');
+                var fIcon = document.getElementById('breadcrumbFolderIcon');
+                if (fIcon) fIcon.innerText = '🔍';
+                var fText = document.getElementById('breadcrumbFolderText');
+                if (fText) fText.innerText = 'ค้นหา: "' + keyword + '"';
+            }
+            if (sep3) sep3.classList.add('hidden');
+            if (catText) catText.classList.add('hidden');
+            if (backBtnCont) backBtnCont.classList.remove('hidden');
+
+            if (filtered.length === 0) {
+                listContainer.innerHTML = "<div class='text-gray-500 py-12 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-300 p-6'>" +
+                    "<span class='text-4xl block mb-2'>❌</span>" +
+                    "<p class='font-bold text-gray-700 text-base'>ไม่พบเรื่องที่ค้นหา: \"" + escapeHtml(keyword) + "\"</p>" +
+                    "<p class='text-xs text-gray-400 font-semibold mt-1'>ลองค้นหาด้วยคำสั้นๆ เช่น 'สวัสดิการ', 'คู่มือ', หรือ 'นโยบาย' อีกครั้งนะครับ</p>" +
+                    "<button type='button' onclick='clearMainSearch()' class='mt-4 bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-4 py-2 rounded-xl text-xs transition-all shadow-sm cursor-pointer'>ล้างคำค้นหา</button>" +
+                "</div>";
+                return;
+            }
+
+            // จัดเรียงผลการค้นหาตามลำดับที่กำหนดและปักหมุด
+            filtered.sort(function(a, b) {
+                var pinA = (a.isPinned === true || a.isPinned === "true" || a.isPinned === "TRUE" || a.isPinned === 1 || a.isPinned === "1");
+                var pinB = (b.isPinned === true || b.isPinned === "true" || b.isPinned === "TRUE" || b.isPinned === 1 || b.isPinned === "1");
+                if (pinA && !pinB) return -1;
+                if (!pinA && pinB) return 1;
+
+                var ordA = (a.displayOrder !== undefined && a.displayOrder !== null && a.displayOrder !== "" && !isNaN(parseInt(a.displayOrder, 10))) ? parseInt(a.displayOrder, 10) : 999;
+                var ordB = (b.displayOrder !== undefined && b.displayOrder !== null && b.displayOrder !== "" && !isNaN(parseInt(b.displayOrder, 10))) ? parseInt(b.displayOrder, 10) : 999;
+                if (ordA !== 999 || ordB !== 999) {
+                    if (ordA !== ordB) return ordA - ordB;
+                }
+
+                var dateA = parseKnowledgeDate(a.timestamp);
+                var dateB = parseKnowledgeDate(b.timestamp);
+                if (dateB !== dateA) return dateB - dateA;
+                return String(a.title || "").localeCompare(String(b.title || ""), 'th');
+            });
+
+            var cardsHtml = [];
+            for (var i = 0; i < filtered.length; i++) {
+                var item = filtered[i];
+                var icon = item.type === 'pdf' ? '📄' : (item.type === 'video' ? '🎥' : '🖼️');
+                var fileTypeLabel = item.type === 'pdf' ? 'ไฟล์ PDF' : (item.type === 'video' ? 'วิดีโอ' : 'ไฟล์รูปภาพ');
+                var itemFolder = (item.mainFolder && typeof item.mainFolder === 'string' && item.mainFolder.trim() !== "") ? item.mainFolder.trim() : "ขั้นตอนการทำงาน";
+                var folderIcon = (typeof getMainFolderIcon === 'function') ? getMainFolderIcon(itemFolder) : '📂';
+                
+                var statusBadge = "";
+                if (item.status === 'ปิดใช้งาน') {
+                    statusBadge = ' <span class="bg-red-500 text-white px-2 py-0.5 rounded text-xs font-bold mr-2">🔴 ปิดใช้งานอยู่</span>';
+                }
+
+                var isPinnedItem = (item.isPinned === true || item.isPinned === "true" || item.isPinned === "TRUE" || item.isPinned === 1 || item.isPinned === "1");
+                var pinBadgeHtml = isPinnedItem ? '<span class="bg-indigo-600 text-white text-xs font-black px-2.5 py-0.5 rounded-lg shadow-2xs flex items-center gap-1">📌 ปักหมุด</span>' : '';
+                var orderBadgeHtml = (item.displayOrder !== undefined && item.displayOrder !== null && item.displayOrder !== "" && item.displayOrder !== 999 && !isNaN(parseInt(item.displayOrder, 10))) ?
+                    ('<span class="bg-blue-100 text-blue-900 text-xs font-bold px-2 py-0.5 rounded-lg border border-blue-200">ลำดับที่ ' + item.displayOrder + '</span>') : '';
+                var displayDate = item.timestamp ? (formatThaiDate(item.timestamp) || item.timestamp) : "";
+                var dateBadgeHtml = displayDate ? ('<span class="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-lg flex items-center gap-1 border border-gray-200"><span>🕒</span><span>' + displayDate + '</span></span>') : '';
+
+                var actionBtnHtml = "";
+                if (currentUser && currentUser.canEdit) {
+                    var safeDelTitle = String(item.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    actionBtnHtml = '<button onclick="confirmDeleteKnowledge(\'' + item.id + '\', \'' + safeDelTitle + '\', event)" class="bg-red-50 hover:bg-red-600 text-red-700 hover:text-white px-4 py-2.5 rounded-xl font-bold text-sm transition-all border border-red-200 active:scale-95 cursor-pointer">🗑️ ลบ</button>';
+                }
+
+                cardsHtml.push('<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-white border border-gray-200 rounded-2xl shadow-2xs hover:bg-blue-50 transition-all ' + (isPinnedItem ? 'ring-2 ring-indigo-200 bg-indigo-50/20' : '') + '">' +
+                    '<button onclick="openContentViewer(\'' + item.id + '\')" class="flex-1 text-left flex items-start gap-3.5 focus:outline-none cursor-pointer">' +
+                        '<span class="text-3xl p-2.5 bg-gray-50 rounded-2xl shadow-2xs border border-gray-200 shrink-0">' + icon + '</span>' +
+                        '<div class="flex-1 min-w-0">' +
+                            '<div class="flex items-center gap-2 flex-wrap mb-1">' +
+                                pinBadgeHtml +
+                                orderBadgeHtml +
+                                '<span class="bg-indigo-50 text-indigo-800 text-xs font-bold px-2.5 py-0.5 rounded-lg border border-indigo-200 flex items-center gap-1">' +
+                                    '<span>' + folderIcon + '</span> <span>' + escapeHtml(itemFolder) + '</span>' +
+                                '</span>' +
+                                '<span class="bg-blue-50 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded-lg border border-blue-200">' + escapeHtml(item.category || "ทั่วไป") + '</span>' +
+                                dateBadgeHtml +
+                            '</div>' +
+                            '<h3 class="text-lg sm:text-xl font-bold text-blue-950">' + statusBadge + escapeHtml(item.title || "ไม่มีชื่อเรื่อง") + '</h3>' +
+                            '<span class="text-xs font-semibold text-gray-500 block mt-1">ประเภท: ' + fileTypeLabel + ' • อัปโหลดโดย: ' + escapeHtml(item.uploadedBy || "แอดมิน") + '</span>' +
+                        '</div>' +
+                    '</button>' +
+                    '<div class="flex justify-end gap-2 shrink-0">' +
+                        '<button onclick="openContentViewer(\'' + item.id + '\')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-extrabold text-sm shadow-sm transition-all active:scale-95 cursor-pointer">📖 เปิดอ่าน</button>' +
+                        actionBtnHtml +
+                    '</div>' +
+                '</div>');
+            }
+            listContainer.innerHTML = cardsHtml.join('');
         }
 
         // ยืนยันการลบไฟล์ความรู้
@@ -7733,6 +7888,14 @@ function openAudienceFolder(aud) {
             }
         }
 
+        var _adminKnowledgeSearchDebounceTimer = null;
+        function debounceAdminKnowledgeSearch() {
+            clearTimeout(_adminKnowledgeSearchDebounceTimer);
+            _adminKnowledgeSearchDebounceTimer = setTimeout(function() {
+                adminKnowledgeSearch();
+            }, 250);
+        }
+
         function adminKnowledgeSearch() {
             var input = document.getElementById('adminKnowledgeSearchInput');
             if (input) {
@@ -7794,13 +7957,21 @@ function openAudienceFolder(aud) {
             // 3. กรองข้อมูลด้วยคำค้นหา
             var query = adminKnowledgeSearchQuery || "";
             if (query !== "") {
+                var qTerms = query.split(/\s+/).filter(Boolean);
                 filteredData = filteredData.filter(function(item) {
-                    var titleMatch = item.title && item.title.toLowerCase().indexOf(query) !== -1;
-                    var categoryMatch = item.category && item.category.toLowerCase().indexOf(query) !== -1;
-                    var folderMatch = item.mainFolder && item.mainFolder.toLowerCase().indexOf(query) !== -1;
-                    var uploadedByMatch = item.uploadedBy && item.uploadedBy.toLowerCase().indexOf(query) !== -1;
-                    var audienceMatch = item.targetAudience && item.targetAudience.toLowerCase().indexOf(query) !== -1;
-                    return titleMatch || categoryMatch || folderMatch || uploadedByMatch || audienceMatch;
+                    if (!item) return false;
+                    var tStr = String(item.title || "").toLowerCase();
+                    var cStr = String(item.category || "").toLowerCase();
+                    var fStr = String(item.mainFolder || "").toLowerCase();
+                    var uStr = String(item.uploadedBy || "").toLowerCase();
+                    var aStr = String(item.targetAudience || "").toLowerCase();
+
+                    if (qTerms.length > 1) {
+                        return qTerms.every(function(qt) {
+                            return tStr.indexOf(qt) !== -1 || cStr.indexOf(qt) !== -1 || fStr.indexOf(qt) !== -1 || uStr.indexOf(qt) !== -1 || aStr.indexOf(qt) !== -1;
+                        });
+                    }
+                    return tStr.indexOf(query) !== -1 || cStr.indexOf(query) !== -1 || fStr.indexOf(query) !== -1 || uStr.indexOf(query) !== -1 || aStr.indexOf(query) !== -1;
                 });
             }
             
@@ -7941,12 +8112,14 @@ function openAudienceFolder(aud) {
 
             var startIndex = (adminKnowledgePage - 1) * itemsPerPage;
             var endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
+            var rowsHtml = [];
+
             for (var i = startIndex; i < endIndex; i++) {
                 var item = filteredData[i];
                 var statusText = item.status === 'ปิดใช้งาน' ? '🔴 OFF' : '🟢 ON';
                 var statusColor = item.status === 'ปิดใช้งาน' ? 'text-red-650 bg-red-50' : 'text-green-600 bg-green-50';
                 var itemFolder = item.mainFolder || "ขั้นตอนการทำงาน";
-                var folderIcon = getMainFolderIcon(itemFolder);
+                var folderIcon = (typeof getMainFolderIcon === 'function') ? getMainFolderIcon(itemFolder) : '📂';
                 
                 var audK = item.targetAudience || 'ทั้งหมด';
                 var audBadge = '<span class="bg-gray-100 text-gray-650 px-2 py-0.5 rounded text-xs font-bold w-fit">🌐 ทุกกลุ่ม</span>';
@@ -7960,11 +8133,11 @@ function openAudienceFolder(aud) {
                 
                 var toggleBtnHtml = "";
                 // ตรวจสอบสิทธิ์การเปิด-ปิดจาก canToggle ในชีต Permissions
-                if (currentUser.canToggle) {
+                if (currentUser && currentUser.canToggle) {
                     if (item.status === 'ปิดใช้งาน') {
-                        toggleBtnHtml = '<button onclick="toggleStatus(\'' + item.id + '\', \'เปิดใช้งาน\')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-sm transition-all">🟢 ON</button>';
+                        toggleBtnHtml = '<button onclick="toggleStatus(\'' + item.id + '\', \'เปิดใช้งาน\')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-sm transition-all cursor-pointer">🟢 ON</button>';
                     } else {
-                        toggleBtnHtml = '<button onclick="toggleStatus(\'' + item.id + '\', \'ปิดใช้งาน\')" class="bg-red-50 hover:bg-red-650 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-sm transition-all">🔴 OFF</button>';
+                        toggleBtnHtml = '<button onclick="toggleStatus(\'' + item.id + '\', \'ปิดใช้งาน\')" class="bg-red-50 hover:bg-red-650 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-sm transition-all cursor-pointer">🔴 OFF</button>';
                     }
                 } else {
                     toggleBtnHtml = '<button disabled class="bg-gray-200 text-gray-400 cursor-not-allowed px-4 py-2 rounded-xl font-bold text-sm">🔒 ล็อก (เฉพาะแอดมิน)</button>';
@@ -7976,7 +8149,7 @@ function openAudienceFolder(aud) {
                     ('<span class="bg-blue-100 text-blue-900 border border-blue-200 text-xs font-bold px-2 py-0.5 rounded-md inline-flex items-center gap-1 mr-1.5">🔢 ลำดับที่ ' + item.displayOrder + '</span>') : '';
 
                 var orderControlsHtml = "";
-                if (currentUser.canEdit && isOrderMode) {
+                if (currentUser && currentUser.canEdit && isOrderMode) {
                     var itemDisplayNum = (item.displayOrder !== undefined && item.displayOrder !== null && item.displayOrder !== "" && item.displayOrder !== 999 && !isNaN(parseInt(item.displayOrder, 10))) ? item.displayOrder : (i + 1);
                     orderControlsHtml = '<div class="inline-flex items-center gap-1 mr-2 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-xl shadow-2xs select-none">' +
                         '<span class="text-gray-400 hover:text-indigo-600 cursor-grab active:cursor-grabbing font-black text-sm drag-handle px-0.5" title="กดค้างเพื่อลากเลื่อนอันดับ">⠿</span>' +
@@ -7989,44 +8162,45 @@ function openAudienceFolder(aud) {
                 }
 
                 var editDeleteBtnsHtml = "";
-                if (currentUser.canEdit) {
-                    var safeTitle = (item.title || '').replace(/'/g, "\\'");
+                if (currentUser && currentUser.canEdit) {
+                    var safeTitle = String(item.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                     var currentOrd = (item.displayOrder !== undefined && item.displayOrder !== null && item.displayOrder !== "" && item.displayOrder !== 999) ? item.displayOrder : "";
 
-                    var quickPinBtn = '<button onclick="quickToggleKnowledgePin(\'' + item.id + '\', event)" class="' + (isPinned ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-100 hover:bg-amber-100 text-gray-700 hover:text-amber-900 border border-gray-300') + ' px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs whitespace-nowrap" title="' + (isPinned ? 'คลิกเพื่อปลดหมุด' : 'คลิกเพื่อปักหมุดให้อยู่บนสุดในหน้าศูนย์เรียนรู้') + '">' + (isPinned ? '📌 หมุดอยู่' : '📌 ปักหมุด') + '</button>';
+                    var quickPinBtn = '<button onclick="quickToggleKnowledgePin(\'' + item.id + '\', event)" class="' + (isPinned ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-100 hover:bg-amber-100 text-gray-700 hover:text-amber-900 border border-gray-300') + ' px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs whitespace-nowrap cursor-pointer" title="' + (isPinned ? 'คลิกเพื่อปลดหมุด' : 'คลิกเพื่อปักหมุดให้อยู่บนสุดในหน้าศูนย์เรียนรู้') + '">' + (isPinned ? '📌 หมุดอยู่' : '📌 ปักหมุด') + '</button>';
 
-                    var quickOrderBtn = '<button onclick="quickChangeKnowledgeOrder(\'' + item.id + '\', \'' + currentOrd + '\', event)" class="bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs whitespace-nowrap" title="คลิกเพื่อกำหนดลำดับแสดงผล (เช่น 1, 2, 3...)">🔢 ลำดับ ' + (currentOrd ? '#' + currentOrd : '-') + '</button>';
+                    var quickOrderBtn = '<button onclick="quickChangeKnowledgeOrder(\'' + item.id + '\', \'' + currentOrd + '\', event)" class="bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs whitespace-nowrap cursor-pointer" title="คลิกเพื่อกำหนดลำดับแสดงผล (เช่น 1, 2, 3...)">🔢 ลำดับ ' + (currentOrd ? '#' + currentOrd : '-') + '</button>';
 
                     editDeleteBtnsHtml = ' ' + quickPinBtn + ' ' + quickOrderBtn +
-                        ' <button onclick="editKnowledge(\'' + item.id + '\')" class="bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-all border border-blue-200">📝 แก้ไข</button>' +
-                        ' <button onclick="confirmDeleteKnowledge(\'' + item.id + '\', \'' + safeTitle + '\', event)" class="bg-red-50 hover:bg-red-650 text-red-700 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-all border border-red-200">🗑️ ลบ</button>';
+                        ' <button onclick="editKnowledge(\'' + item.id + '\')" class="bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-all border border-blue-200 cursor-pointer">📝 แก้ไข</button>' +
+                        ' <button onclick="confirmDeleteKnowledge(\'' + item.id + '\', \'' + safeTitle + '\', event)" class="bg-red-50 hover:bg-red-650 text-red-700 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-all border border-red-200 cursor-pointer">🗑️ ลบ</button>';
                 }
 
                 var dateShort = item.timestamp ? formatThaiDateTimeShort(item.timestamp) : '-';
                 var dateFull = item.timestamp ? formatThaiDate(item.timestamp) : '';
 
-                container.innerHTML += '<tr class="border-b hover:bg-gray-50 transition-colors ' + (isOrderMode ? 'cursor-pointer' : '') + '" data-reorder-index="' + i + '" data-reorder-type="table" data-id="' + item.id + '" ' + (isOrderMode ? 'draggable="true" ondragstart="onReorderDragStart(event, ' + i + ', \'table\')" ondragover="onReorderDragOver(event)" ondragleave="onReorderDragLeave(event)" ondrop="onReorderDrop(event, ' + i + ', \'table\')" ondragend="onReorderDragEnd(event)"' : '') + '>' +
+                rowsHtml.push('<tr class="border-b hover:bg-gray-50 transition-colors ' + (isOrderMode ? 'cursor-pointer' : '') + '" data-reorder-index="' + i + '" data-reorder-type="table" data-id="' + item.id + '" ' + (isOrderMode ? 'draggable="true" ondragstart="onReorderDragStart(event, ' + i + ', \'table\')" ondragover="onReorderDragOver(event)" ondragleave="onReorderDragLeave(event)" ondrop="onReorderDrop(event, ' + i + ', \'table\')" ondragend="onReorderDragEnd(event)"' : '') + '>' +
                     '<td class="p-4">' +
                         '<div class="flex flex-col gap-1">' +
-                            '<span class="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded text-xs font-bold border border-indigo-100 flex items-center gap-1 w-fit"><span>' + folderIcon + '</span> <span>' + itemFolder + '</span></span>' +
-                            '<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs font-bold w-fit">' + item.category + '</span>' +
+                            '<span class="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded text-xs font-bold border border-indigo-100 flex items-center gap-1 w-fit"><span>' + folderIcon + '</span> <span>' + escapeHtml(itemFolder) + '</span></span>' +
+                            '<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs font-bold w-fit">' + escapeHtml(item.category || "ทั่วไป") + '</span>' +
                             audBadge +
                         '</div>' +
                     '</td>' +
                     '<td class="p-4">' +
                         '<div class="flex items-center gap-1 flex-wrap mb-1">' + orderControlsHtml + pinBadge + orderBadge + '</div>' +
-                        '<div class="font-bold text-gray-900">' + item.title + '</div>' +
+                        '<div class="font-bold text-gray-900">' + escapeHtml(item.title || "ไม่มีชื่อเรื่อง") + '</div>' +
                     '</td>' +
                     '<td class="p-4 text-sm">' +
-                        '<div class="font-bold text-gray-800">' + (item.uploadedBy || 'แอดมิน') + '</div>' +
+                        '<div class="font-bold text-gray-800">' + escapeHtml(item.uploadedBy || 'แอดมิน') + '</div>' +
                         '<div class="text-xs text-gray-500 flex items-center gap-1 mt-0.5 font-medium" title="' + dateFull + '">' +
                             '<span>🕒</span> <span>' + dateShort + '</span>' +
                         '</div>' +
                     '</td>' +
                     '<td class="p-4 text-center"><span class="px-3 py-1 rounded-full text-xs font-extrabold ' + statusColor + '">' + statusText + '</span></td>' +
                     '<td class="p-4 text-center"><div class="flex items-center justify-center gap-2 flex-wrap">' + toggleBtnHtml + editDeleteBtnsHtml + '</div></td>' +
-                '</tr>';
+                '</tr>');
             }
+            container.innerHTML = rowsHtml.join('');
             
             if (isOrderMode) {
                 setTimeout(function() {
@@ -9523,6 +9697,14 @@ function setAdminAnnouncementsFilter(filter) {
     renderAdminAnnouncementsList();
 }
 
+var _adminAnnSearchDebounceTimer = null;
+function debounceAdminAnnSearch(query) {
+    clearTimeout(_adminAnnSearchDebounceTimer);
+    _adminAnnSearchDebounceTimer = setTimeout(function() {
+        onAdminAnnSearch(query);
+    }, 250);
+}
+
 function onAdminAnnSearch(query) {
     currentAdminAnnSearch = (query || '').trim().toLowerCase();
     adminAnnouncementsPage = 1;
@@ -9697,6 +9879,7 @@ function renderAdminAnnouncementsList() {
 
     var startIndex = (adminAnnouncementsPage - 1) * itemsPerPage;
     var endIndex = Math.min(startIndex + itemsPerPage, sortedAnnouncements.length);
+    var rowsHtml = [];
 
     for (var i = startIndex; i < endIndex; i++) {
         var ann = sortedAnnouncements[i];
@@ -9755,7 +9938,7 @@ function renderAdminAnnouncementsList() {
         var instantCloseBtn = (isStatusOn && !isExpired) ? 
             '<button type="button" onclick="closeAnnImmediately(\'' + ann.id + '\', \'' + safeTitle + '\')" class="bg-amber-50 hover:bg-amber-600 text-amber-800 hover:text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all border border-amber-300 cursor-pointer" title="ตัดเวลาปิดและซ่อนจากหน้าแรกทันที">⏱️ ตัดเวลาปิด</button>' : '';
 
-        tbody.innerHTML += '<tr class="border-b border-gray-150 hover:bg-gray-50/80 transition-colors">' +
+        rowsHtml.push('<tr class="border-b border-gray-150 hover:bg-gray-50/80 transition-colors">' +
             '<td class="p-3.5 text-center">' + orderControls + '</td>' +
             '<td class="p-3.5 text-xs font-semibold text-gray-650">' + formatThaiDate(ann.date) + '</td>' +
             '<td class="p-3.5">' +
@@ -9778,8 +9961,9 @@ function renderAdminAnnouncementsList() {
                     '<button type="button" onclick="deleteAnn(\'' + ann.id + '\')" class="bg-red-50 hover:bg-red-600 text-red-700 hover:text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all border border-red-200 cursor-pointer">🗑️ ลบ</button>' +
                 '</div>' +
             '</td>' +
-        '</tr>';
+        '</tr>');
     }
+    tbody.innerHTML = rowsHtml.join('');
 
     // เรนเดอร์การแบ่งหน้า (Pagination)
     var pagContainer = document.getElementById('adminAnnouncementsPagination');
@@ -10657,6 +10841,14 @@ var recommendEmpSearchQuery = "";
 var currentHistEmpData = null;
 var currentHistDetailedResult = null;
 var currentHistModalTab = "timeline";
+
+var _recommendEmpSearchDebounceTimer = null;
+function debounceRecommendEmpSearch() {
+    clearTimeout(_recommendEmpSearchDebounceTimer);
+    _recommendEmpSearchDebounceTimer = setTimeout(function() {
+        onRecommendEmpSearch();
+    }, 250);
+}
 
 // ฟังก์ชันค้นหาในตารางอันดับพนักงาน
 function onRecommendEmpSearch() {
