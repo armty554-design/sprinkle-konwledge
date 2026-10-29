@@ -3859,12 +3859,19 @@
                 
                 var visibleKnowledge = getUserVisibleKnowledgeData();
                 uniqueCategories = [];
-                for (var i = 0; i < visibleKnowledge.length; i++) {
-                    var cat = visibleKnowledge[i].category;
-                    if (cat && uniqueCategories.indexOf(cat) === -1) {
-                        uniqueCategories.push(cat);
+                var catSource = (allDatabaseData && allDatabaseData.length > 0) ? allDatabaseData : (visibleKnowledge || []);
+                for (var i = 0; i < catSource.length; i++) {
+                    var rawCat = catSource[i].category;
+                    if (rawCat && typeof rawCat === 'string') {
+                        var cat = rawCat.trim();
+                        if (cat && uniqueCategories.indexOf(cat) === -1) {
+                            uniqueCategories.push(cat);
+                        }
                     }
                 }
+                uniqueCategories.sort(function(a, b) {
+                    return a.localeCompare(b, 'th');
+                });
                 populateCategoryDropdowns();
                 if (typeof populateAdminKnowledgeFolderOptions === 'function') {
                     populateAdminKnowledgeFolderOptions();
@@ -3991,7 +3998,7 @@
         }
 
         // ดึงข้อมูลหลักจาก Firestore / Apps Script พร้อมระบบแคชและอัปเดตทันใจ
-        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v3';
+        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v4';
 
         function loadData(onComplete) {
             recommendStatsData = null;
@@ -3999,9 +4006,9 @@
             // ล้างแคชเวอร์ชันเก่าที่มีอักขระเสีย
             try {
                 localStorage.removeItem('sprinkle_cached_app_data');
-        localStorage.removeItem('sprinkle_cached_app_data_v3');
                 localStorage.removeItem('sprinkle_cached_app_data_v1');
                 localStorage.removeItem('sprinkle_cached_app_data_v2');
+                localStorage.removeItem('sprinkle_cached_app_data_v3');
             } catch(eClean) {}
 
             // 1. ดึงจากแคชในเครื่องเวอร์ชันใหม่มาแสดงผลทันที (0 ms ไม่ต้องรอโหลด)
@@ -4034,10 +4041,15 @@
         function populateCategoryDropdowns() {
             var select = document.getElementById('addCatSelect');
             if (select) {
-                select.innerHTML = '<option value="">-- เลือกหมวดหมู่ที่มีอยู่ --</option>';
+                var currentVal = select.value;
+                var html = '<option value="">-- เลือกหมวดหมู่ที่มีอยู่ --</option>';
                 for (var i = 0; i < uniqueCategories.length; i++) {
                     var cat = uniqueCategories[i];
-                    select.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
+                    html += '<option value="' + cat.replace(/"/g, '&quot;') + '">' + cat + '</option>';
+                }
+                select.innerHTML = html;
+                if (currentVal && uniqueCategories.indexOf(currentVal) !== -1) {
+                    select.value = currentVal;
                 }
             }
             if (typeof populateAdminMainFolderSelect === 'function') {
@@ -12599,7 +12611,10 @@ function refreshData() {
     showLoading("กำลังดึงข้อมูลล่าสุดจากเซิร์ฟเวอร์...");
     try {
         localStorage.removeItem('sprinkle_cached_app_data');
+        localStorage.removeItem('sprinkle_cached_app_data_v1');
+        localStorage.removeItem('sprinkle_cached_app_data_v2');
         localStorage.removeItem('sprinkle_cached_app_data_v3');
+        localStorage.removeItem('sprinkle_cached_app_data_v4');
     } catch(e) {}
     loadData(function(success, err) {
         hideLoading();

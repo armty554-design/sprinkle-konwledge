@@ -773,6 +773,7 @@
                         localStorage.removeItem('sprinkle_cached_app_data_v1');
                         localStorage.removeItem('sprinkle_cached_app_data_v2');
                         localStorage.removeItem('sprinkle_cached_app_data_v3');
+                        localStorage.removeItem('sprinkle_cached_app_data_v4');
                     } catch(e) {}
                     if (typeof applyInitialData === 'function') {
                         applyInitialData(fresh);
