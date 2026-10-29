@@ -17,14 +17,62 @@
 
     <!-- Web App Manifest for PWA (Add to Home Screen) -->
     <script>
+      function checkIsAppInstalled() {
+        try {
+          var isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+            || window.navigator.standalone === true 
+            || document.referrer.includes('android-app://')
+            || localStorage.getItem('pwaInstalled') === 'true';
+          return isStandalone;
+        } catch(e) {
+          return false;
+        }
+      }
+
+      function updateHeaderActionButtons() {
+        try {
+          var isInstalled = checkIsAppInstalled();
+          var installBtn = document.getElementById('globalInstallPwaBtn');
+          var pushBtn = document.getElementById('btnPushNotification');
+
+          // 1. ปุ่มติดตั้งแอป: หากติดตั้งแล้ว ให้ซ่อนอัตโนมัติ
+          if (installBtn) {
+            if (isInstalled) {
+              installBtn.classList.add('hidden');
+            } else if (deferredInstallPrompt) {
+              installBtn.classList.remove('hidden');
+            }
+          }
+
+          // 2. ปุ่มแจ้งเตือน: หากติดตั้งแล้ว หรือหากเปิดรับแจ้งเตือนเรียบร้อยแล้ว (granted) ให้ซ่อนอัตโนมัติ
+          if (pushBtn) {
+            var notifGranted = (typeof Notification !== 'undefined' && Notification.permission === 'granted');
+            if (isInstalled || notifGranted) {
+              pushBtn.classList.add('hidden');
+            } else if (!isInstalled && !notifGranted) {
+              pushBtn.classList.remove('hidden');
+            }
+          }
+        } catch(err) {
+          console.warn("updateHeaderActionButtons error:", err);
+        }
+      }
+
       var deferredInstallPrompt = null;
       window.addEventListener('beforeinstallprompt', function(e) {
         e.preventDefault();
         deferredInstallPrompt = e;
-        var btnHeader = document.getElementById('globalInstallPwaBtn');
-        if (btnHeader) btnHeader.classList.remove('hidden');
+        updateHeaderActionButtons();
         var bannerLogin = document.getElementById('loginInstallPwaBanner');
-        if (bannerLogin) bannerLogin.classList.remove('hidden');
+        if (bannerLogin && !checkIsAppInstalled()) bannerLogin.classList.remove('hidden');
+      });
+
+      window.addEventListener('appinstalled', function() {
+        console.log('User installed the PWA');
+        try {
+          localStorage.setItem('pwaInstalled', 'true');
+        } catch(e){}
+        updateHeaderActionButtons();
       });
 
       function installPWAApp() {
@@ -33,12 +81,16 @@
           deferredInstallPrompt.userChoice.then(function(choiceResult) {
             if (choiceResult.outcome === 'accepted') {
               console.log('User installed the PWA');
+              try {
+                localStorage.setItem('pwaInstalled', 'true');
+              } catch(e){}
+              updateHeaderActionButtons();
             }
             deferredInstallPrompt = null;
           });
         } else {
           var modal = document.getElementById('pwaInstallGuideModal');
-          if (modal) modal.classList.remove('hidden');
+          if (modal && !checkIsAppInstalled()) modal.classList.remove('hidden');
         }
       }
 
@@ -53,9 +105,10 @@
 
       // ตรวจสอบและแสดงป๊อปอัปแนะนำการติดตั้งอัตโนมัติเมื่อเข้าใช้งานผ่านเบราว์เซอร์บนโทรศัพท์มือถือ
       window.addEventListener('DOMContentLoaded', function() {
+        updateHeaderActionButtons();
         try {
           var isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-          var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+          var isInstalled = checkIsAppInstalled();
           var isDismissedSession = sessionStorage.getItem('pwaPromptDismissed') === 'true';
           
           var lastDismissedTime = localStorage.getItem('pwaPromptDismissedTime');
@@ -67,10 +120,10 @@
             }
           }
 
-          if (isMobile && !isStandalone && !isDismissedSession && !isDismissedRecent) {
+          if (isMobile && !isInstalled && !isDismissedSession && !isDismissedRecent) {
             setTimeout(function() {
               var modal = document.getElementById('pwaInstallGuideModal');
-              if (modal) modal.classList.remove('hidden');
+              if (modal && !checkIsAppInstalled()) modal.classList.remove('hidden');
             }, 1500);
           }
         } catch (e) {
@@ -887,10 +940,10 @@
             <img src="data:image/png;base64,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" alt="Sprinkle Logo" class="h-7 sm:h-9 md:h-10 w-auto object-contain shrink-0">
         </div>
         <div class="flex items-center gap-1 sm:gap-2 shrink-0">
-            <button onclick="togglePushNotificationPermission()" id="btnPushNotification" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white p-1.5 sm:px-3 sm:py-1.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm flex items-center justify-center gap-1 transition-all active:scale-95 border border-blue-400 whitespace-nowrap shrink-0" title="เปิด/ปิดรับการแจ้งเตือนข่าวสาร">
+            <button onclick="togglePushNotificationPermission()" id="btnPushNotification" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white p-1.5 sm:px-3 sm:py-1.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm flex items-center justify-center gap-1 transition-all active:scale-95 border border-blue-400 whitespace-nowrap shrink-0 hidden" title="เปิด/ปิดรับการแจ้งเตือนข่าวสาร">
                 <span id="pushBellIcon">🔔</span> <span id="pushBellText" class="hidden md:inline">รับแจ้งเตือน</span>
             </button>
-            <button onclick="installPWAApp()" id="globalInstallPwaBtn" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white p-1.5 sm:px-3 sm:py-1.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm flex items-center justify-center gap-1 transition-all active:scale-95 border border-blue-400 whitespace-nowrap shrink-0" title="ติดตั้งแอปพลิเคชัน">
+            <button onclick="installPWAApp()" id="globalInstallPwaBtn" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white p-1.5 sm:px-3 sm:py-1.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm flex items-center justify-center gap-1 transition-all active:scale-95 border border-blue-400 whitespace-nowrap shrink-0 hidden" title="ติดตั้งแอปพลิเคชัน">
                 <span>📲</span><span class="hidden md:inline">ติดตั้งแอป</span>
             </button>
             <div class="flex items-center gap-0.5 sm:gap-1 bg-gray-100/90 p-1 rounded-xl border border-gray-200 shrink-0">
@@ -1331,12 +1384,7 @@
                 </div>
 
                 <!-- แถบฟิลเตอร์และจัดเรียงหมวดหมู่หลัก (Main Categories Filter & Sort Bar) -->
-                <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-200 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-                    <div class="relative flex-1 min-w-[200px]">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 text-base pointer-events-none">🔍</span>
-                        <input type="text" id="mainCatSearchInput" oninput="debounceRenderMainCategories()" placeholder="ค้นหาหมวดหมู่หลัก..." class="w-full pl-10 pr-9 py-2 bg-gray-50 border border-gray-250 rounded-xl text-xs sm:text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all">
-                        <button id="mainCatSearchClearBtn" onclick="clearMainCatSearch()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 hidden text-xs font-extrabold">✖</button>
-                    </div>
+                <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
                     <div class="flex items-center gap-2 flex-wrap">
                         <div class="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-gray-700">
                             <span class="text-blue-600">🔀</span> <span>จัดเรียงตาม:</span>
@@ -1349,11 +1397,11 @@
                                 <option value="name_desc">🔤 ชื่อหมวดหมู่ (ฮ - ก)</option>
                             </select>
                         </div>
-                        <label class="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-gray-700 cursor-pointer select-none bg-gray-50 px-3 py-2 rounded-xl border border-gray-250 hover:bg-gray-100 transition-all shadow-2xs">
-                            <input type="checkbox" id="mainCatHideEmptyCheckbox" onchange="renderMainCategories()" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500">
-                            <span>ซ่อนหมวดที่ว่าง (0 เรื่อง)</span>
-                        </label>
                     </div>
+                    <label class="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-gray-700 cursor-pointer select-none bg-gray-50 px-3 py-2 rounded-xl border border-gray-250 hover:bg-gray-100 transition-all shadow-2xs">
+                        <input type="checkbox" id="mainCatHideEmptyCheckbox" onchange="renderMainCategories()" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500">
+                        <span>ซ่อนหมวดที่ว่าง (0 เรื่อง)</span>
+                    </label>
                 </div>
 
                 <div id="mainCategoriesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -3604,9 +3652,14 @@
             } catch(fpErr) {
                 console.error("checkForcePassword error:", fpErr);
             }
+
+            try {
+                if (typeof updateHeaderActionButtons === 'function') updateHeaderActionButtons();
+            } catch(eBtns) {}
         }
 
         window.onload = function() {
+            if (typeof updateHeaderActionButtons === 'function') updateHeaderActionButtons();
             var savedFontSize = localStorage.getItem('knowledgeFontSize');
             if (savedFontSize) {
                 setFontSize(savedFontSize);
@@ -4552,13 +4605,14 @@
                 return;
             }
 
+            // หากติดตั้งแล้ว หรือหากเปิดรับการแจ้งเตือนแล้ว ให้ซ่อนปุ่มอัตโนมัติ
+            if ((typeof checkIsAppInstalled === 'function' && checkIsAppInstalled()) || Notification.permission === 'granted') {
+                btn.classList.add('hidden');
+                return;
+            }
+
             btn.classList.remove('hidden');
-            if (Notification.permission === 'granted') {
-                icon.innerText = '🔔';
-                text.innerText = 'เปิดแล้ว';
-                btn.className = "bg-green-50 hover:bg-green-100 text-green-700 p-1.5 sm:px-3 sm:py-1.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm flex items-center justify-center gap-1 transition-all active:scale-95 border border-green-300 whitespace-nowrap shrink-0";
-                btn.title = "เปิดรับการแจ้งเตือนแล้ว (คลิกเพื่ออัปเดตสิทธิ์)";
-            } else if (Notification.permission === 'denied') {
+            if (Notification.permission === 'denied') {
                 icon.innerText = '🔕';
                 text.innerText = 'ถูกปิด';
                 btn.className = "bg-red-50 hover:bg-red-100 text-red-600 p-1.5 sm:px-3 sm:py-1.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm flex items-center justify-center gap-1 transition-all active:scale-95 border border-red-200 whitespace-nowrap shrink-0";
@@ -4587,6 +4641,7 @@
                 // ขอสิทธิ์
                 Notification.requestPermission().then(function(permission) {
                     updatePushBellUI();
+                    if (typeof updateHeaderActionButtons === 'function') updateHeaderActionButtons();
                     if (permission === 'granted') {
                         requestAndSaveFCMToken(true);
                     }
