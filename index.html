@@ -3130,34 +3130,49 @@
         function sortAnnouncementsLatestFirst(list) {
             if (!list || !Array.isArray(list)) return list;
             return list.sort(function(a, b) {
-                // 1. ปักหมุดมาก่อน
+                // 1. ปักหมุดมาก่อนเสมอ
                 var pinA = (a.isPinned === true || a.isPinned === "true" || a.isPinned === "TRUE") ? 1 : 0;
                 var pinB = (b.isPinned === true || b.isPinned === "true" || b.isPinned === "TRUE") ? 1 : 0;
                 if (pinB !== pinA) return pinB - pinA;
 
-                // 2. ลำดับที่กำหนดเอง (1, 2, 3...)
-                var orderA = (a.displayOrder && parseInt(a.displayOrder, 10) > 0) ? parseInt(a.displayOrder, 10) : 999999;
-                var orderB = (b.displayOrder && parseInt(b.displayOrder, 10) > 0) ? parseInt(b.displayOrder, 10) : 999999;
-                if (orderA !== orderB) return orderA - orderB;
+                // 2. ตรวจสอบการกำหนดลำดับ (Display Order)
+                var hasOrdA = a.displayOrder !== undefined && a.displayOrder !== null && a.displayOrder !== "" && parseInt(a.displayOrder, 10) > 0;
+                var hasOrdB = b.displayOrder !== undefined && b.displayOrder !== null && b.displayOrder !== "" && parseInt(b.displayOrder, 10) > 0;
+                
+                if (hasOrdA && hasOrdB) {
+                    var diff = parseInt(a.displayOrder, 10) - parseInt(b.displayOrder, 10);
+                    if (diff !== 0) return diff;
+                } else if (!hasOrdA && hasOrdB) {
+                    // a ไม่มี order (เป็นประกาศใหม่) -> ตรวจสอบว่าประกาศใหม่มีวันที่ใหม่กว่าหรือไม่ ถ้าใหม่กว่าให้อยู่บนสุด
+                    var timeA = a.date ? new Date(a.date).getTime() : 0;
+                    var timeB = b.date ? new Date(b.date).getTime() : 0;
+                    if (timeA && timeB && timeA >= timeB) return -1;
+                    return -1; // ประกาศใหม่ที่ยังไม่ได้เรียงให้ขึ้นก่อนเสมอ
+                } else if (hasOrdA && !hasOrdB) {
+                    var timeA2 = a.date ? new Date(a.date).getTime() : 0;
+                    var timeB2 = b.date ? new Date(b.date).getTime() : 0;
+                    if (timeA2 && timeB2 && timeB2 >= timeA2) return 1;
+                    return 1;
+                }
 
                 // 3. วันที่ประกาศจริง (ใหม่สุดไปเก่าสุด)
-                var timeA = 0;
+                var timeAFinal = 0;
                 if (a.date) {
                     var dA = new Date(a.date);
-                    if (!isNaN(dA.getTime())) timeA = dA.getTime();
+                    if (!isNaN(dA.getTime())) timeAFinal = dA.getTime();
                 }
-                if (!timeA && a.id && a.id.toString().indexOf("ann_") === 0) {
-                    timeA = parseInt(a.id.toString().replace("ann_", ""), 10) || 0;
+                if (!timeAFinal && a.id && a.id.toString().indexOf("ann_") === 0) {
+                    timeAFinal = parseInt(a.id.toString().replace("ann_", ""), 10) || 0;
                 }
-                var timeB = 0;
+                var timeBFinal = 0;
                 if (b.date) {
                     var dB = new Date(b.date);
-                    if (!isNaN(dB.getTime())) timeB = dB.getTime();
+                    if (!isNaN(dB.getTime())) timeBFinal = dB.getTime();
                 }
-                if (!timeB && b.id && b.id.toString().indexOf("ann_") === 0) {
-                    timeB = parseInt(b.id.toString().replace("ann_", ""), 10) || 0;
+                if (!timeBFinal && b.id && b.id.toString().indexOf("ann_") === 0) {
+                    timeBFinal = parseInt(b.id.toString().replace("ann_", ""), 10) || 0;
                 }
-                return timeB - timeA;
+                return timeBFinal - timeAFinal;
             });
         }
 
@@ -12346,6 +12361,9 @@ function removeAnnLinkRow(rowId) {
 // ฟังก์ชันรีเฟรชข้อมูลทุกหน้าหลัก (รอรับข้อมูลจริงก่อนปิดการโหลด)
 function refreshData() {
     showLoading("กำลังดึงข้อมูลล่าสุดจากเซิร์ฟเวอร์...");
+    try {
+        localStorage.removeItem('sprinkle_cached_app_data');
+    } catch(e) {}
     loadData(function(success, err) {
         hideLoading();
         if (!success && err) {

@@ -692,13 +692,27 @@ function getAnnouncements() {
     
     // จัดเรียงประกาศ: ปักหมุดอันดับแรก -> เรียงตามลำดับที่กำหนด (displayOrder 1, 2, 3...) -> เรียงตามวันที่ (Newest First)
     data.sort(function(a, b) {
-      var pinA = a.isPinned ? 1 : 0;
-      var pinB = b.isPinned ? 1 : 0;
+      var pinA = (a.isPinned === true || a.isPinned === "true" || a.isPinned === "TRUE") ? 1 : 0;
+      var pinB = (b.isPinned === true || b.isPinned === "true" || b.isPinned === "TRUE") ? 1 : 0;
       if (pinB !== pinA) return pinB - pinA;
 
-      var orderA = (a.displayOrder && a.displayOrder > 0) ? a.displayOrder : 999999;
-      var orderB = (b.displayOrder && b.displayOrder > 0) ? b.displayOrder : 999999;
-      if (orderA !== orderB) return orderA - orderB;
+      var hasOrdA = a.displayOrder !== undefined && a.displayOrder !== null && a.displayOrder !== "" && parseInt(a.displayOrder, 10) > 0;
+      var hasOrdB = b.displayOrder !== undefined && b.displayOrder !== null && b.displayOrder !== "" && parseInt(b.displayOrder, 10) > 0;
+
+      if (hasOrdA && hasOrdB) {
+        var diff = parseInt(a.displayOrder, 10) - parseInt(b.displayOrder, 10);
+        if (diff !== 0) return diff;
+      } else if (!hasOrdA && hasOrdB) {
+        var timeA = a.date ? new Date(a.date).getTime() : 0;
+        var timeB = b.date ? new Date(b.date).getTime() : 0;
+        if (timeA && timeB && timeA >= timeB) return -1;
+        return -1;
+      } else if (hasOrdA && !hasOrdB) {
+        var timeA2 = a.date ? new Date(a.date).getTime() : 0;
+        var timeB2 = b.date ? new Date(b.date).getTime() : 0;
+        if (timeA2 && timeB2 && timeB2 >= timeA2) return 1;
+        return 1;
+      }
 
       var timeA = a.date ? new Date(a.date).getTime() : 0;
       if (!timeA && a.id && a.id.toString().indexOf("ann_") === 0) {
@@ -801,6 +815,22 @@ function addAnnouncement(title, content, imageUrl, createdBy, linkUrl, targetAud
     var audience = targetAudience || "ทั้งหมด";
     var orderVal = parseInt(displayOrder, 10) || 0;
     var pinVal = (isPinned === true || isPinned === "true" || isPinned === "TRUE") ? true : false;
+    
+    // หากไม่ได้กำหนดลำดับมา ให้ตั้งเป็นลำดับที่ 1 (ขึ้นบนสุด) แล้วเลื่อนลำดับเดิมลงมาอัตโนมัติ
+    if (orderVal <= 0) {
+      orderVal = 1;
+      var curRows = sheet.getLastRow();
+      if (curRows > 1 && sheet.getLastColumn() >= 11) {
+        var existingOrders = sheet.getRange(2, 11, curRows - 1, 1).getValues();
+        for (var ex = 0; ex < existingOrders.length; ex++) {
+          var curOrd = parseInt(existingOrders[ex][0], 10);
+          if (!isNaN(curOrd) && curOrd >= 1) {
+            existingOrders[ex][0] = curOrd + 1;
+          }
+        }
+        sheet.getRange(2, 11, curRows - 1, 1).setValues(existingOrders);
+      }
+    }
     
     sheet.appendRow([newId, title, content, imageUrl || "", formattedDate, "เปิดใช้งาน", createdBy || "แอดมิน", linkUrl || "", audience, autoCloseDate || "", orderVal, pinVal]);
     
