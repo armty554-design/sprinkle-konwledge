@@ -167,11 +167,11 @@
           linkTag.href = manifestURL;
           document.head.appendChild(linkTag);
 
-          // ติดตั้ง Service Worker จำลองเพื่อให้ Chrome บน Android รับรู้ว่าเป็น WebAPK สมบูรณ์
+          // ติดตั้ง Service Worker หลักสำหรับ PWA และ Firebase Push Notifications
           if ('serviceWorker' in navigator) {
-            const swCode = "self.addEventListener('install', function(e){ self.skipWaiting(); }); self.addEventListener('activate', function(e){ e.waitUntil(self.clients.claim()); }); self.addEventListener('fetch', function(e){});";
-            const swBlob = new Blob([swCode], {type: 'application/javascript'});
-            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(function(err){});
+            navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(function(err){
+              console.warn("PWA Service Worker register notice:", err);
+            });
           }
         } catch(e) {
           console.error("PWA Manifest error:", e);
@@ -4701,7 +4701,8 @@
             // ลงทะเบียน Service Worker
             navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(registration) {
                 console.log('ServiceWorker registration successful with scope:', registration.scope);
-                
+                return navigator.serviceWorker.ready;
+            }).then(function(activeRegistration) {
                 // เริ่มต้น Firebase Messaging
                 if (typeof firebase !== 'undefined' && firebase.messaging) {
                     try {
@@ -4800,7 +4801,18 @@
                 return;
             }
 
-            fcmMessaging.getToken({ vapidKey: FIREBASE_VAPID_KEY }).then(function(token) {
+            if (!('serviceWorker' in navigator)) {
+                if (showUserFeedback) alert("⚠️ เบราว์เซอร์นี้ไม่รองรับ Service Worker สำหรับการแจ้งเตือน");
+                return;
+            }
+
+            // ต้องรอให้ Service Worker พร้อมและ Active 100% ก่อนขอ Token เพื่อป้องกัน Subscription failed - no active Service Worker
+            navigator.serviceWorker.ready.then(function(swRegistration) {
+                return fcmMessaging.getToken({
+                    vapidKey: FIREBASE_VAPID_KEY,
+                    serviceWorkerRegistration: swRegistration
+                });
+            }).then(function(token) {
                 if (token) {
                     currentFcmToken = token;
                     localStorage.setItem('sprinkle_fcm_token', token);
@@ -5494,23 +5506,45 @@
         // ฟังก์ชันทดสอบยิงแจ้งเตือนสำหรับแอดมิน
         function handleTestPushNotification() {
             if (!confirm("ต้องการทดสอบส่งการแจ้งเตือน Push Notification ไปยังทุกอุปกรณ์ที่ลงทะเบียนไว้หรือไม่?")) return;
+            
+            // ทดสอบแสดง Notification บนเบราว์เซอร์เครื่องนี้ทันที
+            try {
+                if (typeof showInAppNotificationToast === 'function') {
+                    showInAppNotificationToast("🔔 ทดสอบการแจ้งเตือน (เครื่องปัจจุบัน)", "ระบบการแจ้งเตือนบนหน้าเว็บทำงานได้สมบูรณ์แล้วครับ!", "#knowledge");
+                }
+                if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                    new Notification("🔔 ทดสอบการแจ้งเตือน (เครื่องปัจจุบัน)", {
+                        body: "ระบบการแจ้งเตือนของ Sprinkle พร้อมใช้งานบนอุปกรณ์นี้แล้ว!",
+                        icon: "https://lh3.googleusercontent.com/d/1t3B6q2Y305iB_uXzP71R08920E3P6e1k"
+                    });
+                }
+            } catch(eNotif) {
+                console.warn("Local notification test notice:", eNotif);
+            }
+
             if (typeof showLoading === 'function') showLoading();
             google.script.run
                 .withSuccessHandler(function(res) {
                     if (typeof hideLoading === 'function') hideLoading();
-                    if (res && res.success) {
-                        if (res.count > 0) {
-                            alert("🎉 ส่งการแจ้งเตือนสำเร็จแล้ว!\n(ส่งไปยัง " + res.count + " อุปกรณ์เรียบร้อยแล้ว)\n\n🔔 กรุณาตรวจสอบหน้าจอหรือแถบแจ้งเตือนของอุปกรณ์ครับ");
+                    setTimeout(function() {
+                        if (res && res.success) {
+                            if (res.count > 0 || (res.sentCount && res.sentCount > 0)) {
+                                var count = res.count || res.sentCount;
+                                alert("🎉 ส่งการแจ้งเตือนสำเร็จแล้ว!\n(ส่งไปยัง " + count + " อุปกรณ์เรียบร้อยแล้ว)\n\n🔔 กรุณาตรวจสอบหน้าจอหรือแถบแจ้งเตือนของอุปกรณ์ครับ");
+                            } else {
+                                alert("ℹ️ ผลการส่งแจ้งเตือน: ส่งสำเร็จ 0 อุปกรณ์\n" + (res.message || (res.details && res.details.length ? JSON.stringify(res.details) : "กรุณาตรวจสอบว่าอุปกรณ์ได้เปิดรับการแจ้งเตือนแล้วหรือไม่")));
+                            }
                         } else {
-                            alert("ℹ️ ไม่สามารถส่งแจ้งเตือนได้ (ส่งสำเร็จ 0 อุปกรณ์)\n" + (res.message || (res.details && res.details.length ? JSON.stringify(res.details) : "กรุณาตรวจสอบว่าอุปกรณ์ได้เปิดรับการแจ้งเตือนแล้วหรือไม่")));
+                            var errMsg = (res && res.message) ? res.message : JSON.stringify(res);
+                            alert("ℹ️ ผลการทดสอบจากเซิร์ฟเวอร์:\n" + errMsg + "\n\n💡 หมายเหตุ: การแจ้งเตือนบนหน้าต่างนี้สามารถทำงานได้ปกติแล้ว");
                         }
-                    } else {
-                        alert("ℹ️ ผลการทดสอบ: " + (res && res.message ? res.message : JSON.stringify(res)));
-                    }
+                    }, 50);
                 })
                 .withFailureHandler(function(err) {
                     if (typeof hideLoading === 'function') hideLoading();
-                    alert("❌ เกิดข้อผิดพลาดในการทดสอบ: " + err.toString());
+                    setTimeout(function() {
+                        alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อ: " + (err ? err.toString() : "เครือข่ายขัดข้อง") + "\n\n💡 การแจ้งเตือนในหน้าเว็บ (Toast) ยังคงทำงานได้");
+                    }, 50);
                 })
                 .testSendPushNotification("🔔 ทดสอบการแจ้งเตือนจาก Sprinkle", "ระบบการแจ้งเตือน Push Notification ทำงานได้สมบูรณ์แล้วครับ!");
         }

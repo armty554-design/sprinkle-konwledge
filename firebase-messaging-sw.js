@@ -302,6 +302,20 @@ if (typeof self !== 'undefined' && typeof self.addEventListener === 'function') 
         }
     });
 
+    // ดักรับเหตุการณ์เมื่อ Service Worker ติดตั้งและเปิดใช้งาน ให้ Active ทันที
+    self.addEventListener('install', function(event) {
+        self.skipWaiting();
+    });
+
+    self.addEventListener('activate', function(event) {
+        event.waitUntil(self.clients.claim());
+    });
+
+    // ดักรับ fetch event สำหรับรองรับมาตรฐาน PWA Installability
+    self.addEventListener('fetch', function(event) {
+        // Pass-through network requests
+    });
+
     // ดักรับเหตุการณ์เมื่อผู้ใช้คลิกที่การแจ้งเตือน (Notification Click Event)
     self.addEventListener('notificationclick', function(event) {
         event.waitUntil(handleNotificationClick(event));
