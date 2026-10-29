@@ -4008,28 +4008,14 @@
             ];
 
             var standardValues = standardFolders.map(function(f) { return f.value; });
-            var extraFolders = [];
-
-            if (allDatabaseData && Array.isArray(allDatabaseData)) {
-                for (var i = 0; i < allDatabaseData.length; i++) {
-                    var f = allDatabaseData[i].mainFolder;
-                    if (f && typeof f === 'string' && f.trim() !== "" && standardValues.indexOf(f.trim()) === -1 && extraFolders.indexOf(f.trim()) === -1) {
-                        extraFolders.push(f.trim());
-                    }
-                }
-            }
-
             var currentVal = select.value || "ขั้นตอนการทำงาน";
             var html = '';
             for (var j = 0; j < standardFolders.length; j++) {
                 html += '<option value="' + standardFolders[j].value + '">' + standardFolders[j].label + '</option>';
             }
-            for (var k = 0; k < extraFolders.length; k++) {
-                html += '<option value="' + extraFolders[k] + '">📁 ' + extraFolders[k] + '</option>';
-            }
             html += '<option value="_custom">➕ สร้างแฟ้มหลักใหม่...</option>';
             select.innerHTML = html;
-            if (currentVal && (standardValues.indexOf(currentVal) !== -1 || extraFolders.indexOf(currentVal) !== -1 || currentVal === '_custom')) {
+            if (currentVal && (standardValues.indexOf(currentVal) !== -1 || currentVal === '_custom')) {
                 select.value = currentVal;
             }
         }

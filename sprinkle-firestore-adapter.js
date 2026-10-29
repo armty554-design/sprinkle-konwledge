@@ -79,7 +79,7 @@
         }
     }
 
-    // Helper: Safely convert snapshot to array of plain objects
+    // Helper: Safely convert snapshot to array of plain objects with auto-healing for Thai encoding
     function snapshotToArray(snapshot) {
         var items = [];
         if (!snapshot || snapshot.empty) return items;
@@ -88,6 +88,19 @@
             // If data doesn't have id field, populate it from doc.id
             if (data.id === undefined || data.id === null || data.id === "") {
                 data.id = doc.id;
+            }
+            // Auto-heal legacy corrupted mainFolder strings
+            if (data.mainFolder && typeof data.mainFolder === 'string') {
+                var mf = data.mainFolder;
+                if (mf.indexOf('\uFFFD') !== -1 || mf.indexOf('') !== -1) {
+                    if (mf.indexOf('กาศ') !== -1 || mf.indexOf('ประก') !== -1) data.mainFolder = 'ประกาศ';
+                    else if (mf.indexOf('นโยบาย') !== -1) data.mainFolder = 'นโยบาย';
+                    else if (mf.indexOf('คนดี') !== -1) data.mainFolder = 'คนดีสปริงเคิล';
+                    else if (mf.indexOf('ลด') !== -1) data.mainFolder = 'โครงการ 3 ลด';
+                    else if (mf.indexOf('สัมพันธ์') !== -1 || mf.indexOf('แฟ้ม') !== -1) data.mainFolder = 'แฟ้มประชาสัมพันธ์';
+                    else if (mf.indexOf('Training') !== -1) data.mainFolder = 'Sprinkle Training';
+                    else data.mainFolder = 'ขั้นตอนการทำงาน';
+                }
             }
             items.push(data);
         });
