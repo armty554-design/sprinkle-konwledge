@@ -3806,12 +3806,55 @@
         });
 
         // จัดการชุดข้อมูลและเรนเดอร์หน้าจอตามข้อมูลล่าสุด
+        function sanitizeMainFolderName(name) {
+            if (!name || typeof name !== 'string') return 'ขั้นตอนการทำงาน';
+            var s = name.trim();
+            if (s === 'รวมภาพสื่อประชาสัมพันธ์') return 'รวมภาพสื่อประชาสัมพันธ์';
+            if (s === 'แฟ้มประชาสัมพันธ์') return 'แฟ้มประชาสัมพันธ์';
+            if (s === 'โครงการ 3 ลด') return 'โครงการ 3 ลด';
+            if (s === 'คนดีสปริงเคิล') return 'คนดีสปริงเคิล';
+            if (s === 'Sprinkle Training') return 'Sprinkle Training';
+            if (s === 'ประกาศ') return 'ประกาศ';
+            if (s === 'นโยบาย') return 'นโยบาย';
+            if (s === 'ขั้นตอนการทำงาน') return 'ขั้นตอนการทำงาน';
+            if (s.indexOf('\uFFFD') !== -1 || s.indexOf('') !== -1 || s.length < 3) {
+                if (s.indexOf('กาศ') !== -1 || s.indexOf('ประก') !== -1) return 'ประกาศ';
+                if (s.indexOf('นโยบาย') !== -1) return 'นโยบาย';
+                if (s.indexOf('คนดี') !== -1) return 'คนดีสปริงเคิล';
+                if (s.indexOf('ลด') !== -1) return 'โครงการ 3 ลด';
+                if (s.indexOf('รวมภาพ') !== -1) return 'รวมภาพสื่อประชาสัมพันธ์';
+                if (s.indexOf('สัมพันธ์') !== -1 || s.indexOf('แฟ้ม') !== -1) return 'แฟ้มประชาสัมพันธ์';
+                if (s.indexOf('Training') !== -1) return 'Sprinkle Training';
+                return 'ขั้นตอนการทำงาน';
+            }
+            return s;
+        }
+
         function applyInitialData(res) {
             if (!res) return;
             
             // 1. จัดการข้อมูลหมวดหมู่และความรู้ (เรียงหัวข้อใหม่ล่าสุดให้อยู่บนสุดเสมอ)
             if (res.knowledge && Array.isArray(res.knowledge)) {
                 _dateParseCache = {};
+                for (var k = 0; k < res.knowledge.length; k++) {
+                    var itm = res.knowledge[k];
+                    if (itm.mainFolder) {
+                        itm.mainFolder = sanitizeMainFolderName(itm.mainFolder);
+                    }
+                    if (itm.category && typeof itm.category === 'string' && (itm.category.indexOf('\uFFFD') !== -1 || itm.category.indexOf('') !== -1)) {
+                        var catStr = itm.category;
+                        if (catStr.indexOf('ขั้นตอน') !== -1 || catStr.indexOf('ปฎิบัติ') !== -1) itm.category = 'ขั้นตอนปฎิบัติงาน';
+                        else if (catStr.indexOf('2568') !== -1) itm.category = 'ประกาศฝ่ายบริการจัดส่ง ประจำปี 2568';
+                        else if (catStr.indexOf('2569') !== -1) itm.category = 'ประกาศฝ่ายบริการจัดส่ง ประจำปี 2569';
+                        else if (catStr.indexOf('2567') !== -1) itm.category = 'ประกาศฝ่ายบริการจัดส่ง ประจำปี 2567';
+                        else if (catStr.indexOf('2566') !== -1) itm.category = 'ประกาศฝ่ายบริการจัดส่ง ประจำปี 2566';
+                        else if (catStr.indexOf('2560') !== -1) itm.category = 'ประกาศฝ่ายบริการจัดส่ง ประจำปี 2560';
+                        else if (catStr.indexOf('คู่มือ') !== -1) itm.category = 'คู่มือผู้ประกอบการ';
+                        else if (catStr.indexOf('รับสมัคร') !== -1) itm.category = 'รับสมัครผู้ประกอบการ';
+                        else if (catStr.indexOf('ปลอดภัย') !== -1) itm.category = 'โครงการ คลังปลอดฝุ่น และปลอดภัย';
+                        else if (catStr.indexOf('อื่น') !== -1) itm.category = 'ประกาศอื่นๆ';
+                    }
+                }
                 allDatabaseData = sortKnowledgeLatestFirst(res.knowledge);
                 
                 var visibleKnowledge = getUserVisibleKnowledgeData();
@@ -3947,13 +3990,23 @@
             }
         }
 
-        // ดึงข้อมูลหลักจาก Apps Script พร้อมระบบแคชและอัปเดตทันใจ
+        // ดึงข้อมูลหลักจาก Firestore / Apps Script พร้อมระบบแคชและอัปเดตทันใจ
+        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v3';
+
         function loadData(onComplete) {
             recommendStatsData = null;
             
-            // 1. ดึงจากแคชในเครื่องมาแสดงผลทันที (0 ms ไม่ต้องรอโหลด)
+            // ล้างแคชเวอร์ชันเก่าที่มีอักขระเสีย
             try {
-                var cached = localStorage.getItem('sprinkle_cached_app_data');
+                localStorage.removeItem('sprinkle_cached_app_data');
+        localStorage.removeItem('sprinkle_cached_app_data_v3');
+                localStorage.removeItem('sprinkle_cached_app_data_v1');
+                localStorage.removeItem('sprinkle_cached_app_data_v2');
+            } catch(eClean) {}
+
+            // 1. ดึงจากแคชในเครื่องเวอร์ชันใหม่มาแสดงผลทันที (0 ms ไม่ต้องรอโหลด)
+            try {
+                var cached = localStorage.getItem(DATA_CACHE_KEY);
                 if (cached && allDatabaseData.length === 0) {
                     var cachedData = JSON.parse(cached);
                     if (cachedData) applyInitialData(cachedData);
@@ -3965,7 +4018,7 @@
                 .withSuccessHandler(function(res) {
                     if (res) {
                         try {
-                            localStorage.setItem('sprinkle_cached_app_data', JSON.stringify(res));
+                            localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(res));
                         } catch(eSave) {}
                         applyInitialData(res);
                     }
@@ -5657,9 +5710,14 @@
             if (folderName === 'operator') return "🏢";
             if (folderName === 'pr' || folderName.includes("ประชาสัมพันธ์")) return "📢";
             if (folderName === 'all') return "📂";
-            if (folderName.includes("ประกาศ")) return "📢";
             if (folderName.includes("ขั้นตอน") || folderName.includes("คู่มือ")) return "📋";
             if (folderName.includes("นโยบาย") || folderName.includes("กฎ")) return "📜";
+            if (folderName.includes("ประกาศ")) return "📢";
+            if (folderName.includes("Training")) return "🎓";
+            if (folderName.includes("คนดี")) return "🌟";
+            if (folderName.includes("ลด")) return "🛡️";
+            if (folderName.includes("แฟ้ม")) return "📰";
+            if (folderName.includes("รวมภาพ")) return "🖼️";
             if (folderName.includes("ฟอร์ม") || folderName.includes("แบบ")) return "📝";
             if (folderName.includes("สวัสดิการ")) return "🎁";
             if (folderName.includes("ความปลอดภัย") || folderName.includes("safety")) return "🦺";
@@ -6897,15 +6955,18 @@ function openAudienceFolder(aud) {
             }
 
             var folderStyles = {
-                "ประกาศ": { bg: "from-sky-50 to-blue-50 hover:from-sky-100 hover:to-blue-100 border-sky-200 hover:border-sky-400", iconBg: "bg-blue-600", icon: "📢", badgeBg: "bg-blue-100 text-blue-900 border-blue-300", desc: isOpSelected ? "ประกาศ ข่าวสาร และข้อมูลสำคัญสำหรับพี่สปริงเคิล" : "ข่าวสาร ประกาศสำคัญ และข้อมูลองค์กร" },
-                "ขั้นตอนการทำงาน": { bg: "from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border-emerald-200 hover:border-emerald-400", iconBg: "bg-emerald-600", icon: "📋", badgeBg: "bg-emerald-100 text-emerald-900 border-emerald-300", desc: isOpSelected ? "คู่มือและขั้นตอนการดำเนินงานของพี่สปริงเคิล" : "คู่มือปฏิบัติงานและขั้นตอนมาตรฐาน" },
-                "นโยบาย": { bg: "from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 border-purple-200 hover:border-purple-400", iconBg: "bg-purple-600", icon: "📜", badgeBg: "bg-purple-100 text-purple-900 border-purple-300", desc: isOpSelected ? "กฎระเบียบและข้อกำหนดสำหรับพี่สปริงเคิล" : "กฎระเบียบ นโยบาย และข้อกำหนดบริษัท" },
-                "รวมภาพสื่อประชาสัมพันธ์": { bg: "from-purple-50 to-fuchsia-50 hover:from-purple-100 hover:to-fuchsia-100 border-purple-200 hover:border-purple-400", iconBg: "bg-purple-600", icon: "📢", badgeBg: "bg-purple-100 text-purple-900 border-purple-300", desc: "สื่อประชาสัมพันธ์ ข่าวสาร วิดีโอ และกิจกรรมองค์กร" },
-                "แฟ้มประชาสัมพันธ์": { bg: "from-purple-50 to-fuchsia-50 hover:from-purple-100 hover:to-fuchsia-100 border-purple-200 hover:border-purple-400", iconBg: "bg-purple-600", icon: "📢", badgeBg: "bg-purple-100 text-purple-900 border-purple-300", desc: "สื่อประชาสัมพันธ์ ข่าวสาร วิดีโอ และกิจกรรมองค์กร" },
+                "ขั้นตอนการทำงาน": { bg: "from-sky-50 to-blue-50 hover:from-sky-100 hover:to-blue-100 border-sky-200 hover:border-sky-400", iconBg: "bg-blue-600", icon: "📋", badgeBg: "bg-blue-100 text-blue-900 border-blue-300", desc: isOpSelected ? "คู่มือและขั้นตอนการดำเนินงานของพี่สปริงเคิล" : "คู่มือปฏิบัติงานและขั้นตอนมาตรฐาน" },
+                "นโยบาย": { bg: "from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border-emerald-200 hover:border-emerald-400", iconBg: "bg-emerald-600", icon: "📜", badgeBg: "bg-emerald-100 text-emerald-900 border-emerald-300", desc: isOpSelected ? "กฎระเบียบและข้อกำหนดสำหรับพี่สปริงเคิล" : "กฎระเบียบ นโยบาย และข้อกำหนดบริษัท" },
+                "ประกาศ": { bg: "from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 border-orange-200 hover:border-orange-400", iconBg: "bg-orange-600", icon: "📢", badgeBg: "bg-orange-100 text-orange-900 border-orange-300", desc: isOpSelected ? "ประกาศ ข่าวสาร และข้อมูลสำคัญสำหรับพี่สปริงเคิล" : "ข่าวสาร ประกาศสำคัญ และข้อมูลองค์กร" },
+                "Sprinkle Training": { bg: "from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 border-purple-200 hover:border-purple-400", iconBg: "bg-purple-600", icon: "🎓", badgeBg: "bg-purple-100 text-purple-900 border-purple-300", desc: "หลักสูตรและการฝึกอบรมพัฒนาทักษะ" },
+                "คนดีสปริงเคิล": { bg: "from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 border-blue-200 hover:border-blue-400", iconBg: "bg-blue-700", icon: "🌟", badgeBg: "bg-blue-100 text-blue-900 border-blue-300", desc: "เรื่องราวความดีและคำชื่นชมคนดีสปริงเคิล" },
+                "โครงการ 3 ลด": { bg: "from-gray-50 to-slate-100 hover:from-gray-100 hover:to-slate-200 border-gray-200 hover:border-gray-400", iconBg: "bg-slate-600", icon: "🛡️", badgeBg: "bg-gray-100 text-gray-900 border-gray-300", desc: "โครงการ 3 ลด เพื่อประสิทธิภาพและความปลอดภัย" },
+                "แฟ้มประชาสัมพันธ์": { bg: "from-rose-50 to-pink-50 hover:from-rose-100 hover:to-pink-100 border-rose-200 hover:border-rose-400", iconBg: "bg-rose-600", icon: "📰", badgeBg: "bg-rose-100 text-rose-900 border-rose-300", desc: "สื่อประชาสัมพันธ์ ข่าวสาร วิดีโอ และกิจกรรมองค์กร" },
+                "รวมภาพสื่อประชาสัมพันธ์": { bg: "from-purple-50 to-fuchsia-50 hover:from-purple-100 hover:to-fuchsia-100 border-purple-200 hover:border-purple-400", iconBg: "bg-purple-600", icon: "🖼️", badgeBg: "bg-purple-100 text-purple-900 border-purple-300", desc: "รวมภาพสื่อประชาสัมพันธ์และกิจกรรมองค์กร" },
                 "ประชาสัมพันธ์": { bg: "from-purple-50 to-fuchsia-50 hover:from-purple-100 hover:to-fuchsia-100 border-purple-200 hover:border-purple-400", iconBg: "bg-purple-600", icon: "📢", badgeBg: "bg-purple-100 text-purple-900 border-purple-300", desc: "สื่อประชาสัมพันธ์ ข่าวสาร วิดีโอ และกิจกรรมองค์กร" }
             };
 
-            var foldersToDisplay = isPrSelected ? ["รวมภาพสื่อประชาสัมพันธ์", "ประกาศ"] : (isOpSelected ? ["ประกาศ", "ขั้นตอนการทำงาน", "นโยบาย"] : ["ประกาศ", "ขั้นตอนการทำงาน", "นโยบาย", "รวมภาพสื่อประชาสัมพันธ์"]);
+            var foldersToDisplay = isPrSelected ? ["รวมภาพสื่อประชาสัมพันธ์", "แฟ้มประชาสัมพันธ์", "ประกาศ"] : (isOpSelected ? ["ขั้นตอนการทำงาน", "นโยบาย", "ประกาศ"] : ["ขั้นตอนการทำงาน", "นโยบาย", "ประกาศ", "Sprinkle Training", "คนดีสปริงเคิล", "โครงการ 3 ลด", "แฟ้มประชาสัมพันธ์", "รวมภาพสื่อประชาสัมพันธ์"]);
             for (var cKey in folderStats) {
                 if (foldersToDisplay.indexOf(cKey) === -1 && folderStats[cKey].totalItems > 0) {
                     foldersToDisplay.push(cKey);
@@ -6954,7 +7015,17 @@ function openAudienceFolder(aud) {
                     return b.localeCompare(a, 'th');
                 } else {
                     // default: ตรวจสอบลำดับที่แอดมินตั้งค่าไว้ใน SystemConfig (main_folder_order) หรือใช้ลำดับมาตรฐาน
-                    var defaultOrder = { "ประกาศ": 1, "ขั้นตอนการทำงาน": 2, "นโยบาย": 3, "รวมภาพสื่อประชาสัมพันธ์": 4, "แฟ้มประชาสัมพันธ์": 4, "ประชาสัมพันธ์": 5 };
+                    var defaultOrder = {
+                        "ขั้นตอนการทำงาน": 1,
+                        "นโยบาย": 2,
+                        "ประกาศ": 3,
+                        "Sprinkle Training": 4,
+                        "คนดีสปริงเคิล": 5,
+                        "โครงการ 3 ลด": 6,
+                        "แฟ้มประชาสัมพันธ์": 7,
+                        "รวมภาพสื่อประชาสัมพันธ์": 8,
+                        "ประชาสัมพันธ์": 9
+                    };
                     if (systemConfigData && systemConfigData.main_folder_order) {
                         try {
                             var savedCustom = (typeof systemConfigData.main_folder_order === 'string') ? JSON.parse(systemConfigData.main_folder_order) : systemConfigData.main_folder_order;
@@ -7885,14 +7956,29 @@ function openAudienceFolder(aud) {
                 }
             }
 
+            var orderMap = {
+                "ขั้นตอนการทำงาน": 1,
+                "นโยบาย": 2,
+                "ประกาศ": 3,
+                "Sprinkle Training": 4,
+                "คนดีสปริงเคิล": 5,
+                "โครงการ 3 ลด": 6,
+                "แฟ้มประชาสัมพันธ์": 7,
+                "รวมภาพสื่อประชาสัมพันธ์": 8,
+                "ประชาสัมพันธ์": 9
+            };
+
             var html = '<option value="all">📁 ทุกโฟลเดอร์ / แฟ้ม (' + totalCount + ')</option>';
             var sortedFolders = Object.keys(folderCounts).sort(function(a, b) {
+                var orderA = orderMap[a] || 99;
+                var orderB = orderMap[b] || 99;
+                if (orderA !== orderB) return orderA - orderB;
                 return a.localeCompare(b, 'th');
             });
 
             for (var j = 0; j < sortedFolders.length; j++) {
                 var fName = sortedFolders[j];
-                var icon = (typeof getMainFolderIcon === 'function') ? getMainFolderIcon(fName) : '📂';
+                var icon = (typeof getMainFolderIcon === 'function') ? getMainFolderIcon(fName) : '📁';
                 html += '<option value="' + fName.replace(/"/g, '&quot;') + '">' + icon + ' ' + fName + ' (' + folderCounts[fName] + ')</option>';
             }
 
@@ -12513,6 +12599,7 @@ function refreshData() {
     showLoading("กำลังดึงข้อมูลล่าสุดจากเซิร์ฟเวอร์...");
     try {
         localStorage.removeItem('sprinkle_cached_app_data');
+        localStorage.removeItem('sprinkle_cached_app_data_v3');
     } catch(e) {}
     loadData(function(success, err) {
         hideLoading();

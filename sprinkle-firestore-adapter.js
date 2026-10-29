@@ -91,16 +91,31 @@
             }
             // Auto-heal legacy corrupted mainFolder strings
             if (data.mainFolder && typeof data.mainFolder === 'string') {
-                var mf = data.mainFolder;
-                if (mf.indexOf('\uFFFD') !== -1 || mf.indexOf('') !== -1) {
+                var mf = data.mainFolder.trim();
+                if (mf.indexOf('\uFFFD') !== -1 || mf.indexOf('') !== -1 || mf.length < 3) {
                     if (mf.indexOf('กาศ') !== -1 || mf.indexOf('ประก') !== -1) data.mainFolder = 'ประกาศ';
                     else if (mf.indexOf('นโยบาย') !== -1) data.mainFolder = 'นโยบาย';
                     else if (mf.indexOf('คนดี') !== -1) data.mainFolder = 'คนดีสปริงเคิล';
                     else if (mf.indexOf('ลด') !== -1) data.mainFolder = 'โครงการ 3 ลด';
+                    else if (mf.indexOf('รวมภาพ') !== -1) data.mainFolder = 'รวมภาพสื่อประชาสัมพันธ์';
                     else if (mf.indexOf('สัมพันธ์') !== -1 || mf.indexOf('แฟ้ม') !== -1) data.mainFolder = 'แฟ้มประชาสัมพันธ์';
                     else if (mf.indexOf('Training') !== -1) data.mainFolder = 'Sprinkle Training';
                     else data.mainFolder = 'ขั้นตอนการทำงาน';
                 }
+            }
+            // Auto-heal legacy corrupted category strings
+            if (data.category && typeof data.category === 'string' && (data.category.indexOf('\uFFFD') !== -1 || data.category.indexOf('') !== -1)) {
+                var cat = data.category;
+                if (cat.indexOf('ขั้นตอน') !== -1 || cat.indexOf('ปฎิบัติ') !== -1) data.category = 'ขั้นตอนปฎิบัติงาน';
+                else if (cat.indexOf('2568') !== -1) data.category = 'ประกาศฝ่ายบริการจัดส่ง ประจำปี 2568';
+                else if (cat.indexOf('2569') !== -1) data.category = 'ประกาศฝ่ายบริการจัดส่ง ประจำปี 2569';
+                else if (cat.indexOf('2567') !== -1) data.category = 'ประกาศฝ่ายบริการจัดส่ง ประจำปี 2567';
+                else if (cat.indexOf('2566') !== -1) data.category = 'ประกาศฝ่ายบริการจัดส่ง ประจำปี 2566';
+                else if (cat.indexOf('2560') !== -1) data.category = 'ประกาศฝ่ายบริการจัดส่ง ประจำปี 2560';
+                else if (cat.indexOf('คู่มือ') !== -1) data.category = 'คู่มือผู้ประกอบการ';
+                else if (cat.indexOf('รับสมัคร') !== -1) data.category = 'รับสมัครผู้ประกอบการ';
+                else if (cat.indexOf('ปลอดภัย') !== -1) data.category = 'โครงการ คลังปลอดฝุ่น และปลอดภัย';
+                else if (cat.indexOf('อื่น') !== -1) data.category = 'ประกาศอื่นๆ';
             }
             items.push(data);
         });
@@ -755,6 +770,9 @@
                 return Promise.all(batchPromises).then(function() {
                     try {
                         localStorage.removeItem('sprinkle_cached_app_data');
+                        localStorage.removeItem('sprinkle_cached_app_data_v1');
+                        localStorage.removeItem('sprinkle_cached_app_data_v2');
+                        localStorage.removeItem('sprinkle_cached_app_data_v3');
                     } catch(e) {}
                     if (typeof applyInitialData === 'function') {
                         applyInitialData(fresh);
