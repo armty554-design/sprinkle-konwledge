@@ -2826,11 +2826,12 @@ function deactivatePushToken(token, reason) {
 }
 
 // 3. ข้อมูลเริ่มต้นสำหรับเชื่อมต่อ Firebase Admin SDK (Service Account)
+// หมายเหตุ: Private Key ถูกจัดเก็บอย่างปลอดภัยใน Script Properties (FCM_SERVICE_ACCOUNT)
 var DEFAULT_FCM_SERVICE_ACCOUNT = {
   "type": "service_account",
   "project_id": "studio-8742716914-acc69",
-  "private_key_id": "d72518141eddc24897e7b12508d04d0449f98571",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCqa5/ceKnHNz/P\nI3PNztHT305dk3oE45fNX30rrztsXjKbQIQpDEHndUUmpo63nO4jhFmWdSge0YC4\njVi0P/nyaW6+Ylnb801eJF9YLKTETlL2Ad1LXD1JAhWa14DE7T40B8zHuAG9vjr+\n7U3w5Z9S6TLnJQK+34z7b6pAmvZ6AICNGzZZR+8giZWb4Icgf7INd1OV05FCNc6P\ny8h2unB0u0vnj8xAwCe4MukCMpe866avkKYJ9zK+fLK2mcQmbzkGMHVh5qUrpQqV\nlMX8tCYI3xyFui7OkUyTGDCFbEmxHy1B8lC2zv4gtDyWREAQ/uBClgww++4FTUxr\nMyvjMMU7AgMBAAECggEAEC5IzuecAyDBS7sLf0KAVLQSnjrm7njnjGXhHhk0tKza\n9DezdKxHw6C0UJ+m1FMvnyqtUOZNyWNN6/frsK2UX0pYa/Ytnv8iXOpqLRaMDGF9\nagMyTjnzTa/Hely0yr3V1p3Y+SuE6s2Zj2PbryA2OOqQXTb75ECYg7UN/rVX6qxi\n1FKJ0pM18Y2CfypUe5mxV+qz56lHIlU/mboq93aPSANdhaK2CHe0iEHMJCr044fV\n7vxSw7pLch+Hzo4A+ILLPFQbEGkuIPnOGY+/FbOw5PU7oFdF+jTLSXOTGgz/6oAg\nZ5b9lRhDJ9Yh8aE+MjBLuaktDgFX8XobrOr3oLs+FQKBgQDaVkxN7tXOVeOK1lGq\nEx8+W30N2iOnLq9JYTzEt6qZ4fhn7K7c6z0Vq0yaabVdyNCzFOLACkYc/hDBUgKa\nWSeW0f8M2rjJ5tGXe7zYaagzWjiguFFWZyM0+A1pTiz2Rbv3LB/7V09bNBk8LpJw\npZ0DtnyCj7G7Kebx54BLeCBlzQKBgQDH0Vbfe8kO7PEKRVQg6s+jSncE8Q9j+PlJ\nLb7QAZCzzl5ca5hv/sbkOIlk6oU0lc0C6oC8Ye8eVTrNiPeI+yQjq20bvNZo3qzw\nQeaMMhtpvPuUkPT6p56TwlZkqEc0qqPeSAnd5WC6rdqDBFoVjBGzp6XR0zf5rath\nxldgizNPJwKBgF8SPs2clvruyVL2Ob8d7nffrJdwih/NI0SHk8dw1leFXv4ZwJav\n0/xwh72hE/lPbRjdmlLW5mrPcopLZJjDA4sXy8BUKSy5VkBo//UYJMafnZLWT4yZ\nAmqZLHXTNZ7TBKL/UrnF7ecfy3E6MkfcxX8NYjAT0+dUupxRGrtCBpFtAoGBAMPO\n8pCiHw7PRg3Ijn6LW9oqeKORDoHrU25Qs7HmNsTcsD9k+MaXJpQyiwEniE1VlscK\nwgjY95gD8VHErL3BTVLfBFawIHQ38cSm76Pm3lIp7WdS/Z47b/xf7oVJGi4UIe0L\nLxARXU7SW1UUiKqgzh/9Y1NQ5oN3moB/+tQS1L71AoGAe+5Oi5zFqKDnj1lRFkt7\nE5Q+OcQuXXb50KK5FSa4rUmOCwyb8OBTVXFfEUxZaG10bNkuKvsaYiXLU1BTxxj4\ncIx4dsp6cXz1aTKQtsVEAOTAHtllanE5i9mOHKGu1pDGqNIY/09Q4rWRNDH8Nku6\n3TnL3Lzx8J7IVYDqaYIudZc=\n-----END PRIVATE KEY-----\n",
+  "private_key_id": "433d204a570dcfdd190bebeac11c0e763662ddb9",
+  "private_key": "",
   "client_email": "firebase-adminsdk-fbsvc@studio-8742716914-acc69.iam.gserviceaccount.com",
   "client_id": "103819111099633262256",
   "auth_uri": "https://accounts.google.com/o/oauth2/auth",
@@ -2843,12 +2844,19 @@ var DEFAULT_FCM_SERVICE_ACCOUNT = {
 // ฟังก์ชันสร้าง OAuth2 Access Token สำหรับ FCM v1 ด้วย Service Account (พร้อมระบบ Caching)
 function getFCMAccessTokenFromServiceAccount(sa) {
   try {
+    if (!sa || !sa.private_key) {
+      var props = (typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties) ? PropertiesService.getScriptProperties() : null;
+      var fcmJson = props ? props.getProperty("FCM_SERVICE_ACCOUNT") : null;
+      if (fcmJson) {
+        try { sa = JSON.parse(fcmJson); } catch(eParse) {}
+      }
+    }
     if (!sa) sa = DEFAULT_FCM_SERVICE_ACCOUNT;
     if (!sa || !sa.client_email || !sa.private_key) {
-      return { token: null, error: "Service Account configuration is invalid" };
+      return { token: null, error: "Service Account configuration is invalid or missing private key in Script Properties" };
     }
     
-    var cacheKey = "fcm_access_token_" + (sa.project_id || "studio-8742716914-acc69");
+    var cacheKey = "fcm_access_token_" + (sa.project_id || "studio-8742716914-acc69") + "_" + (sa.private_key_id || "v1");
     var cache = null;
     try {
       if (typeof CacheService !== 'undefined' && CacheService && CacheService.getScriptCache) {
@@ -2910,7 +2918,7 @@ function getFCMAccessTokenFromServiceAccount(sa) {
 function invalidateFCMAccessToken(sa) {
   try {
     if (!sa) sa = DEFAULT_FCM_SERVICE_ACCOUNT;
-    var cacheKey = "fcm_access_token_" + (sa.project_id || "studio-8742716914-acc69");
+    var cacheKey = "fcm_access_token_" + (sa.project_id || "studio-8742716914-acc69") + "_" + (sa.private_key_id || "v1");
     if (typeof CacheService !== 'undefined' && CacheService && CacheService.getScriptCache) {
       CacheService.getScriptCache().remove(cacheKey);
     }
@@ -3749,7 +3757,15 @@ function executeBroadcastPush(params) {
   var fcmServiceAccountJson = props ? props.getProperty("FCM_SERVICE_ACCOUNT") : null;
   var sa = DEFAULT_FCM_SERVICE_ACCOUNT;
   if (fcmServiceAccountJson && fcmServiceAccountJson.trim() !== "") {
-    try { sa = JSON.parse(fcmServiceAccountJson); } catch(eParse) {}
+    try { 
+      var parsedSa = JSON.parse(fcmServiceAccountJson);
+      // หากคีย์ใน Properties เก่ากว่า ให้ใช้คีย์หลักล่าสุดใน DEFAULT_FCM_SERVICE_ACCOUNT
+      if (parsedSa && parsedSa.private_key_id === DEFAULT_FCM_SERVICE_ACCOUNT.private_key_id) {
+        sa = parsedSa;
+      } else {
+        props.setProperty("FCM_SERVICE_ACCOUNT", JSON.stringify(DEFAULT_FCM_SERVICE_ACCOUNT));
+      }
+    } catch(eParse) {}
   }
   
   var tokenObj = getFCMAccessTokenFromServiceAccount(sa);
