@@ -1,10 +1,11 @@
 /**
  * =================================================================================
- * Sprinkle Knowledge - High Performance Cloud Firestore Adapter
- * Milestone 4: Modern Standalone Web App Backend (Decoupled from Google Apps Script)
+ * Sprinkle Knowledge - High Performance Cloud Firestore Adapter with Dual-Sync
+ * Milestone 4: Modern Standalone Web App Backend with Google Sheets Dual-Sync
  *
  * Provides sub-100ms ultra-fast response times, offline caching, and real-time data
- * directly connected to Google Cloud Firestore (Region: asia-southeast1 / Singapore).
+ * directly connected to Google Cloud Firestore (Region: asia-southeast1 / Singapore),
+ * with non-blocking background synchronization to Google Sheets.
  * =================================================================================
  */
 
@@ -43,6 +44,41 @@
         console.warn("[Firestore] Init warning:", e);
     }
 
+    // 2. Dual-Sync Configuration & Background Dispatcher
+    var GAS_API_URL = "https://script.google.com/macros/s/AKfycbw8005H1Go8ygULx_eni6Vrk4UmrodioiI6KQm99jh4epcaQKrmT9IylpjLFvKLMZQw/exec";
+    var isDualSyncEnabled = true;
+
+    function syncToGoogleSheets(functionName, args) {
+        if (!isDualSyncEnabled || !GAS_API_URL) return;
+        try {
+            var payload = {
+                functionName: functionName,
+                arguments: Array.isArray(args) ? args : [args]
+            };
+            fetch(GAS_API_URL, {
+                method: 'POST',
+                mode: 'cors',
+                credentials: 'omit',
+                cache: 'no-store',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data && data.success) {
+                    console.log("📊 [Dual-Sync ✅] Synced '" + functionName + "' to Google Sheets successfully.");
+                } else {
+                    console.warn("⚠️ [Dual-Sync ⚠️] Google Sheets response:", data);
+                }
+            })
+            .catch(function(err) {
+                console.warn("⚠️ [Dual-Sync Warning] Google Sheets sync failed in background:", err.message);
+            });
+        } catch (e) {
+            console.warn("⚠️ [Dual-Sync Error]:", e);
+        }
+    }
+
     // Helper: Safely convert snapshot to array of plain objects
     function snapshotToArray(snapshot) {
         var items = [];
@@ -61,6 +97,15 @@
     var SprinkleFirestore = {
         isAvailable: function() {
             return db !== null;
+        },
+
+        isDualSyncActive: function() {
+            return isDualSyncEnabled;
+        },
+
+        setDualSync: function(enabled) {
+            isDualSyncEnabled = !!enabled;
+            console.log("📊 [Dual-Sync] Status changed to:", isDualSyncEnabled);
         },
 
         // 1. Initial Data Batch Load (⚡ Sub-250ms replacement for GAS getInitialAppData)
@@ -108,6 +153,39 @@
                     permissions: permissions,
                     config: config
                 };
+            });
+        },
+
+        // Read helpers for specific collections
+        getKnowledgeData: function() {
+            if (!db) return Promise.reject(new Error("Firestore is not initialized"));
+            return db.collection('knowledge').get().then(snapshotToArray);
+        },
+
+        getAnnouncements: function() {
+            if (!db) return Promise.reject(new Error("Firestore is not initialized"));
+            return db.collection('announcements').get().then(snapshotToArray);
+        },
+
+        getQAData: function() {
+            if (!db) return Promise.reject(new Error("Firestore is not initialized"));
+            return db.collection('qa').get().then(snapshotToArray);
+        },
+
+        getAllEmployees: function() {
+            if (!db) return Promise.reject(new Error("Firestore is not initialized"));
+            return db.collection('employees').get().then(snapshotToArray);
+        },
+
+        getAllRolePermissions: function() {
+            if (!db) return Promise.reject(new Error("Firestore is not initialized"));
+            return db.collection('permissions').get().then(snapshotToArray);
+        },
+
+        getSystemConfig: function() {
+            if (!db) return Promise.reject(new Error("Firestore is not initialized"));
+            return db.collection('config').doc('main').get().then(function(doc) {
+                return doc.exists ? doc.data() : {};
             });
         },
 
@@ -225,14 +303,7 @@
             }
         },
 
-        // 5. Announcements Management
-        getAnnouncements: function() {
-            if (!db) return Promise.reject(new Error("Firestore is not initialized"));
-            return db.collection('announcements').get().then(function(snap) {
-                return snapshotToArray(snap);
-            });
-        },
-
+        // 5. Announcements Management with Dual-Sync
         addAnnouncement: function(data) {
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var docId = String(data.id || ("ann_" + Date.now()));
@@ -242,6 +313,7 @@
             data.status = data.status || "เปิดใช้งาน";
 
             return db.collection('announcements').doc(docId).set(data).then(function() {
+                syncToGoogleSheets('addAnnouncement', [data]);
                 return { success: true, id: docId, message: "เพิ่มประกาศข่าวสารเรียบร้อยแล้ว" };
             });
         },
@@ -252,6 +324,7 @@
             if (!docId) return Promise.reject(new Error("Missing announcement id"));
 
             return db.collection('announcements').doc(docId).set(data, { merge: true }).then(function() {
+                syncToGoogleSheets('updateAnnouncement', [data]);
                 return { success: true, message: "บันทึกการแก้ไขประกาศเรียบร้อยแล้ว" };
             });
         },
@@ -260,6 +333,7 @@
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var docId = String(id || "");
             return db.collection('announcements').doc(docId).delete().then(function() {
+                syncToGoogleSheets('deleteAnnouncement', [docId]);
                 return { success: true, message: "ลบประกาศเรียบร้อยแล้ว" };
             });
         },
@@ -272,6 +346,7 @@
                 if (!doc.exists) throw new Error("ไม่พบประกาศนี้");
                 var current = !!doc.data().isPinned;
                 return ref.update({ isPinned: !current }).then(function() {
+                    syncToGoogleSheets('toggleAnnouncementPin', [docId]);
                     return { success: true, isPinned: !current };
                 });
             });
@@ -286,6 +361,7 @@
                 var current = doc.data().status || "เปิดใช้งาน";
                 var next = (current === "เปิดใช้งาน") ? "ปิดใช้งาน" : "เปิดใช้งาน";
                 return ref.update({ status: next }).then(function() {
+                    syncToGoogleSheets('toggleAnnouncementStatus', [docId]);
                     return { success: true, status: next };
                 });
             });
@@ -297,6 +373,7 @@
             return db.collection('announcements').doc(docId).update({
                 displayOrder: Number(newOrder)
             }).then(function() {
+                syncToGoogleSheets('updateAnnouncementOrder', [docId, Number(newOrder)]);
                 return { success: true };
             });
         },
@@ -316,11 +393,12 @@
                 }
             }
             return batch.commit().then(function() {
+                syncToGoogleSheets('reorderAnnouncements', [reorderList]);
                 return { success: true };
             });
         },
 
-        // 6. Knowledge Management
+        // 6. Knowledge Management with Dual-Sync
         addKnowledge: function(data) {
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var docId = String(data.id || ("k_" + Date.now()));
@@ -330,6 +408,7 @@
             data.status = data.status || "เปิดใช้งาน";
 
             return db.collection('knowledge').doc(docId).set(data).then(function() {
+                syncToGoogleSheets('addKnowledge', [data]);
                 return { success: true, id: docId, message: "บันทึกเนื้อหาความรู้เรียบร้อยแล้ว" };
             });
         },
@@ -340,6 +419,7 @@
             if (!docId) return Promise.reject(new Error("Missing knowledge id"));
 
             return db.collection('knowledge').doc(docId).set(data, { merge: true }).then(function() {
+                syncToGoogleSheets('updateKnowledge', [data]);
                 return { success: true, message: "แก้ไขข้อมูลเรียบร้อยแล้ว" };
             });
         },
@@ -348,6 +428,7 @@
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var docId = String(id || "");
             return db.collection('knowledge').doc(docId).delete().then(function() {
+                syncToGoogleSheets('deleteKnowledge', [docId]);
                 return { success: true, message: "ลบข้อมูลเรียบร้อยแล้ว" };
             });
         },
@@ -360,6 +441,7 @@
                 if (!doc.exists) throw new Error("ไม่พบเนื้อหาความรู้นี้");
                 var current = !!doc.data().isPinned;
                 return ref.update({ isPinned: !current }).then(function() {
+                    syncToGoogleSheets('toggleKnowledgePin', [docId]);
                     return { success: true, isPinned: !current };
                 });
             });
@@ -371,6 +453,7 @@
             return db.collection('config').doc('main').set({
                 main_folder_order: orderJson
             }, { merge: true }).then(function() {
+                syncToGoogleSheets('saveKnowledgeFolderOrder', [folderOrderArray]);
                 return { success: true, message: "บันทึกลำดับโฟลเดอร์เรียบร้อยแล้ว" };
             });
         },
@@ -390,6 +473,7 @@
                 }
             }
             return batch.commit().then(function() {
+                syncToGoogleSheets('updateKnowledgeOrdersBulk', [ordersList]);
                 return { success: true };
             });
         },
@@ -400,11 +484,12 @@
             return db.collection('knowledge').doc(docId).update({
                 displayOrder: Number(newOrder)
             }).then(function() {
+                syncToGoogleSheets('updateKnowledgeOrderDirect', [docId, Number(newOrder)]);
                 return { success: true };
             });
         },
 
-        // 7. Q&A Management
+        // 7. Q&A Management with Dual-Sync
         submitQuestion: function(qData) {
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var docId = String(qData.id || ("qa_" + Date.now()));
@@ -413,6 +498,7 @@
             qData.askedTime = qData.askedTime || new Date().toISOString();
 
             return db.collection('qa').doc(docId).set(qData).then(function() {
+                syncToGoogleSheets('addQuestion', [qData]);
                 return { success: true, id: docId, message: "ส่งคำถามเรียบร้อยแล้ว" };
             });
         },
@@ -426,11 +512,12 @@
                 answeredTime: new Date().toISOString(),
                 status: "ตอบแล้ว"
             }).then(function() {
+                syncToGoogleSheets('answerQuestion', [docId, String(answer || ""), String(answeredBy || "")]);
                 return { success: true, message: "บันทึกคำตอบเรียบร้อยแล้ว" };
             });
         },
 
-        // 8. Employee Registration & Management
+        // 8. Employee Registration & Management with Dual-Sync
         checkRegisterEmpId: function(empId) {
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var targetId = String(empId || "").trim();
@@ -463,6 +550,7 @@
                 approvalStatus: "อนุมัติแล้ว",
                 registeredDate: new Date().toISOString()
             }, { merge: true }).then(function() {
+                syncToGoogleSheets('registerEmployee', [targetId, password, profilePic, branch, carNumber]);
                 return { success: true, message: "ลงทะเบียนและเปิดใช้งานบัญชีสำเร็จ" };
             });
         },
@@ -489,6 +577,7 @@
             empData.registeredDate = empData.registeredDate || new Date().toISOString();
 
             return db.collection('employees').doc(docId).set(empData).then(function() {
+                syncToGoogleSheets('registerNewMember', [empData]);
                 return { success: true, message: "เพิ่มข้อมูลสมาชิกเรียบร้อยแล้ว" };
             });
         },
@@ -499,6 +588,11 @@
             return db.collection('employees').doc(docId).update({
                 approvalStatus: String(status || "อนุมัติแล้ว")
             }).then(function() {
+                if (status === "อนุมัติแล้ว") {
+                    syncToGoogleSheets('approveEmployee', [docId]);
+                } else if (status === "ไม่อนุมัติ") {
+                    syncToGoogleSheets('rejectEmployee', [docId]);
+                }
                 return { success: true, message: "อัปเดตสถานะเรียบร้อยแล้ว" };
             });
         },
@@ -509,6 +603,7 @@
             return db.collection('employees').doc(docId).update({
                 role: String(role || "พนักงาน")
             }).then(function() {
+                syncToGoogleSheets('updateEmployee', [{ empId: docId, role: role }]);
                 return { success: true, message: "อัปเดตตำแหน่งงานเรียบร้อยแล้ว" };
             });
         },
@@ -517,36 +612,60 @@
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var docId = String(empId || "").trim();
             return db.collection('employees').doc(docId).delete().then(function() {
+                syncToGoogleSheets('deleteEmployee', [docId]);
                 return { success: true, message: "ลบสมาชิกเรียบร้อยแล้ว" };
             });
         },
 
-        // 9. System Config & Permissions
-        saveSystemConfig: function(configObj) {
+        // 9. System Config & Permissions with Dual-Sync
+        saveSystemConfig: function(systemStatus, notebooklmUrl, autoAnswerStatus) {
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
-            return db.collection('config').doc('main').set(configObj, { merge: true }).then(function() {
-                return { success: true, message: "บันทึกการตั้งค่าระบบเรียบร้อยแล้ว" };
-            });
-        },
-
-        saveRolePermissions: function(permissionsArray) {
-            if (!db) return Promise.reject(new Error("Firestore is not initialized"));
-            if (!Array.isArray(permissionsArray)) return Promise.resolve({ success: true });
-
-            var batch = db.batch();
-            for (var i = 0; i < permissionsArray.length; i++) {
-                var perm = permissionsArray[i];
-                if (perm && perm.role) {
-                    var ref = db.collection('permissions').doc(encodeURIComponent(perm.role));
-                    batch.set(ref, perm, { merge: true });
-                }
+            var configObj = {};
+            if (typeof systemStatus === 'object' && systemStatus !== null) {
+                configObj = systemStatus;
+            } else {
+                if (systemStatus !== undefined) configObj.system_status = systemStatus;
+                if (notebooklmUrl !== undefined) configObj.notebooklm_url = notebooklmUrl;
+                if (autoAnswerStatus !== undefined) configObj.auto_answer_status = autoAnswerStatus;
             }
-            return batch.commit().then(function() {
-                return { success: true, message: "บันทึกสิทธิ์ตำแหน่งงานเรียบร้อยแล้ว" };
+            return db.collection('config').doc('main').set(configObj, { merge: true }).then(function() {
+                syncToGoogleSheets('saveSystemConfig', [systemStatus, notebooklmUrl, autoAnswerStatus]);
+                return "บันทึกการตั้งค่าระบบหลักเรียบร้อยแล้ว";
             });
         },
 
-        // 10. Push Tokens Management
+        saveRolePermissions: function(role, canEdit, canToggle) {
+            if (!db) return Promise.reject(new Error("Firestore is not initialized"));
+            if (Array.isArray(role)) {
+                // Bulk array of permissions
+                var batch = db.batch();
+                for (var i = 0; i < role.length; i++) {
+                    var perm = role[i];
+                    if (perm && perm.role) {
+                        var ref = db.collection('permissions').doc(encodeURIComponent(perm.role));
+                        batch.set(ref, perm, { merge: true });
+                    }
+                }
+                return batch.commit().then(function() {
+                    syncToGoogleSheets('saveRolePermissions', [role]);
+                    return "บันทึกสิทธิ์ตำแหน่งงานเรียบร้อยแล้ว";
+                });
+            }
+
+            // Single role signature: (role, canEdit, canToggle)
+            var roleStr = String(role || "").trim();
+            var roleRef = db.collection('permissions').doc(encodeURIComponent(roleStr));
+            return roleRef.set({
+                role: roleStr,
+                canEdit: !!canEdit,
+                canToggle: !!canToggle
+            }, { merge: true }).then(function() {
+                syncToGoogleSheets('saveRolePermissions', [roleStr, !!canEdit, !!canToggle]);
+                return "บันทึกสิทธิ์ตำแหน่งงานเรียบร้อยแล้ว";
+            });
+        },
+
+        // 10. Push Tokens Management with Dual-Sync
         registerPushToken: function(token, empId, deviceInfo) {
             if (!db) return Promise.resolve({ success: false });
             var tok = String(token || "").trim();
@@ -560,6 +679,7 @@
                 status: "active",
                 updatedAt: new Date().toISOString()
             }, { merge: true }).then(function() {
+                syncToGoogleSheets('registerPushToken', [tok, String(empId || ""), String(deviceInfo || "")]);
                 return { success: true };
             }).catch(function(err) {
                 console.warn("registerPushToken warning:", err);
@@ -574,6 +694,7 @@
 
             var docId = encodeURIComponent(tok.slice(0, 100));
             return db.collection('pushTokens').doc(docId).delete().then(function() {
+                syncToGoogleSheets('removePushToken', [tok]);
                 return { success: true };
             }).catch(function() {
                 return { success: false };
@@ -591,6 +712,47 @@
                 };
             }).catch(function() {
                 return { success: true, count: 0, matchedCount: 0 };
+            });
+        },
+
+        // 11. Manual Bidirectional Sync from Google Sheets to Firestore
+        syncFromGoogleSheets: function() {
+            if (!GAS_API_URL) return Promise.reject(new Error("Missing GAS API URL"));
+            if (typeof showLoading === 'function') showLoading("กำลังดึงข้อมูลล่าสุดจาก Google Sheets...");
+
+            return fetch(GAS_API_URL, {
+                method: 'POST',
+                mode: 'cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ functionName: 'getInitialAppData', arguments: [] })
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(resData) {
+                if (!resData || !resData.success || !resData.result) {
+                    throw new Error(resData && resData.error ? resData.error : "Failed to fetch from Google Sheets");
+                }
+                var fresh = resData.result;
+                
+                // Batch update Firestore collections
+                var batchPromises = [];
+                if (fresh.config) {
+                    batchPromises.push(db.collection('config').doc('main').set(fresh.config, { merge: true }));
+                }
+
+                return Promise.all(batchPromises).then(function() {
+                    try {
+                        localStorage.removeItem('sprinkle_cached_app_data');
+                    } catch(e) {}
+                    if (typeof applyInitialData === 'function') {
+                        applyInitialData(fresh);
+                    }
+                    if (typeof hideLoading === 'function') hideLoading();
+                    return { success: true, message: "ซิงค์ข้อมูลจาก Google Sheets เข้าสู่ระบบเรียบร้อยแล้ว!" };
+                });
+            })
+            .catch(function(err) {
+                if (typeof hideLoading === 'function') hideLoading();
+                throw err;
             });
         }
     };

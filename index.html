@@ -2645,6 +2645,22 @@
                     <button onclick="saveSysConfigData()" class="w-full bg-green-600 hover:bg-green-700 text-white p-4 rounded-xl font-bold text-lg transition-all active:scale-95">
                         💾 บันทึกการตั้งค่าระบบหลัก
                     </button>
+                    <!-- Dual-Sync Status & Management -->
+                    <div class="mt-6 pt-5 border-t border-gray-200">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-blue-100 shadow-sm">
+                            <div>
+                                <h4 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                                    <span>🔄</span> ระบบ Dual-Sync ซิงค์ลง Google Sheets อัตโนมัติ
+                                </h4>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    สถานะ: <span class="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">🟢 เปิดใช้งาน (Active)</span> — ทุกการเพิ่ม/แก้ไขจะลง Cloud Firestore และซิงค์ลง Google Sheets อัตโนมัติ
+                                </p>
+                            </div>
+                            <button type="button" onclick="handleManualSheetsSync()" class="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-xs font-bold shadow hover:from-blue-700 hover:to-indigo-700 transition flex items-center justify-center gap-1.5 active:scale-95 shrink-0">
+                                <span>📥</span> ซิงค์ข้อมูลจาก Google Sheets
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -10895,6 +10911,24 @@ function saveSysConfigData() {
         alert(msg);
         loadData();
     }).saveSystemConfig(systemStatus, notebooklmUrl, autoAnswerStatus);
+}
+
+function handleManualSheetsSync() {
+    if (!confirm("คุณต้องการดึงข้อมูลล่าสุดทั้งหมดจาก Google Sheets มาอัปเดตลงระบบเว็บใช่หรือไม่?")) {
+        return;
+    }
+    if (window.SprinkleFirestore && typeof window.SprinkleFirestore.syncFromGoogleSheets === 'function') {
+        window.SprinkleFirestore.syncFromGoogleSheets()
+            .then(function(res) {
+                alert("🎉 " + res.message);
+                if (typeof refreshData === 'function') refreshData();
+            })
+            .catch(function(err) {
+                alert("❌ การซิงค์ขัดข้อง: " + err.message);
+            });
+    } else {
+        alert("ระบบ Cloud Firestore Adapter ยังไม่พร้อมใช้งาน");
+    }
 }
 
 function renderViewStatistics() {
