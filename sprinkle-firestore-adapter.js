@@ -653,6 +653,59 @@
             });
         },
 
+        getEmployeeInfoForRegistration: function(empId) {
+            if (!db) return Promise.reject(new Error("Firestore is not initialized"));
+            var targetId = String(empId || "").trim();
+            if (!targetId) return Promise.resolve({ success: false, message: "กรุณาระบุรหัสเพื่อค้นหา" });
+
+            return db.collection('employees').doc(targetId).get().then(function(doc) {
+                if (doc.exists) {
+                    var emp = doc.data() || {};
+                    var name = emp.name || "คุณพนักงาน";
+                    var role = emp.role || "พนักงาน";
+                    var branch = emp.branch || "";
+                    var carNumber = emp.carNumber || "-";
+                    var approvalStatus = emp.approvalStatus || "อนุมัติแล้ว";
+                    var currentPwd = String(emp.password !== undefined && emp.password !== null ? emp.password : "").trim();
+                    var isRegistered = (currentPwd !== "" && currentPwd !== "1234");
+
+                    return {
+                        success: true,
+                        found: true,
+                        empId: targetId,
+                        name: name,
+                        role: role,
+                        branch: branch,
+                        carNumber: carNumber,
+                        approvalStatus: approvalStatus,
+                        isRegistered: isRegistered
+                    };
+                }
+                return { success: false, notFound: true, message: "ไม่พบรหัส " + targetId + " ในฐานข้อมูลพนักงาน" };
+            });
+        },
+
+        resetUserPassword: function(empId, newPassword) {
+            if (!db) return Promise.reject(new Error("Firestore is not initialized"));
+            var targetId = String(empId || "").trim();
+            var newPwd = String(newPassword || "").trim();
+
+            if (!targetId) return Promise.resolve({ success: false, message: "กรุณาระบุรหัสพนักงาน" });
+            if (!newPwd || newPwd === "1234") return Promise.resolve({ success: false, message: "กรุณาระบุรหัสผ่านใหม่ (ไม่สามารถใช้ 1234 ได้)" });
+
+            var ref = db.collection('employees').doc(targetId);
+            return ref.get().then(function(doc) {
+                if (!doc.exists) return { success: false, message: "ไม่พบรหัสพนักงานนี้ในระบบ" };
+                return ref.update({
+                    password: newPwd,
+                    passwordUpdatedAt: new Date().toISOString()
+                }).then(function() {
+                    syncToGoogleSheets('changeUserPassword', [targetId, newPwd]);
+                    return { success: true, message: "ตั้งรหัสผ่านใหม่สำเร็จเรียบร้อยแล้ว!" };
+                });
+            });
+        },
+
         registerEmployee: function(empId, password, profilePic, branch, carNumber) {
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var targetId = String(empId || "").trim();
@@ -889,6 +942,8 @@
     SprinkleFirestore.rejectEmployee = function(empId) {
         return SprinkleFirestore.updateMemberStatus(empId, "ไม่อนุมัติ");
     };
+    SprinkleFirestore.changeUserPassword = SprinkleFirestore.resetUserPassword;
+    SprinkleFirestore.changePassword = SprinkleFirestore.resetUserPassword;
 
     // Export to global namespace
     window.SprinkleFirestore = SprinkleFirestore;

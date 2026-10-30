@@ -1442,6 +1442,8 @@ function changeUserPassword(empId, newPassword) {
   }
 }
 
+var resetUserPassword = changeUserPassword;
+
 // 20. ลบพนักงาน
 function deleteEmployee(empId) {
   try {
@@ -4142,7 +4144,11 @@ function doPost(e) {
       "saveKnowledgeFolderOrder": saveKnowledgeFolderOrder,
       "updateKnowledgeOrdersBulk": updateKnowledgeOrdersBulk,
       "toggleKnowledgePin": toggleKnowledgePin,
-      "updateKnowledgeOrderDirect": updateKnowledgeOrderDirect
+      "updateKnowledgeOrderDirect": updateKnowledgeOrderDirect,
+      "resetUserPassword": changeUserPassword,
+      "changeUserPassword": changeUserPassword,
+      "getEmployeeInfoForRegistration": getEmployeeInfoForRegistration,
+      "resetEmployeePassword": resetEmployeePassword
     };
     
     var fn = null;

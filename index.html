@@ -986,9 +986,17 @@
                 👉 เข้าสู่ระบบ
             </button>
 
+            <!-- แถบทางเลือกลืมรหัสผ่าน (Forgot Password Option) -->
+            <div class="mt-3.5 mb-1 flex items-center justify-center">
+                <a href="javascript:void(0)" onclick="showForgotPasswordForm()" 
+                   class="text-blue-600 hover:text-blue-800 text-sm sm:text-base font-extrabold flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-blue-50 transition-all">
+                    <span>🔑</span> <span>ลืมรหัสผ่าน? กดตั้งรหัสผ่านใหม่ที่นี่</span>
+                </a>
+            </div>
+
             <!-- ปุ่มสมัครใหม่ / ยังไม่มีรหัสผ่าน (ไม่ต้องกรอก 1234) -->
             <button onclick="showRegistrationForm()" type="button"
-                    class="w-full bg-gradient-to-r from-emerald-100 to-teal-100 hover:from-emerald-200 hover:to-teal-200 text-black p-4 rounded-2xl text-lg sm:text-xl font-extrabold active:scale-[0.98] transition-all shadow-md mt-3.5 flex items-center justify-center gap-2 border-2 border-emerald-400" style="color: #000000 !important;">
+                    class="w-full bg-gradient-to-r from-emerald-100 to-teal-100 hover:from-emerald-200 hover:to-teal-200 text-black p-4 rounded-2xl text-lg sm:text-xl font-extrabold active:scale-[0.98] transition-all shadow-md mt-2 flex items-center justify-center gap-2 border-2 border-emerald-400" style="color: #000000 !important;">
                 <span>✨</span> <span style="color: #000000 !important;">สมัครสมาชิกใหม่ / ยังไม่มีรหัสผ่าน</span>
             </button>
 
@@ -1050,10 +1058,15 @@
                 <div id="regAlreadyRegisteredBox" class="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl hidden text-center space-y-3">
                     <span class="text-3xl">⚠️</span>
                     <h4 class="text-base font-extrabold text-amber-950">รหัสนี้ได้ทำการลงทะเบียนและตั้งรหัสผ่านไว้แล้ว</h4>
-                    <p class="text-xs font-bold text-amber-850">คุณสามารถเข้าสู่ระบบด้วยรหัสผ่านส่วนตัวของคุณได้ทันทีครับ หากลืมรหัสผ่าน กรุณาติดต่อผู้จัดการหรือแอดมินเพื่อรีเซ็ตรหัสผ่าน</p>
-                    <button onclick="showLoginForm()" type="button" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-sm">
-                        🔙 ไปหน้าเข้าสู่ระบบ
-                    </button>
+                    <p class="text-xs font-bold text-amber-850">คุณสามารถเข้าสู่ระบบด้วยรหัสผ่านส่วนตัวของคุณได้ทันทีครับ หากลืมรหัสผ่าน สามารถกดปุ่มด้านล่างเพื่อตั้งรหัสผ่านใหม่ได้ทันทีครับ</p>
+                    <div class="flex flex-col gap-2 pt-1">
+                        <button onclick="showForgotPasswordForm(window._currentRegisterEmpId)" type="button" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white py-3 rounded-xl font-extrabold text-sm transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer">
+                            <span>🔑</span> <span>ตั้งรหัสผ่านใหม่สำหรับรหัสนี้</span>
+                        </button>
+                        <button onclick="showLoginForm()" type="button" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm">
+                            🔙 ไปหน้าเข้าสู่ระบบ
+                        </button>
+                    </div>
                 </div>
 
                 <!-- ฟอร์มตั้งรหัสผ่านใหม่สำหรับผู้ที่ยังไม่มีรหัสผ่านส่วนตัว -->
@@ -1185,6 +1198,103 @@
             <div class="mt-5 text-sm text-gray-500 font-bold border-t pt-3">
                 มีบัญชีอยู่แล้ว? <a href="javascript:void(0)" onclick="showLoginForm()" class="text-blue-600 hover:underline">🔙 กลับไปหน้าเข้าสู่ระบบ</a>
             </div>
+        </div>
+
+        <!-- แผงลืมรหัสผ่าน / ตั้งรหัสผ่านใหม่ (Forgot & Reset Password Card) -->
+        <div id="forgotPasswordCard" class="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl w-full max-w-lg text-center border border-white border-opacity-70 z-10 transition-all duration-300 hidden my-4">
+            <div class="mb-3 flex justify-center text-5xl">
+                🔑
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold mb-1 text-blue-950 tracking-tight">ตั้งรหัสผ่านใหม่</h1>
+            <p class="text-gray-500 mb-5 text-sm font-medium">ระบุรหัสพนักงานของคุณเพื่อยืนยันตัวตนและกำหนดรหัสผ่านใหม่</p>
+
+            <!-- สเต็ปที่ 1: ค้นหารหัสพนักงานเพื่อตั้งรหัสใหม่ -->
+            <div id="forgotStepSearch" class="space-y-4">
+                <div class="p-3.5 bg-blue-50 border border-blue-200 rounded-2xl text-xs sm:text-sm text-blue-900 font-bold leading-relaxed text-left">
+                    💡 กรุณากรอกรหัสพนักงานหรือรหัสพี่สปริงเคิลของคุณ เพื่อค้นหาและตั้งรหัสผ่านใหม่ครับ
+                </div>
+                
+                <div class="text-left space-y-2">
+                    <label class="block text-sm sm:text-base font-bold text-gray-800">🔍 ระบุรหัสพนักงาน / รหัสพี่สปริงเคิล</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="forgotSearchEmpIdInput" placeholder="เช่น 110207 หรือ OP101" 
+                               onkeypress="if(event.key==='Enter') searchEmployeeForPasswordReset()"
+                               class="flex-1 p-3.5 border-2 border-blue-200 rounded-xl text-base font-bold outline-none focus:border-blue-600 bg-white shadow-inner text-center">
+                        <button onclick="searchEmployeeForPasswordReset()" id="forgotSearchBtn" type="button"
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3.5 rounded-xl font-extrabold text-sm sm:text-base transition-all active:scale-95 shadow-md flex items-center gap-1.5 shrink-0 cursor-pointer">
+                            <span>🔍</span> <span>ตรวจสอบ</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-gray-150 flex items-center justify-between text-xs font-bold text-gray-500">
+                    <span>จำรหัสผ่านได้แล้ว?</span>
+                    <button onclick="showLoginForm()" type="button" class="text-blue-600 hover:underline cursor-pointer">
+                        🔙 กลับไปหน้าเข้าสู่ระบบ
+                    </button>
+                </div>
+            </div>
+
+            <!-- สเต็ปที่ 2: พบข้อมูลพนักงานแล้ว -> ฟอร์มกำหนดรหัสผ่านใหม่ -->
+            <div id="forgotStepSetPassword" class="space-y-4 text-left hidden">
+                <!-- การ์ดแสดงข้อมูลพนักงานที่พบ -->
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-2xl border-2 border-blue-200 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-extrabold text-blue-700 bg-white px-2.5 py-1 rounded-full border border-blue-100" id="forgotFoundEmpIdBadge">รหัส: -</span>
+                        <span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">✅ ยืนยันตัวตนสำเร็จ</span>
+                    </div>
+                    <h3 class="text-xl font-black text-blue-950" id="forgotFoundName">-</h3>
+                    <div class="flex flex-wrap gap-2 text-xs font-bold text-gray-700">
+                        <span class="bg-white px-2 py-0.5 rounded border" id="forgotFoundRole">ตำแหน่ง: -</span>
+                        <span class="bg-white px-2 py-0.5 rounded border" id="forgotFoundBranch">สาขา: -</span>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-900">
+                    ✨ บัญชีนี้พร้อมตั้งรหัสผ่านใหม่ กรุณากำหนดรหัสผ่านส่วนตัวใหม่ของคุณด้านล่างนี้ครับ
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">1. กำหนดรหัสผ่านใหม่ <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <input type="password" id="forgotNewPassword" placeholder="กรอกรหัสผ่านใหม่ (อย่างน้อย 4 ตัวอักษร)" 
+                                   class="w-full p-3.5 pr-11 border-2 border-gray-200 rounded-xl text-base font-bold outline-none focus:border-blue-500 bg-white">
+                            <button type="button" onclick="togglePasswordVisibility('forgotNewPassword', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg p-1" title="แสดง/ซ่อนรหัสผ่าน">👁️</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">2. ยืนยันรหัสผ่านใหม่อีกครั้ง <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <input type="password" id="forgotNewPasswordConfirm" placeholder="กรอกรหัสผ่านใหม่อีกครั้ง" 
+                                   onkeypress="if(event.key==='Enter') submitForgotPasswordReset()"
+                                   class="w-full p-3.5 pr-11 border-2 border-gray-200 rounded-xl text-base font-bold outline-none focus:border-blue-500 bg-white">
+                            <button type="button" onclick="togglePasswordVisibility('forgotNewPasswordConfirm', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg p-1" title="แสดง/ซ่อนรหัสผ่าน">👁️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="submitForgotPasswordReset()" id="forgotSubmitBtn" type="button"
+                        class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white p-4 rounded-xl font-extrabold text-base sm:text-lg transition-all shadow-md active:scale-98 flex items-center justify-center gap-2 cursor-pointer">
+                    <span>💾</span> <span>บันทึกรหัสผ่านใหม่และเข้าสู่ระบบทันที</span>
+                </button>
+
+                <div class="flex items-center justify-between pt-2 text-xs font-bold text-gray-500 border-t border-gray-150">
+                    <button onclick="backToForgotSearch()" type="button" class="hover:text-blue-600 cursor-pointer">
+                        🔍 ค้นหารหัสอื่น
+                    </button>
+                    <button onclick="showLoginForm()" type="button" class="text-blue-600 hover:underline cursor-pointer">
+                        🔙 ยกเลิก กลับไปหน้าเข้าสู่ระบบ
+                    </button>
+                </div>
+            </div>
+
+            <p id="forgotError" class="text-red-650 mt-4 text-sm font-bold bg-red-50 p-3 rounded-xl border border-red-200 hidden"></p>
+
+            <div class="mt-5 text-sm text-gray-500 font-bold border-t pt-3">
+                จำรหัสผ่านได้แล้ว? <a href="javascript:void(0)" onclick="showLoginForm()" class="text-blue-600 hover:underline">🔙 กลับไปหน้าเข้าสู่ระบบ</a>
+            </div>
+        </div>
         </div>
     </div>
 
@@ -3019,6 +3129,7 @@
                                 'deactivatePushToken', 'saveUserPermissions', 'updateMemberStatus',
                                 'updateMemberRole', 'deleteMember', 'saveAdminData', 'saveAnnouncementData',
                                 'submitQuestion', 'submitAnswer', 'submitRegistration', 'changePassword',
+                                'resetUserPassword', 'changeUserPassword',
                                 'updateAnnouncementOrder', 'reorderAnnouncements', 'toggleAnnouncementPin', 'toggleAnnouncementStatus',
                                 'saveKnowledgeFolderOrder', 'updateKnowledgeOrdersBulk', 'updateKnowledgeOrderDirect', 'toggleKnowledgePin'
                             ];
@@ -4204,9 +4315,15 @@
         // --- ส่วนการลงทะเบียนสำหรับพนักงานใหม่ (Direct Registration with Approval & Search) ---
         window._currentRegisterEmpId = null;
         window._currentRegisterBranch = "";
+        window._currentForgotEmpId = null;
+        window._currentForgotName = "";
+        window._currentForgotRole = "";
+        window._currentForgotBranch = "";
 
         function showRegistrationForm() {
             document.getElementById('loginCard').classList.add('hidden');
+            var forgotCard = document.getElementById('forgotPasswordCard');
+            if (forgotCard) forgotCard.classList.add('hidden');
             document.getElementById('registerCard').classList.remove('hidden');
             var err = document.getElementById('regError');
             if (err) err.classList.add('hidden');
@@ -4218,9 +4335,146 @@
 
         function showLoginForm() {
             document.getElementById('registerCard').classList.add('hidden');
+            var forgotCard = document.getElementById('forgotPasswordCard');
+            if (forgotCard) forgotCard.classList.add('hidden');
             document.getElementById('loginCard').classList.remove('hidden');
             var err = document.getElementById('loginError');
             if (err) err.classList.add('hidden');
+        }
+
+        function showForgotPasswordForm(prefillEmpId) {
+            document.getElementById('loginCard').classList.add('hidden');
+            document.getElementById('registerCard').classList.add('hidden');
+            var forgotCard = document.getElementById('forgotPasswordCard');
+            if (forgotCard) forgotCard.classList.remove('hidden');
+            var err = document.getElementById('forgotError');
+            if (err) err.classList.add('hidden');
+            backToForgotSearch();
+            if (prefillEmpId) {
+                var input = document.getElementById('forgotSearchEmpIdInput');
+                if (input) {
+                    input.value = prefillEmpId;
+                    searchEmployeeForPasswordReset();
+                }
+            }
+        }
+
+        function backToForgotSearch() {
+            var stepSearch = document.getElementById('forgotStepSearch');
+            var stepSet = document.getElementById('forgotStepSetPassword');
+            if (stepSearch) stepSearch.classList.remove('hidden');
+            if (stepSet) stepSet.classList.add('hidden');
+            var err = document.getElementById('forgotError');
+            if (err) err.classList.add('hidden');
+            var input = document.getElementById('forgotSearchEmpIdInput');
+            if (input && !input.value) {
+                input.focus();
+            }
+        }
+
+        function searchEmployeeForPasswordReset() {
+            var input = document.getElementById('forgotSearchEmpIdInput');
+            var empId = input ? input.value.trim() : "";
+            var errEl = document.getElementById('forgotError');
+            if (errEl) errEl.classList.add('hidden');
+
+            if (!empId) {
+                return alert("⚠️ กรุณากรอกรหัสพนักงานหรือรหัสพี่สปริงเคิลก่อนครับ");
+            }
+
+            showLoading("กำลังตรวจสอบรหัสพนักงาน...");
+            google.script.run.withSuccessHandler(function(res) {
+                hideLoading();
+                if (res && res.success && res.found) {
+                    window._currentForgotEmpId = res.empId;
+                    window._currentForgotName = res.name || "คุณพนักงาน";
+                    window._currentForgotRole = res.role || "พนักงาน";
+                    window._currentForgotBranch = res.branch || "";
+
+                    var badge = document.getElementById('forgotFoundEmpIdBadge');
+                    var nameEl = document.getElementById('forgotFoundName');
+                    var roleEl = document.getElementById('forgotFoundRole');
+                    var branchEl = document.getElementById('forgotFoundBranch');
+
+                    if (badge) badge.innerText = "รหัส: " + res.empId;
+                    if (nameEl) nameEl.innerText = res.name;
+                    if (roleEl) roleEl.innerText = "ตำแหน่ง: " + res.role;
+                    if (branchEl) branchEl.innerText = "สาขา: " + (res.branch || "-");
+
+                    var stepSearch = document.getElementById('forgotStepSearch');
+                    var stepSet = document.getElementById('forgotStepSetPassword');
+                    if (stepSearch) stepSearch.classList.add('hidden');
+                    if (stepSet) stepSet.classList.remove('hidden');
+
+                    var p1 = document.getElementById('forgotNewPassword');
+                    var p2 = document.getElementById('forgotNewPasswordConfirm');
+                    if (p1) { p1.value = ""; p1.focus(); }
+                    if (p2) { p2.value = ""; }
+                } else if (res && res.notFound) {
+                    alert("⚠️ ไม่พบรหัส " + empId + " ในระบบ\n\nหากคุณเป็นสมาชิกใหม่และยังไม่มีรหัสในระบบ กรุณากดปุ่ม 'สมัครสมาชิกใหม่' ครับ");
+                } else {
+                    alert("❌ " + (res && res.message ? res.message : "ไม่สามารถตรวจสอบรหัสได้ กรุณาลองใหม่อีกครั้ง"));
+                }
+            }).withFailureHandler(function(err) {
+                hideLoading();
+                alert("❌ เกิดข้อผิดพลาดในการตรวจสอบ: " + err.toString());
+            }).getEmployeeInfoForRegistration(empId);
+        }
+
+        function submitForgotPasswordReset() {
+            var empId = window._currentForgotEmpId;
+            var p1 = document.getElementById('forgotNewPassword');
+            var p2 = document.getElementById('forgotNewPasswordConfirm');
+            var newPwd = p1 ? p1.value.trim() : "";
+            var newPwdConfirm = p2 ? p2.value.trim() : "";
+
+            if (!empId) {
+                return alert("⚠️ ไม่พบรหัสพนักงาน กรุณาย้อนกลับไปตรวจสอบรหัสใหม่อีกครั้งครับ");
+            }
+            if (!newPwd) {
+                return alert("⚠️ กรุณากำหนดรหัสผ่านใหม่ของคุณครับ");
+            }
+            if (newPwd.length < 4) {
+                return alert("⚠️ เพื่อความปลอดภัย รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษรครับ");
+            }
+            if (newPwd === "1234") {
+                return alert("⚠️ ไม่สามารถใช้รหัสผ่านเริ่มต้น 1234 ได้ครับ กรุณากำหนดรหัสผ่านส่วนตัวใหม่");
+            }
+            if (newPwd !== newPwdConfirm) {
+                return alert("❌ รหัสผ่านทั้งสองช่องไม่ตรงกัน กรุณาตรวจสอบอีกครั้งครับ");
+            }
+
+            showLoading("กำลังบันทึกรหัสผ่านใหม่...");
+            google.script.run.withSuccessHandler(function(res) {
+                hideLoading();
+                if (res && res.success) {
+                    alert("🎉 ตั้งรหัสผ่านใหม่สำเร็จเรียบร้อยแล้ว!\n\nระบบจะนำคุณเข้าสู่ระบบโดยอัตโนมัติครับ");
+                    showLoginForm();
+                    var idInput = document.getElementById('empId');
+                    var passInput = document.getElementById('loginPassword');
+                    if (idInput) idInput.value = empId;
+                    if (passInput) passInput.value = newPwd;
+                    // ล็อกอินเข้าสู่ระบบอัตโนมัติ
+                    login();
+                } else {
+                    alert("❌ " + (res && res.message ? res.message : "ไม่สามารถตั้งรหัสผ่านใหม่ได้"));
+                }
+            }).withFailureHandler(function(err) {
+                hideLoading();
+                alert("❌ เกิดข้อผิดพลาดในการตั้งรหัสผ่านใหม่: " + err.toString());
+            }).resetUserPassword(empId, newPwd);
+        }
+
+        function togglePasswordVisibility(inputId, btn) {
+            var input = document.getElementById(inputId);
+            if (!input) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (btn) btn.innerText = '🙈';
+            } else {
+                input.type = 'password';
+                if (btn) btn.innerText = '👁️';
+            }
         }
 
         function backToRegSearch() {
