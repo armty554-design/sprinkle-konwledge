@@ -332,28 +332,97 @@
         },
 
         // 5. Announcements Management with Dual-Sync
-        addAnnouncement: function(data) {
+        addAnnouncement: function() {
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
-            var docId = String(data.id || ("ann_" + Date.now()));
-            data.id = docId;
-            data.displayOrder = data.displayOrder !== undefined ? Number(data.displayOrder) : 1;
-            data.isPinned = !!data.isPinned;
-            data.status = data.status || "เปิดใช้งาน";
+            var annObj = {};
+            var skipNotif = false;
+            if (arguments.length === 1 && typeof arguments[0] === 'object' && arguments[0] !== null) {
+                annObj = Object.assign({}, arguments[0]);
+                skipNotif = !!annObj.skipNotification;
+            } else {
+                annObj = {
+                    title: String(arguments[0] || "").trim(),
+                    content: String(arguments[1] || "").trim(),
+                    imageUrl: String(arguments[2] || "").trim(),
+                    createdBy: String(arguments[3] || "").trim(),
+                    linkUrl: String(arguments[4] || "").trim(),
+                    targetAudience: String(arguments[5] || "ทั้งหมด").trim(),
+                    autoCloseDate: String(arguments[6] || "").trim(),
+                    date: String(arguments[7] || "").trim(),
+                    displayOrder: (arguments[8] !== undefined && arguments[8] !== "") ? Number(arguments[8]) : 1,
+                    isPinned: !!arguments[9]
+                };
+                skipNotif = !!arguments[10];
+            }
 
-            return db.collection('announcements').doc(docId).set(data).then(function() {
-                syncToGoogleSheets('addAnnouncement', [data]);
-                return { success: true, id: docId, message: "เพิ่มประกาศข่าวสารเรียบร้อยแล้ว" };
+            var docId = String(annObj.id || ("ann_" + Date.now()));
+            annObj.id = docId;
+            annObj.displayOrder = (annObj.displayOrder !== undefined && !isNaN(annObj.displayOrder) && annObj.displayOrder > 0) ? Number(annObj.displayOrder) : 1;
+            annObj.isPinned = !!annObj.isPinned;
+            annObj.status = annObj.status || "เปิดใช้งาน";
+            if (!annObj.date) {
+                annObj.date = new Date().toISOString();
+            }
+
+            return db.collection('announcements').doc(docId).set(annObj).then(function() {
+                // Dual-Sync to Google Sheets with positional arguments as expected by Code.js
+                syncToGoogleSheets('addAnnouncement', [
+                    annObj.title,
+                    annObj.content,
+                    annObj.imageUrl,
+                    annObj.createdBy,
+                    annObj.linkUrl,
+                    annObj.targetAudience,
+                    annObj.autoCloseDate,
+                    annObj.date,
+                    annObj.displayOrder,
+                    annObj.isPinned,
+                    skipNotif
+                ]);
+                return "บันทึกประกาศข่าวสารเรียบร้อยแล้ว!";
             });
         },
 
-        updateAnnouncement: function(data) {
+        updateAnnouncement: function() {
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
-            var docId = String(data.id || "");
+            var annObj = {};
+            var docId = "";
+            if (arguments.length === 1 && typeof arguments[0] === 'object' && arguments[0] !== null) {
+                annObj = Object.assign({}, arguments[0]);
+                docId = String(annObj.id || "");
+            } else {
+                docId = String(arguments[0] || "");
+                annObj = {
+                    id: docId,
+                    title: String(arguments[1] || "").trim(),
+                    content: String(arguments[2] || "").trim(),
+                    imageUrl: String(arguments[3] || "").trim(),
+                    linkUrl: String(arguments[4] || "").trim(),
+                    targetAudience: String(arguments[5] || "ทั้งหมด").trim(),
+                    autoCloseDate: String(arguments[6] || "").trim(),
+                    displayOrder: (arguments[8] !== undefined && arguments[8] !== "") ? Number(arguments[8]) : 1,
+                    isPinned: !!arguments[9]
+                };
+                if (arguments[7]) {
+                    annObj.date = String(arguments[7]).trim();
+                }
+            }
             if (!docId) return Promise.reject(new Error("Missing announcement id"));
 
-            return db.collection('announcements').doc(docId).set(data, { merge: true }).then(function() {
-                syncToGoogleSheets('updateAnnouncement', [data]);
-                return { success: true, message: "บันทึกการแก้ไขประกาศเรียบร้อยแล้ว" };
+            return db.collection('announcements').doc(docId).set(annObj, { merge: true }).then(function() {
+                syncToGoogleSheets('updateAnnouncement', [
+                    docId,
+                    annObj.title,
+                    annObj.content,
+                    annObj.imageUrl,
+                    annObj.linkUrl,
+                    annObj.targetAudience,
+                    annObj.autoCloseDate,
+                    annObj.date || "",
+                    annObj.displayOrder,
+                    annObj.isPinned
+                ]);
+                return "บันทึกการแก้ไขประกาศเรียบร้อยแล้ว!";
             });
         },
 
@@ -362,34 +431,34 @@
             var docId = String(id || "");
             return db.collection('announcements').doc(docId).delete().then(function() {
                 syncToGoogleSheets('deleteAnnouncement', [docId]);
-                return { success: true, message: "ลบประกาศเรียบร้อยแล้ว" };
+                return "ลบประกาศเรียบร้อยแล้ว!";
             });
         },
 
-        toggleAnnouncementPin: function(id) {
+        toggleAnnouncementPin: function(id, explicitPin) {
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var docId = String(id || "");
             var ref = db.collection('announcements').doc(docId);
             return ref.get().then(function(doc) {
                 if (!doc.exists) throw new Error("ไม่พบประกาศนี้");
-                var current = !!doc.data().isPinned;
-                return ref.update({ isPinned: !current }).then(function() {
-                    syncToGoogleSheets('toggleAnnouncementPin', [docId]);
-                    return { success: true, isPinned: !current };
+                var nextPin = (explicitPin !== undefined && explicitPin !== null) ? !!explicitPin : !doc.data().isPinned;
+                return ref.update({ isPinned: nextPin }).then(function() {
+                    syncToGoogleSheets('toggleAnnouncementPin', [docId, nextPin]);
+                    return { success: true, isPinned: nextPin };
                 });
             });
         },
 
-        toggleAnnouncementStatus: function(id) {
+        toggleAnnouncementStatus: function(id, explicitStatus) {
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var docId = String(id || "");
             var ref = db.collection('announcements').doc(docId);
             return ref.get().then(function(doc) {
                 if (!doc.exists) throw new Error("ไม่พบประกาศนี้");
                 var current = doc.data().status || "เปิดใช้งาน";
-                var next = (current === "เปิดใช้งาน") ? "ปิดใช้งาน" : "เปิดใช้งาน";
+                var next = explicitStatus || ((current === "เปิดใช้งาน") ? "ปิดใช้งาน" : "เปิดใช้งาน");
                 return ref.update({ status: next }).then(function() {
-                    syncToGoogleSheets('toggleAnnouncementStatus', [docId]);
+                    syncToGoogleSheets('toggleAnnouncementStatus', [docId, next]);
                     return { success: true, status: next };
                 });
             });
@@ -398,10 +467,11 @@
         updateAnnouncementOrder: function(id, newOrder) {
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var docId = String(id || "");
+            var orderNum = Number(newOrder);
             return db.collection('announcements').doc(docId).update({
-                displayOrder: Number(newOrder)
+                displayOrder: orderNum
             }).then(function() {
-                syncToGoogleSheets('updateAnnouncementOrder', [docId, Number(newOrder)]);
+                syncToGoogleSheets('updateAnnouncementOrder', [docId, orderNum]);
                 return { success: true };
             });
         },
@@ -409,20 +479,28 @@
         reorderAnnouncements: function(reorderList) {
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             if (!Array.isArray(reorderList) || reorderList.length === 0) {
-                return Promise.resolve({ success: true });
+                return Promise.resolve("บันทึกลำดับประกาศเรียบร้อยแล้ว!");
             }
 
             var batch = db.batch();
             for (var i = 0; i < reorderList.length; i++) {
                 var item = reorderList[i];
-                if (item && item.id) {
-                    var ref = db.collection('announcements').doc(String(item.id));
-                    batch.update(ref, { displayOrder: Number(item.displayOrder !== undefined ? item.displayOrder : item.order) });
+                var itemId = "";
+                var itemOrder = i + 1;
+                if (typeof item === 'object' && item !== null) {
+                    itemId = String(item.id || "");
+                    itemOrder = Number(item.displayOrder !== undefined ? item.displayOrder : (item.order !== undefined ? item.order : (i + 1)));
+                } else {
+                    itemId = String(item || "");
+                }
+                if (itemId) {
+                    var ref = db.collection('announcements').doc(itemId);
+                    batch.update(ref, { displayOrder: itemOrder });
                 }
             }
             return batch.commit().then(function() {
                 syncToGoogleSheets('reorderAnnouncements', [reorderList]);
-                return { success: true };
+                return "บันทึกลำดับประกาศเรียบร้อยแล้ว!";
             });
         },
 
@@ -520,14 +598,24 @@
         // 7. Q&A Management with Dual-Sync
         submitQuestion: function(qData) {
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
-            var docId = String(qData.id || ("qa_" + Date.now()));
-            qData.id = docId;
-            qData.status = qData.status || "รอคำตอบ";
-            qData.askedTime = qData.askedTime || new Date().toISOString();
+            var qObj = {};
+            if (typeof qData === 'object' && qData !== null) {
+                qObj = Object.assign({}, qData);
+            } else {
+                qObj = {
+                    category: String(arguments[0] || "").trim(),
+                    question: String(arguments[1] || "").trim(),
+                    askedBy: String(arguments[2] || "").trim()
+                };
+            }
+            var docId = String(qObj.id || ("qa_" + Date.now()));
+            qObj.id = docId;
+            qObj.status = qObj.status || "รอคำตอบ";
+            qObj.askedTime = qObj.askedTime || new Date().toISOString();
 
-            return db.collection('qa').doc(docId).set(qData).then(function() {
-                syncToGoogleSheets('addQuestion', [qData]);
-                return { success: true, id: docId, message: "ส่งคำถามเรียบร้อยแล้ว" };
+            return db.collection('qa').doc(docId).set(qObj).then(function() {
+                syncToGoogleSheets('addQuestion', [qObj.category, qObj.question, qObj.askedBy]);
+                return "ส่งคำถามเรียบร้อยแล้ว!";
             });
         },
 
@@ -794,6 +882,13 @@
     SprinkleFirestore.addQuestion = SprinkleFirestore.submitQuestion;
     SprinkleFirestore.answerQuestion = SprinkleFirestore.submitAnswer;
     SprinkleFirestore.deactivatePushToken = SprinkleFirestore.removePushToken;
+    SprinkleFirestore.registerNewMember = SprinkleFirestore.addNewMember;
+    SprinkleFirestore.approveEmployee = function(empId) {
+        return SprinkleFirestore.updateMemberStatus(empId, "อนุมัติแล้ว");
+    };
+    SprinkleFirestore.rejectEmployee = function(empId) {
+        return SprinkleFirestore.updateMemberStatus(empId, "ไม่อนุมัติ");
+    };
 
     // Export to global namespace
     window.SprinkleFirestore = SprinkleFirestore;

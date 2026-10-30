@@ -3998,7 +3998,7 @@
         }
 
         // ดึงข้อมูลหลักจาก Firestore / Apps Script พร้อมระบบแคชและอัปเดตทันใจ
-        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v4';
+        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v5';
 
         function loadData(onComplete) {
             recommendStatsData = null;
@@ -4009,6 +4009,7 @@
                 localStorage.removeItem('sprinkle_cached_app_data_v1');
                 localStorage.removeItem('sprinkle_cached_app_data_v2');
                 localStorage.removeItem('sprinkle_cached_app_data_v3');
+                localStorage.removeItem('sprinkle_cached_app_data_v4');
             } catch(eClean) {}
 
             // 1. ดึงจากแคชในเครื่องเวอร์ชันใหม่มาแสดงผลทันที (0 ms ไม่ต้องรอโหลด)
