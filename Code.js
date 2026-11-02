@@ -77,6 +77,7 @@ function verifyEmployee(empId, password) {
         if (rows[i][0].toString().trim() === targetId) {
           empName = rows[i][1] ? rows[i][1].toString() : "คุณพนักงาน";
           empRole = rows[i][2] ? rows[i][2].toString().trim() : "พนักงาน";
+          if (empRole === "ผู้ประกอบการ" || empRole === "ผปก.") empRole = "พี่สปริงเคิล";
           empBranch = (rows[i].length > 6 && rows[i][6] !== undefined && rows[i][6] !== null) ? rows[i][6].toString().trim() : "";
           
           // ตรวจสอบชีต Employees คอลัมน์ D (index 3) เพื่อหาค่าสิทธิ์ตอบคำถาม
@@ -1053,6 +1054,7 @@ function getAllEmployees() {
       var empId = rows[i][0] !== undefined && rows[i][0] !== null ? rows[i][0].toString().trim() : "";
       if (empId !== "" && empId !== "admin999") { // ไม่ดึงแอดมินจำลองหลัก
         var role = rows[i][2] ? rows[i][2].toString().trim() : "พนักงาน";
+        if (role === "ผู้ประกอบการ" || role === "ผปก.") role = "พี่สปริงเคิล";
         var branch = (rows[i].length > 6 && rows[i][6] !== undefined && rows[i][6] !== null) ? rows[i][6].toString().trim() : "";
         var registeredDate = (rows[i].length > 7 && rows[i][7] !== undefined && rows[i][7] !== null) ? rows[i][7].toString().trim() : "";
         // ดึงเบอร์รถจากคอลัมน์ I (index 8) ของชีต Employees
@@ -1229,14 +1231,13 @@ function getRegistrationRoles() {
       }
     }
 
-    // จัดให้ "พี่สปริงเคิล" / "ผู้ประกอบการ" ขึ้นมาแสดงในลำดับต้นๆ เพื่อความสะดวกในการเลือก
-    if (roles.indexOf("ผู้ประกอบการ") !== -1) {
+    // จัดให้ "พี่สปริงเคิล" ขึ้นมาแสดงในลำดับต้นๆ เพื่อความสะดวกในการเลือก
+    while (roles.indexOf("ผู้ประกอบการ") !== -1) {
       roles.splice(roles.indexOf("ผู้ประกอบการ"), 1);
     }
-    if (roles.indexOf("พี่สปริงเคิล") !== -1) {
+    while (roles.indexOf("พี่สปริงเคิล") !== -1) {
       roles.splice(roles.indexOf("พี่สปริงเคิล"), 1);
     }
-    roles.unshift("ผู้ประกอบการ");
     roles.unshift("พี่สปริงเคิล");
 
     if (roles.length === 0) {
@@ -1309,6 +1310,7 @@ function getEmployeeInfoForRegistration(empId) {
       if (rows[i][0].toString().trim() === targetId) {
         var name = rows[i][1] ? rows[i][1].toString().trim() : "คุณพนักงาน";
         var role = rows[i][2] ? rows[i][2].toString().trim() : "พนักงาน";
+        if (role === "ผู้ประกอบการ" || role === "ผปก.") role = "พี่สปริงเคิล";
         var branch = (rows[i].length > 6 && rows[i][6]) ? rows[i][6].toString().trim() : "";
         var carNumber = (rows[i].length > 8 && rows[i][8]) ? rows[i][8].toString().trim() : "-";
         var approvalStatus = (rows[i].length > 9 && rows[i][9]) ? rows[i][9].toString().trim() : "อนุมัติแล้ว";
@@ -1689,12 +1691,13 @@ function getRankingDataSeparated() {
       var empObj = employeesMap[id];
       var isOp = (empObj.role === "ผู้ประกอบการ" || empObj.role === "พี่สปริงเคิล" || empObj.role.indexOf("ผู้ประกอบการ") !== -1 || empObj.role.indexOf("สปริงเคิล") !== -1);
       var carNo = empObj.carNumber || empObj.branch || id;
+      var finalRole = (empObj.role === "ผู้ประกอบการ" || empObj.role === "ผปก.") ? "พี่สปริงเคิล" : empObj.role;
       
-      empViewsAll[id] = { empId: id, name: empObj.name, role: empObj.role, branch: empObj.branch || "-", carNumber: carNo, views: 0 };
+      empViewsAll[id] = { empId: id, name: empObj.name, role: finalRole, branch: empObj.branch || "-", carNumber: carNo, views: 0 };
       if (isOp) {
-        empViewsOperators[id] = { empId: id, name: empObj.name, role: empObj.role, branch: empObj.branch || "-", carNumber: carNo, views: 0 };
+        empViewsOperators[id] = { empId: id, name: empObj.name, role: finalRole, branch: empObj.branch || "-", carNumber: carNo, views: 0 };
       } else {
-        empViewsEmployees[id] = { empId: id, name: empObj.name, role: empObj.role, branch: empObj.branch || "-", carNumber: "-", views: 0 };
+        empViewsEmployees[id] = { empId: id, name: empObj.name, role: finalRole, branch: empObj.branch || "-", carNumber: "-", views: 0 };
       }
     }
     
@@ -1998,6 +2001,7 @@ function getTopicDetailedHistory(topicId) {
         if (eId) {
           var eName = empRows[e][1] ? String(empRows[e][1]).trim() : "";
           var eRole = empRows[e][2] ? String(empRows[e][2]).trim() : "พนักงาน";
+          if (eRole === "ผู้ประกอบการ" || eRole === "ผปก.") eRole = "พี่สปริงเคิล";
           var eBranch = (empRows[e].length > 6 && empRows[e][6]) ? String(empRows[e][6]).trim() : "";
           var eCar = (empRows[e].length > 8 && empRows[e][8]) ? String(empRows[e][8]).trim() : "";
           if (!eCar && (eRole === "ผู้ประกอบการ" || eRole === "พี่สปริงเคิล" || eRole.indexOf("ผู้ประกอบการ") !== -1 || eRole.indexOf("สปริงเคิล") !== -1)) {
@@ -4090,6 +4094,38 @@ function getAppInfo() {
   };
 }
 
+// ฟังก์ชันอัปเดตตำแหน่ง "ผู้ประกอบการ" ให้เป็น "พี่สปริงเคิล" ทั้งหมดใน Google Sheets
+function migrateEmployeesRoleToSpringle() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Employees");
+    if (!sheet) return { success: false, message: "No Employees sheet" };
+    var rows = sheet.getDataRange().getValues();
+    var updated = 0;
+    for (var i = 1; i < rows.length; i++) {
+      var role = rows[i][2] ? String(rows[i][2]).trim() : "";
+      if (role === "ผู้ประกอบการ" || role === "ผปก.") {
+        sheet.getRange(i + 1, 3).setValue("พี่สปริงเคิล");
+        updated++;
+      }
+    }
+    // ตรวจสอบชีต Permissions
+    var permSheet = ss.getSheetByName("Permissions");
+    if (permSheet) {
+      var permRows = permSheet.getDataRange().getValues();
+      for (var p = 1; p < permRows.length; p++) {
+        var pRole = permRows[p][0] ? String(permRows[p][0]).trim() : "";
+        if (pRole === "ผู้ประกอบการ" || pRole === "ผปก.") {
+          permSheet.getRange(p + 1, 1).setValue("พี่สปริงเคิล");
+        }
+      }
+    }
+    return { success: true, updated: updated };
+  } catch(e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) {
@@ -4148,7 +4184,8 @@ function doPost(e) {
       "resetUserPassword": changeUserPassword,
       "changeUserPassword": changeUserPassword,
       "getEmployeeInfoForRegistration": getEmployeeInfoForRegistration,
-      "resetEmployeePassword": resetEmployeePassword
+      "resetEmployeePassword": resetEmployeePassword,
+      "migrateEmployeesRoleToSpringle": migrateEmployeesRoleToSpringle
     };
     
     var fn = null;

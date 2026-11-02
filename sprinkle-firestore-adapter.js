@@ -159,8 +159,24 @@
                 var knowledge = snapshotToArray(knowledgeSnap);
                 var announcements = snapshotToArray(annSnap);
                 var qa = snapshotToArray(qaSnap);
-                var employees = snapshotToArray(empSnap);
-                var permissions = snapshotToArray(permSnap);
+                var rawEmployees = snapshotToArray(empSnap);
+                var employees = rawEmployees.map(function(emp) {
+                    if (emp && (emp.role === "ผู้ประกอบการ" || emp.role === "ผปก.")) {
+                        emp.role = "พี่สปริงเคิล";
+                    }
+                    return emp;
+                });
+                var rawPerms = snapshotToArray(permSnap);
+                var permissions = [];
+                var seenRoles = {};
+                for (var p = 0; p < rawPerms.length; p++) {
+                    var item = rawPerms[p];
+                    if (item.role === "ผู้ประกอบการ") item.role = "พี่สปริงเคิล";
+                    if (!seenRoles[item.role]) {
+                        seenRoles[item.role] = true;
+                        permissions.push(item);
+                    }
+                }
                 var config = (configDoc && configDoc.exists) ? configDoc.data() : {
                     system_status: 'เปิดใช้งาน',
                     notebooklm_url: '',
@@ -202,7 +218,14 @@
 
         getAllEmployees: function() {
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
-            return db.collection('employees').get().then(snapshotToArray);
+            return db.collection('employees').get().then(function(snap) {
+                return snapshotToArray(snap).map(function(emp) {
+                    if (emp && (emp.role === "ผู้ประกอบการ" || emp.role === "ผปก.")) {
+                        emp.role = "พี่สปริงเคิล";
+                    }
+                    return emp;
+                });
+            });
         },
 
         getAllRolePermissions: function() {
@@ -267,6 +290,7 @@
 
                 var empName = emp.name || "คุณพนักงาน";
                 var empRole = emp.role || "พนักงาน";
+                if (empRole === "ผู้ประกอบการ" || empRole === "ผปก.") empRole = "พี่สปริงเคิล";
                 var empBranch = emp.branch || "";
                 var canAnswerQA = emp.canAnswerQA;
 
@@ -663,6 +687,7 @@
                     var emp = doc.data() || {};
                     var name = emp.name || "คุณพนักงาน";
                     var role = emp.role || "พนักงาน";
+                    if (role === "ผู้ประกอบการ" || role === "ผปก.") role = "พี่สปริงเคิล";
                     var branch = emp.branch || "";
                     var carNumber = emp.carNumber || "-";
                     var approvalStatus = emp.approvalStatus || "อนุมัติแล้ว";
@@ -742,6 +767,7 @@
             if (!docId) return Promise.reject(new Error("Missing employee id"));
 
             empData.empId = docId;
+            if (empData.role === "ผู้ประกอบการ" || empData.role === "ผปก.") empData.role = "พี่สปริงเคิล";
             empData.approvalStatus = empData.approvalStatus || "รออนุมัติ";
             empData.registeredDate = empData.registeredDate || new Date().toISOString();
 
@@ -769,10 +795,12 @@
         updateMemberRole: function(empId, role) {
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var docId = String(empId || "").trim();
+            var finalRole = String(role || "พนักงาน");
+            if (finalRole === "ผู้ประกอบการ" || finalRole === "ผปก.") finalRole = "พี่สปริงเคิล";
             return db.collection('employees').doc(docId).update({
-                role: String(role || "พนักงาน")
+                role: finalRole
             }).then(function() {
-                syncToGoogleSheets('updateEmployee', [{ empId: docId, role: role }]);
+                syncToGoogleSheets('updateEmployee', [{ empId: docId, role: finalRole }]);
                 return { success: true, message: "อัปเดตตำแหน่งงานเรียบร้อยแล้ว" };
             });
         },

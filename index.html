@@ -1780,6 +1780,7 @@
                                         <th class="p-3 border-b font-bold w-28">รหัส</th>
                                         <th class="p-3 border-b font-bold">ชื่อ-นามสกุล</th>
                                         <th class="p-3 border-b font-bold text-center w-28">สาขา</th>
+                                        <th class="p-3 border-b font-bold text-center w-28">เบอร์รถ</th>
                                         <th class="p-3 border-b font-bold text-center w-36">ตำแหน่ง</th>
                                         <th class="p-3 border-b font-bold text-center w-28">เข้าชม (ครั้ง)</th>
                                         <th class="p-3 border-b font-bold text-center w-24">ประวัติ</th>
@@ -1787,7 +1788,7 @@
                                 </thead>
                                 <tbody id="recommendEmpTableBody">
                                     <tr>
-                                        <td colspan="7" class="p-8 text-center text-gray-500 font-semibold">⏳ กำลังประมวลผลสถิติอันดับการใช้งาน...</td>
+                                        <td colspan="8" class="p-8 text-center text-gray-500 font-semibold">⏳ กำลังประมวลผลสถิติอันดับการใช้งาน...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -1957,7 +1958,7 @@
                                     <span>👥 พนักงาน</span>
                                 </label>
                                 <label class="inline-flex items-center gap-2 cursor-pointer font-extrabold text-gray-800 text-xs sm:text-sm select-none">
-                                    <input type="checkbox" id="annAudienceOp" value="ผู้ประกอบการ" checked class="w-4 h-4 text-amber-600 rounded">
+                                    <input type="checkbox" id="annAudienceOp" value="พี่สปริงเคิล" checked class="w-4 h-4 text-amber-600 rounded">
                                     <span>🚛 พี่สปริงเคิล</span>
                                 </label>
                             </div>
@@ -2243,7 +2244,7 @@
                                 <span>👥 พนักงาน</span>
                             </label>
                             <label class="inline-flex items-center gap-2.5 cursor-pointer font-bold text-gray-800 text-base">
-                                <input type="checkbox" id="knowledgeAudienceOp" value="ผู้ประกอบการ" checked class="w-5 h-5 text-blue-600 rounded">
+                                <input type="checkbox" id="knowledgeAudienceOp" value="พี่สปริงเคิล" checked class="w-5 h-5 text-blue-600 rounded">
                                 <span>🚛 พี่สปริงเคิล</span>
                             </label>
                         </div>
@@ -2863,7 +2864,7 @@
                                     <span class="text-sm font-bold text-gray-800">👥 เฉพาะพนักงาน (Employees Only)</span>
                                 </label>
                                 <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-50 cursor-pointer transition-all">
-                                    <input type="radio" name="broadcastAudience" value="ผู้ประกอบการ" onchange="updateAudienceEstimatePreview()" class="w-4 h-4 text-blue-600">
+                                    <input type="radio" name="broadcastAudience" value="พี่สปริงเคิล" onchange="updateAudienceEstimatePreview()" class="w-4 h-4 text-blue-600">
                                     <span class="text-sm font-bold text-gray-800">🚛 เฉพาะพี่สปริงเคิล</span>
                                 </label>
                             </div>
@@ -2999,7 +3000,7 @@
                             <select id="historyFilterAudience" onchange="loadNotificationHistoryData()" class="p-2.5 border rounded-xl bg-white text-xs font-bold text-gray-700 outline-none">
                                 <option value="ทั้งหมด">👥 ทุกกลุ่มผู้รับ</option>
                                 <option value="พนักงาน">พนักงาน</option>
-                                <option value="ผู้ประกอบการ">พี่สปริงเคิล</option>
+                                <option value="พี่สปริงเคิล">พี่สปริงเคิล</option>
                             </select>
                             <select id="historyFilterBranch" onchange="loadNotificationHistoryData()" class="p-2.5 border rounded-xl bg-white text-xs font-bold text-gray-700 outline-none">
                                 <option value="ทุกสาขา">📍 ทุกสาขา</option>
@@ -4005,14 +4006,19 @@
             
             // 4. ข้อมูลพนักงาน
             if (res.employees && Array.isArray(res.employees)) {
-                allEmployeesData = res.employees;
+                allEmployeesData = res.employees.map(function(emp) {
+                    if (emp && (emp.role === "ผู้ประกอบการ" || emp.role === "ผปก.")) {
+                        emp.role = "พี่สปริงเคิล";
+                    }
+                    return emp;
+                });
                 if (currentUser && currentUser.id) {
                     var latestUser = allEmployeesData.find(function(emp) {
                         return emp.empId.toString().trim() === currentUser.id.toString().trim();
                     });
                     if (latestUser) {
                         currentUser.name = latestUser.name;
-                        currentUser.role = latestUser.role;
+                        currentUser.role = (latestUser.role === "ผู้ประกอบการ" || latestUser.role === "ผปก.") ? "พี่สปริงเคิล" : latestUser.role;
                         currentUser.profilePic = latestUser.profilePic || "";
                         currentUser.branch = latestUser.branch || "";
                         currentUser.password = latestUser.password || "1234";
@@ -4200,11 +4206,11 @@
         // ฟังก์ชันเข้าสู่ระบบด่วนสำหรับโหมดทดสอบ
         function quickLoginTest(role) {
             if (typeof hideLoading === 'function') hideLoading();
-            var isOp = (role === 'ผู้ประกอบการ');
+            var isOp = (role === 'พี่สปริงเคิล' || role === 'ผู้ประกอบการ');
             var testUser = {
                 id: isOp ? 'OP999' : 'admin999',
-                name: isOp ? 'ผู้ประกอบการทดสอบ (Local)' : 'ผู้ดูแลระบบ (Admin Local)',
-                role: isOp ? 'ผู้ประกอบการ' : 'แอดมิน',
+                name: isOp ? 'พี่สปริงเคิลทดสอบ (Local)' : 'ผู้ดูแลระบบ (Admin Local)',
+                role: isOp ? 'พี่สปริงเคิล' : 'แอดมิน',
                 canEdit: !isOp,
                 canToggle: !isOp,
                 canAnswerQA: true,
@@ -4242,7 +4248,7 @@
                 return;
             }
             if (isLocal && (empId.toLowerCase().startsWith('op') || empId === '1111')) {
-                quickLoginTest('ผู้ประกอบการ');
+                quickLoginTest('พี่สปริงเคิล');
                 return;
             }
 
@@ -11048,6 +11054,7 @@ function populateEmployeeRoleSelect() {
     // 1. ดึงตำแหน่งงานจากชีต Permissions (สิทธิ์และบทบาท)
     for (var i = 0; i < allRolePermissionsData.length; i++) {
         var r = allRolePermissionsData[i].role;
+        if (r === "ผู้ประกอบการ" || r === "ผปก.") r = "พี่สปริงเคิล";
         if (r && roles.indexOf(r) === -1) {
             roles.push(r);
         }
@@ -11056,6 +11063,7 @@ function populateEmployeeRoleSelect() {
     // 2. ดึงตำแหน่งงานที่มีของพนักงาน ในชีต Employees
     for (var i = 0; i < allEmployeesData.length; i++) {
         var r = allEmployeesData[i].role;
+        if (r === "ผู้ประกอบการ" || r === "ผปก.") r = "พี่สปริงเคิล";
         if (r && roles.indexOf(r) === -1) {
             roles.push(r);
         }
@@ -11063,12 +11071,12 @@ function populateEmployeeRoleSelect() {
     
     // Fallback ค่าตั้งต้นหากไม่มีข้อมูล
     if (roles.length === 0) {
-        roles = ["พนักงาน", "ผู้จัดการ", "แอดมิน"];
+        roles = ["พี่สปริงเคิล", "พนักงาน", "ผู้จัดการ", "แอดมิน"];
     }
     
     for (var i = 0; i < roles.length; i++) {
         var role = roles[i];
-        var selected = (role === selectedVal) ? 'selected' : '';
+        var selected = (role === selectedVal || (selectedVal === "ผู้ประกอบการ" && role === "พี่สปริงเคิล")) ? 'selected' : '';
         select.innerHTML += '<option value="' + role + '" ' + selected + '>' + role + '</option>';
     }
 }
@@ -11083,6 +11091,7 @@ function populateEmployeeRoleFilter() {
     var roles = [];
     for (var i = 0; i < allEmployeesData.length; i++) {
         var role = allEmployeesData[i].role;
+        if (role === "ผู้ประกอบการ" || role === "ผปก.") role = "พี่สปริงเคิล";
         if (role && roles.indexOf(role) === -1) {
             roles.push(role);
         }
@@ -11273,21 +11282,27 @@ function renderAdminRolePermissionsList() {
     if (!tbody) return;
     tbody.innerHTML = "";
     
+    var seenRolePerms = {};
     for (var i = 0; i < allRolePermissionsData.length; i++) {
         var perm = allRolePermissionsData[i];
+        var roleName = perm.role;
+        if (roleName === "ผู้ประกอบการ" || roleName === "ผปก.") roleName = "พี่สปริงเคิล";
+        if (seenRolePerms[roleName]) continue;
+        seenRolePerms[roleName] = true;
+
         var editChecked = perm.canEdit ? 'checked' : '';
         var toggleChecked = perm.canToggle ? 'checked' : '';
         
         tbody.innerHTML += '<tr class="border-b hover:bg-gray-50">' +
-            '<td class="p-3 font-bold">' + perm.role + '</td>' +
+            '<td class="p-3 font-bold">' + roleName + '</td>' +
             '<td class="p-3 text-center">' +
-                '<input type="checkbox" id="edit_chk_' + perm.role + '" ' + editChecked + ' class="w-5 h-5 accent-blue-600">' +
+                '<input type="checkbox" id="edit_chk_' + roleName + '" ' + editChecked + ' class="w-5 h-5 accent-blue-600">' +
             '</td>' +
             '<td class="p-3 text-center">' +
-                '<input type="checkbox" id="toggle_chk_' + perm.role + '" ' + toggleChecked + ' class="w-5 h-5 accent-blue-600">' +
+                '<input type="checkbox" id="toggle_chk_' + roleName + '" ' + toggleChecked + ' class="w-5 h-5 accent-blue-600">' +
             '</td>' +
             '<td class="p-3 text-center">' +
-                '<button onclick="saveRolePermissionData(\'' + perm.role + '\')" class="bg-blue-100 hover:bg-blue-600 text-blue-900 hover:text-white px-3 py-1 rounded text-xs font-bold transition-all">บันทึกสิทธิ์</button>' +
+                '<button onclick="saveRolePermissionData(\'' + roleName + '\')" class="bg-blue-100 hover:bg-blue-600 text-blue-900 hover:text-white px-3 py-1 rounded text-xs font-bold transition-all">บันทึกสิทธิ์</button>' +
             '</td>' +
         '</tr>';
     }
@@ -11757,11 +11772,12 @@ function renderRecommendPage() {
             if (empCardSubTitle) empCardSubTitle.innerText = (currentRecommendSubTab === 'employee') ? 'แสดงรายชื่อสมาชิกพนักงานทั้งหมด พร้อมยอดเข้าศึกษาและประวัติการเข้าชมรายบุคคล' : 'แสดงรายชื่อบุคลากรทั้งหมด พร้อมยอดเข้าศึกษาและประวัติการเข้าชมรายบุคคล';
             if (empTableHead) {
                 empTableHead.innerHTML = '<tr class="bg-gray-50 text-gray-700 text-xs uppercase tracking-wider">' +
-                    '<th class="p-3 border-b font-bold text-center w-16">อันดับ</th>' +
-                    '<th class="p-3 border-b font-bold w-28">รหัสพนักงาน</th>' +
+                    '<th class="p-3 border-b font-bold text-center w-14">อันดับ</th>' +
+                    '<th class="p-3 border-b font-bold w-24">รหัสพนักงาน</th>' +
                     '<th class="p-3 border-b font-bold">ชื่อ-นามสกุล</th>' +
-                    '<th class="p-3 border-b font-bold text-center w-28">สาขา</th>' +
-                    '<th class="p-3 border-b font-bold text-center w-36">ตำแหน่ง</th>' +
+                    '<th class="p-3 border-b font-bold text-center w-24">สาขา</th>' +
+                    '<th class="p-3 border-b font-bold text-center w-28">เบอร์รถ</th>' +
+                    '<th class="p-3 border-b font-bold text-center w-32">ตำแหน่ง</th>' +
                     '<th class="p-3 border-b font-bold text-center w-28">เข้าศึกษา (ครั้ง)</th>' +
                     '<th class="p-3 border-b font-bold text-center w-24">ประวัติ</th>' +
                 '</tr>';
@@ -11783,7 +11799,7 @@ function renderRecommendPage() {
         }
 
         if (filteredEmps.length === 0) {
-            var emptyColspan = isOperatorTab ? 8 : 7;
+            var emptyColspan = 8;
             if (empBody) empBody.innerHTML = '<tr><td colspan="' + emptyColspan + '" class="p-8 text-center text-gray-500 font-semibold">ไม่พบรายชื่อที่ตรงกับคำค้นหาในกลุ่มนี้</td></tr>';
             if (empMobileList) empMobileList.innerHTML = '<div class="p-6 text-center text-gray-500 font-semibold">ไม่พบรายชื่อที่ตรงกับคำค้นหาในกลุ่มนี้</div>';
             if (empPagination) empPagination.innerHTML = "";
@@ -11808,7 +11824,7 @@ function renderRecommendPage() {
                     else rankBadge = '<span class="inline-flex w-6 h-6 items-center justify-center bg-gray-100 rounded-full text-xs font-extrabold text-gray-600">' + originalRank + '</span>';
 
                     var safeName = (emp.name || "").replace(/'/g, "\\'");
-                    var safeRole = (emp.role || "").replace(/'/g, "\\'");
+                    var safeRole = (emp.role === "ผู้ประกอบการ" ? "พี่สปริงเคิล" : (emp.role || "")).replace(/'/g, "\\'");
                     var safeBranch = (emp.branch || "").replace(/'/g, "\\'");
                     var safeCar = (emp.carNumber || "").replace(/'/g, "\\'");
                     
@@ -11826,18 +11842,28 @@ function renderRecommendPage() {
                             '</td>' +
                             '<td class="p-3 font-mono font-bold text-gray-700">' + emp.empId + '</td>' +
                             '<td class="p-3 font-bold text-blue-950">' + emp.name + '</td>' +
-                            '<td class="p-3 text-center"><span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-md">' + (emp.role || "สมาชิกพี่สปริงเคิล") + '</span></td>' +
+                            '<td class="p-3 text-center"><span class="bg-amber-100 text-amber-900 border border-amber-300 text-xs font-extrabold px-2 py-0.5 rounded-md">🚛 พี่สปริงเคิล</span></td>' +
                             '<td class="p-3 text-center font-bold text-gray-600">' + (emp.branch || "-") + '</td>' +
                             '<td class="p-3 text-center font-extrabold ' + (emp.views > 0 ? 'text-indigo-600' : 'text-gray-400') + '">' + (emp.views || 0).toLocaleString() + '</td>' +
                             '<td class="p-3 text-center">' + historyBtnHtml + '</td>' +
                         '</tr>';
                     } else {
+                        var carBadgeHtml = '-';
+                        if (emp.carNumber && emp.carNumber !== '-' && emp.carNumber !== 'undefined') {
+                            carBadgeHtml = '<span class="bg-amber-100 text-amber-950 border border-amber-300 font-extrabold px-2 py-0.5 rounded-xl text-xs inline-flex items-center gap-1 shadow-2xs">🚛 ' + emp.carNumber + '</span>';
+                        } else {
+                            carBadgeHtml = '<span class="text-gray-400 font-bold">-</span>';
+                        }
+                        var roleText = emp.role || "พนักงาน";
+                        if (roleText === "ผู้ประกอบการ" || roleText === "ผปก.") roleText = "พี่สปริงเคิล";
+
                         empBody.innerHTML += '<tr class="border-b hover:bg-blue-50 hover:bg-opacity-40 transition-colors">' +
                             '<td class="p-3 font-extrabold text-center text-base">' + rankBadge + '</td>' +
                             '<td class="p-3 font-mono font-bold text-gray-700">' + emp.empId + '</td>' +
                             '<td class="p-3 font-bold text-blue-950">' + emp.name + '</td>' +
                             '<td class="p-3 text-center font-bold text-gray-600">' + (emp.branch || "-") + '</td>' +
-                            '<td class="p-3 text-center"><span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-md">' + emp.role + '</span></td>' +
+                            '<td class="p-3 text-center">' + carBadgeHtml + '</td>' +
+                            '<td class="p-3 text-center"><span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-md">' + roleText + '</span></td>' +
                             '<td class="p-3 text-center font-extrabold ' + (emp.views > 0 ? 'text-indigo-600' : 'text-gray-400') + '">' + (emp.views || 0).toLocaleString() + '</td>' +
                             '<td class="p-3 text-center">' + historyBtnHtml + '</td>' +
                         '</tr>';
@@ -11857,7 +11883,7 @@ function renderRecommendPage() {
                     else rankBadge = '<span class="inline-flex w-7 h-7 items-center justify-center bg-gray-100 rounded-full text-xs font-extrabold text-gray-500">' + originalRank + '</span>';
 
                     var safeName = (emp.name || "").replace(/'/g, "\\'");
-                    var safeRole = (emp.role || "").replace(/'/g, "\\'");
+                    var safeRole = (emp.role === "ผู้ประกอบการ" ? "พี่สปริงเคิล" : (emp.role || "")).replace(/'/g, "\\'");
                     var safeBranch = (emp.branch || "").replace(/'/g, "\\'");
                     var safeCar = (emp.carNumber || "").replace(/'/g, "\\'");
 
@@ -11873,8 +11899,8 @@ function renderRecommendPage() {
                                         '<span class="font-mono text-xs font-bold text-gray-600">รหัส: ' + emp.empId + '</span>' +
                                     '</div>' +
                                     '<h4 class="text-sm font-bold text-blue-950 truncate">' + emp.name + '</h4>' +
-                                    '<span class="text-xs text-gray-500 font-semibold block">ตำแหน่ง: ' + (emp.role || "สมาชิกพี่สปริงเคิล") + ' • สาขา: ' + (emp.branch || "-") + '</span>' +
-                                '</div>' +
+                                    '<span class="text-xs text-gray-500 font-semibold block">ตำแหน่ง: พี่สปริงเคิล • สาขา: ' + (emp.branch || "-") + '</span>' +
+                                </div>' +
                             '</div>' +
                             '<div class="shrink-0 flex flex-col items-end gap-1.5">' +
                                 '<span class="text-xs font-extrabold ' + (emp.views > 0 ? 'text-indigo-600' : 'text-gray-400') + '">' + (emp.views || 0).toLocaleString() + ' ครั้ง</span>' +
@@ -11884,12 +11910,22 @@ function renderRecommendPage() {
                             '</div>' +
                         '</div>';
                     } else {
+                        var carMobileBadge = "";
+                        if (emp.carNumber && emp.carNumber !== '-' && emp.carNumber !== 'undefined') {
+                            carMobileBadge = '<span class="bg-amber-100 text-amber-950 border border-amber-300 font-extrabold px-2 py-0.5 rounded-lg text-xs inline-flex items-center gap-1">🚛 เบอร์รถ: ' + emp.carNumber + '</span>';
+                        }
+                        var roleText = emp.role || "พนักงาน";
+                        if (roleText === "ผู้ประกอบการ" || roleText === "ผปก.") roleText = "พี่สปริงเคิล";
+
                         empMobileList.innerHTML += '<div class="bg-gray-50 p-3.5 rounded-2xl border border-gray-200 flex items-center justify-between gap-3 shadow-xs">' +
                             '<div class="flex items-center gap-3 min-w-0">' +
                                 '<div class="shrink-0 text-xl font-bold">' + rankBadge + '</div>' +
-                                '<div class="min-w-0">' +
-                                    '<h4 class="text-sm font-bold text-blue-950 truncate">' + emp.name + ' (' + emp.empId + ')</h4>' +
-                                    '<span class="text-xs text-gray-500 font-semibold block mt-0.5">' + emp.role + ' • สาขา: ' + (emp.branch || "-") + '</span>' +
+                                '<div class="min-w-0 space-y-0.5">' +
+                                    '<div class="flex items-center gap-1.5 flex-wrap">' +
+                                        '<h4 class="text-sm font-bold text-blue-950 truncate">' + emp.name + ' (' + emp.empId + ')</h4>' +
+                                        carMobileBadge +
+                                    '</div>' +
+                                    '<span class="text-xs text-gray-500 font-semibold block mt-0.5">ตำแหน่ง: ' + roleText + ' • สาขา: ' + (emp.branch || "-") + '</span>' +
                                 '</div>' +
                             '</div>' +
                             '<div class="shrink-0 flex flex-col items-end gap-1.5">' +
@@ -11996,8 +12032,11 @@ function openEmployeeHistoryModal(empId, name, role, branch, carNumber, totalVie
     var carBadgeEl = document.getElementById('histModalCarBadge');
     
     var isOp = (role === 'ผู้ประกอบการ' || role === 'พี่สปริงเคิล' || role === 'สมาชิกพี่สปริงเคิล' || (role && (role.indexOf('ผู้ประกอบการ') !== -1 || role.indexOf('พี่สปริงเคิล') !== -1)));
+    var displayRole = isOp ? "พี่สปริงเคิล" : (role || "พนักงาน");
+    if (displayRole === "ผู้ประกอบการ" || displayRole === "สมาชิกพี่สปริงเคิล") displayRole = "พี่สปริงเคิล";
+
     if (nameEl) nameEl.innerText = name;
-    if (roleEl) roleEl.innerText = isOp ? "สมาชิกพี่สปริงเคิล" : (role || "พนักงาน");
+    if (roleEl) roleEl.innerText = displayRole;
     if (iconEl) iconEl.innerText = isOp ? '🚛' : '👤';
     if (metaEl) metaEl.innerText = 'รหัส: ' + empId + ' • สาขา: ' + (branch || '-');
     
@@ -12321,10 +12360,11 @@ function renderTopicHistModalContent() {
             var finalBranch = (matchedEmp && matchedEmp.branch) ? matchedEmp.branch : (item.branch || item.empBranch || "ไม่ระบุสาขา");
             var finalCar = (matchedEmp && matchedEmp.carNumber && matchedEmp.carNumber !== "-") ? matchedEmp.carNumber : (item.carNumber && item.carNumber !== "-" ? item.carNumber : "");
 
-            var isOperator = (finalRole === 'ผู้ประกอบการ' || finalRole === 'พี่สปริงเคิล' || finalRole === 'สมาชิกพี่สปริงเคิล' || finalRole.indexOf('ผู้ประกอบการ') !== -1 || finalRole.indexOf('สปริงเคิล') !== -1);
+            var displayRole = (finalRole === 'ผู้ประกอบการ' || finalRole === 'สมาชิกพี่สปริงเคิล') ? 'พี่สปริงเคิล' : (finalRole || "พนักงาน");
+            var isOperator = (displayRole === 'พี่สปริงเคิล' || displayRole.indexOf('สปริงเคิล') !== -1 || displayRole.indexOf('ผู้ประกอบการ') !== -1);
             var roleBadge = isOperator ?
-                '<span class="bg-amber-100 text-amber-950 border border-amber-300 font-extrabold px-2 py-0.5 rounded-lg text-xs inline-flex items-center gap-1">🚛 ' + finalRole + '</span>' :
-                '<span class="bg-blue-100 text-blue-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-blue-200">👔 ตำแหน่ง: ' + finalRole + '</span>';
+                '<span class="bg-amber-100 text-amber-950 border border-amber-300 font-extrabold px-2 py-0.5 rounded-lg text-xs inline-flex items-center gap-1">🚛 พี่สปริงเคิล</span>' :
+                '<span class="bg-blue-100 text-blue-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-blue-200">👔 ตำแหน่ง: ' + displayRole + '</span>';
 
             var carBadge = finalCar ? '<span class="bg-amber-50 text-amber-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-amber-200">🚛 รถ: ' + finalCar + '</span>' : '';
 
@@ -12369,10 +12409,11 @@ function renderTopicHistModalContent() {
             var finalBranch = (matchedEmp && matchedEmp.branch) ? matchedEmp.branch : (u.branch || u.empBranch || "ไม่ระบุสาขา");
             var finalCar = (matchedEmp && matchedEmp.carNumber && matchedEmp.carNumber !== "-") ? matchedEmp.carNumber : (u.carNumber && u.carNumber !== "-" ? u.carNumber : "");
 
-            var isOperator = (finalRole === 'ผู้ประกอบการ' || finalRole === 'พี่สปริงเคิล' || finalRole === 'สมาชิกพี่สปริงเคิล' || finalRole.indexOf('ผู้ประกอบการ') !== -1 || finalRole.indexOf('สปริงเคิล') !== -1);
+            var displayRole = (finalRole === 'ผู้ประกอบการ' || finalRole === 'สมาชิกพี่สปริงเคิล') ? 'พี่สปริงเคิล' : (finalRole || "พนักงาน");
+            var isOperator = (displayRole === 'พี่สปริงเคิล' || displayRole.indexOf('สปริงเคิล') !== -1 || displayRole.indexOf('ผู้ประกอบการ') !== -1);
             var roleBadge = isOperator ?
-                '<span class="bg-amber-100 text-amber-950 border border-amber-300 font-extrabold px-2 py-0.5 rounded-lg text-xs inline-flex items-center gap-1">🚛 ' + finalRole + '</span>' :
-                '<span class="bg-indigo-100 text-indigo-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-indigo-200">👔 ตำแหน่ง: ' + finalRole + '</span>';
+                '<span class="bg-amber-100 text-amber-950 border border-amber-300 font-extrabold px-2 py-0.5 rounded-lg text-xs inline-flex items-center gap-1">🚛 พี่สปริงเคิล</span>' :
+                '<span class="bg-indigo-100 text-indigo-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-indigo-200">👔 ตำแหน่ง: ' + displayRole + '</span>';
 
             html += '<div class="bg-white hover:bg-indigo-50/80 p-3 rounded-2xl border border-gray-200 transition-all flex flex-col gap-1.5 shadow-2xs">' +
                 '<div class="flex items-center justify-between gap-2 flex-wrap">' +
