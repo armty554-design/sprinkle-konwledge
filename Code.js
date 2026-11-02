@@ -3172,7 +3172,7 @@ function logNotificationHistory(entry) {
     
     entry = entry || {};
     var historyId = entry.historyId || ("notif_" + Date.now() + "_" + Math.floor(Math.random() * 1000));
-    var timestamp = entry.timestamp || Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd HH:mm:ss");
+    var timestamp = entry.timestamp || Utilities.formatDate(new Date(), "GMT+7", "'วันที่' dd/MM/yyyy 'เวลา' HH:mm:ss");
     var sender = entry.sender || entry.senderName || "ผู้ดูแลระบบ";
     var title = entry.title || "";
     var message = entry.message || entry.body || "";
@@ -3280,9 +3280,36 @@ function getNotificationHistoryData(limit, offset, filter) {
       totalSent += sent;
       totalFailed += fail;
       
+      var rawTime = r[1];
+      var timeStr = "";
+      if (rawTime instanceof Date) {
+        var dDay = Utilities.formatDate(rawTime, "GMT+7", "dd");
+        var dMonth = Utilities.formatDate(rawTime, "GMT+7", "MM");
+        var dYear = Utilities.formatDate(rawTime, "GMT+7", "yyyy");
+        var dClock = Utilities.formatDate(rawTime, "GMT+7", "HH:mm:ss");
+        timeStr = "วันที่ " + dDay + "/" + dMonth + "/" + dYear + " เวลา " + dClock;
+      } else if (rawTime) {
+        var strVal = String(rawTime).trim();
+        if (strVal.indexOf("วันที่ ") === 0) {
+          timeStr = strVal;
+        } else {
+          var cleanVal = strVal.replace(/\s*\(.*\)\s*/g, '').trim();
+          var dParsed = new Date(cleanVal);
+          if (!isNaN(dParsed.getTime())) {
+            var dDay = Utilities.formatDate(dParsed, "GMT+7", "dd");
+            var dMonth = Utilities.formatDate(dParsed, "GMT+7", "MM");
+            var dYear = Utilities.formatDate(dParsed, "GMT+7", "yyyy");
+            var dClock = Utilities.formatDate(dParsed, "GMT+7", "HH:mm:ss");
+            timeStr = "วันที่ " + dDay + "/" + dMonth + "/" + dYear + " เวลา " + dClock;
+          } else {
+            timeStr = strVal;
+          }
+        }
+      }
+
       var rowObj = {
         historyId: String(r[0] || ""),
-        timestamp: String(r[1] || ""),
+        timestamp: timeStr || "-",
         sender: String(r[2] || ""),
         title: String(r[3] || ""),
         message: String(r[4] || ""),

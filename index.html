@@ -5447,6 +5447,57 @@
             return '<span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-gray-100 text-gray-700 border border-gray-200">' + escapeHtml(s || '-') + '</span>';
         }
 
+        function formatNotificationDateTime(dateStr) {
+            if (!dateStr || dateStr === "-" || dateStr === "null" || dateStr === "undefined") return "-";
+            try {
+                var str = String(dateStr).trim();
+                if (str.indexOf("วันที่ ") === 0) return str;
+                var ts = 0;
+                var isoMatch = str.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+                if (isoMatch) {
+                    var y = parseInt(isoMatch[1], 10);
+                    var m = parseInt(isoMatch[2], 10) - 1;
+                    var d = parseInt(isoMatch[3], 10);
+                    var h = parseInt(isoMatch[4], 10);
+                    var min = parseInt(isoMatch[5], 10);
+                    var s = isoMatch[6] ? parseInt(isoMatch[6], 10) : 0;
+                    var dt = new Date(y, m, d, h, min, s);
+                    if (!isNaN(dt.getTime())) ts = dt.getTime();
+                }
+                if (!ts) {
+                    var thaiMatch = str.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+                    if (thaiMatch) {
+                        var day = parseInt(thaiMatch[1], 10);
+                        var month = parseInt(thaiMatch[2], 10) - 1;
+                        var year = parseInt(thaiMatch[3], 10);
+                        if (year > 2400) year -= 543;
+                        var hour = parseInt(thaiMatch[4], 10);
+                        var minute = parseInt(thaiMatch[5], 10);
+                        var sec = thaiMatch[6] ? parseInt(thaiMatch[6], 10) : 0;
+                        var dt2 = new Date(year, month, day, hour, minute, sec);
+                        if (!isNaN(dt2.getTime())) ts = dt2.getTime();
+                    }
+                }
+                if (!ts) {
+                    var cleanStr = str.replace(/\s*\(.*\)\s*/g, '').trim();
+                    var dObj = new Date(cleanStr);
+                    if (!isNaN(dObj.getTime())) ts = dObj.getTime();
+                }
+                if (!ts) return str;
+                var d = new Date(ts);
+                var day = String(d.getDate()).padStart(2, '0');
+                var month = String(d.getMonth() + 1).padStart(2, '0');
+                var year = d.getFullYear();
+                if (year > 2400) year -= 543;
+                var hours = String(d.getHours()).padStart(2, '0');
+                var minutes = String(d.getMinutes()).padStart(2, '0');
+                var seconds = String(d.getSeconds()).padStart(2, '0');
+                return "วันที่ " + day + "/" + month + "/" + year + " เวลา " + hours + ":" + minutes + ":" + seconds;
+            } catch(e) {
+                return String(dateStr);
+            }
+        }
+
         function renderNotificationHistoryTable(rows, totalCount) {
             var tbody = document.getElementById('notificationHistoryTableBody');
             if (!tbody) return;
@@ -5464,7 +5515,7 @@
 
             var html = '';
             rows.forEach(function(row, idx) {
-                var dateStr = row.timestamp || "-";
+                var dateStr = formatNotificationDateTime(row.timestamp);
                 var senderStr = row.sender || "-";
                 var titleStr = row.title || "-";
                 var msgStr = row.message || "-";
@@ -5518,7 +5569,7 @@
             if (idEl) idEl.innerText = "ID: " + (item.historyId || "-");
 
             var timeEl = document.getElementById('modalNotifTimestamp');
-            if (timeEl) timeEl.innerText = item.timestamp || "-";
+            if (timeEl) timeEl.innerText = formatNotificationDateTime(item.timestamp);
 
             var senderEl = document.getElementById('modalNotifSender');
             if (senderEl) senderEl.innerText = item.sender || "-";
