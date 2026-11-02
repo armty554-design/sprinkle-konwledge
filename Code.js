@@ -4086,24 +4086,91 @@ function debugFCMStatus() {
   };
 }
 
-// ฟังก์ชันอ่านรายการ Token สำหรับตรวจสอบ
+// ฟังก์ชันอ่านรายการ Token และรายชื่อผู้เปิดรับการแจ้งเตือนสำหรับตรวจสอบ
 function getRegisteredPushTokens() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("PushTokens");
-  if (!sheet) return [];
-  var rows = sheet.getDataRange().getValues();
-  var list = [];
-  for (var i = 1; i < rows.length; i++) {
-    if (rows[i][4]) {
-      list.push({
-        empId: rows[i][0],
-        name: rows[i][1],
-        device: rows[i][5],
-        token: rows[i][4],
-        status: rows[i][7]
-      });
+  try {
+    var ss = getMainSpreadsheet();
+    var sheet = ss ? ss.getSheetByName("PushTokens") : null;
+    if (!sheet) {
+      return { success: true, count: 0, rows: [], data: [] };
     }
+    
+    // โหลดฐานข้อมูลพนักงานเพื่อทำ Map ข้อมูลให้สมบูรณ์ (ชื่อ, ตำแหน่ง, สาขา, เบอร์รถ)
+    var empMap = {};
+    var empSheet = ss.getSheetByName("Employees");
+    if (empSheet) {
+      var eRows = empSheet.getDataRange().getValues();
+      for (var e = 1; e < eRows.length; e++) {
+        var eId = String(eRows[e][0] || "").trim();
+        if (eId) {
+          var eRole = String(eRows[e][2] || "").trim();
+          if (eRole === "ผู้ประกอบการ" || eRole === "ผปก.") eRole = "พี่สปริงเคิล";
+          var eBranch = (eRows[e].length > 6 && eRows[e][6]) ? String(eRows[e][6]).trim() : "-";
+          var eCar = (eRows[e].length > 8 && eRows[e][8]) ? String(eRows[e][8]).trim() : "-";
+          empMap[eId] = {
+            name: String(eRows[e][1] || ""),
+            role: eRole,
+            branch: eBranch,
+            carNumber: eCar
+          };
+        }
+      }
+    }
+
+    var rows = sheet.getDataRange().getValues();
+    var list = [];
+    for (var i = 1; i < rows.length; i++) {
+      var r = rows[i];
+      var tok = String(r[4] || "").trim();
+      if (tok) {
+        var empId = String(r[0] || "").trim();
+        var empInfo = empMap[empId] || {};
+        var name = String(r[1] || "").trim() || empInfo.name || "-";
+        var role = String(r[2] || "").trim() || empInfo.role || "-";
+        if (role === "ผู้ประกอบการ" || role === "ผปก.") role = "พี่สปริงเคิล";
+        var branch = String(r[3] || "").trim() || empInfo.branch || "-";
+        var carNumber = empInfo.carNumber || "-";
+        var device = String(r[5] || "-").trim();
+        var status = String(r[7] || "เปิดใช้งาน").trim();
+        
+        var rawDate = r[6];
+        var dateFormatted = "";
+        if (rawDate instanceof Date) {
+          var dDay = Utilities.formatDate(rawDate, "GMT+7", "dd");
+          var dMonth = Utilities.formatDate(rawDate, "GMT+7", "MM");
+          var dYear = Utilities.formatDate(rawDate, "GMT+7", "yyyy");
+          var dClock = Utilities.formatDate(rawDate, "GMT+7", "HH:mm:ss");
+          dateFormatted = "วันที่ " + dDay + "/" + dMonth + "/" + dYear + " เวลา " + dClock;
+        } else if (rawDate) {
+          dateFormatted = String(rawDate);
+        }
+
+        list.push({
+          empId: empId || "-",
+          name: name,
+          role: role,
+          branch: branch,
+          carNumber: carNumber,
+          device: device,
+          token: tok,
+          lastUpdated: dateFormatted || "-",
+          status: status
+        });
+      }
+    }
+
+    list.reverse(); // เรียงจากล่าสุดไปเก่าสุด
+
+    return {
+      success: true,
+      count: list.length,
+      rows: list,
+      data: list
+    };
+  } catch(err) {
+    Logger.log("Error in getRegisteredPushTokens: " + err.toString());
+    return { success: false, error: err.toString(), count: 0, rows: [], data: [] };
   }
-  return list;
 }
 
 // ฟังก์ชันสำหรับกดยืนยันอนุญาตสิทธิ์การเชื่อมต่อภายนอก (UrlFetchApp) ในหน้า Apps Script
@@ -4212,7 +4279,8 @@ function doPost(e) {
       "changeUserPassword": changeUserPassword,
       "getEmployeeInfoForRegistration": getEmployeeInfoForRegistration,
       "resetEmployeePassword": resetEmployeePassword,
-      "migrateEmployeesRoleToSpringle": migrateEmployeesRoleToSpringle
+      "migrateEmployeesRoleToSpringle": migrateEmployeesRoleToSpringle,
+      "getRegisteredPushTokens": getRegisteredPushTokens
     };
     
     var fn = null;

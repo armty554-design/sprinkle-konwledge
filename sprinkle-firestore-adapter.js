@@ -912,6 +912,67 @@
             });
         },
 
+        getRegisteredPushTokens: function() {
+            function fallbackGAS() {
+                if (!GAS_API_URL) return Promise.resolve({ success: false, rows: [], data: [] });
+                return fetch(GAS_API_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ functionName: 'getRegisteredPushTokens', arguments: [] })
+                }).then(function(res) {
+                    return res.json();
+                }).then(function(resData) {
+                    if (resData && (resData.rows || resData.data)) {
+                        return {
+                            success: true,
+                            count: (resData.rows || resData.data).length,
+                            rows: resData.rows || resData.data,
+                            data: resData.rows || resData.data
+                        };
+                    }
+                    if (Array.isArray(resData)) {
+                        return { success: true, count: resData.length, rows: resData, data: resData };
+                    }
+                    return { success: true, count: 0, rows: [], data: [] };
+                }).catch(function(err) {
+                    console.warn("[Adapter] getRegisteredPushTokens fallback error:", err);
+                    return { success: false, rows: [], data: [], error: err.message };
+                });
+            }
+
+            if (!db) return fallbackGAS();
+
+            return db.collection('pushTokens').get().then(function(snap) {
+                if (snap.empty) {
+                    return fallbackGAS();
+                }
+                var list = [];
+                snap.forEach(function(doc) {
+                    var d = doc.data() || {};
+                    list.push({
+                        empId: d.empId || "-",
+                        name: d.name || "-",
+                        role: d.role || "-",
+                        branch: d.branch || "-",
+                        carNumber: d.carNumber || "-",
+                        device: d.deviceInfo || d.device || "-",
+                        token: d.token || doc.id,
+                        lastUpdated: d.updatedAt || "-",
+                        status: d.status === "active" ? "เปิดใช้งาน" : (d.status || "เปิดใช้งาน")
+                    });
+                });
+                return {
+                    success: true,
+                    count: list.length,
+                    rows: list,
+                    data: list
+                };
+            }).catch(function() {
+                return fallbackGAS();
+            });
+        },
+
         // 11. Manual Bidirectional Sync from Google Sheets to Firestore
         syncFromGoogleSheets: function() {
             if (!GAS_API_URL) return Promise.reject(new Error("Missing GAS API URL"));
