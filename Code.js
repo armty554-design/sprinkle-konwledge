@@ -420,6 +420,16 @@ function addQuestion(category, question, askedBy, askedFileUrl) {
       } catch (eLock) {}
     }
 
+    // รองรับกรณีส่ง payload เป็น object
+    var qObj = {};
+    if (category && typeof category === 'object') {
+      qObj = category;
+      category = qObj.category;
+      question = qObj.question;
+      askedBy = qObj.askedBy;
+      askedFileUrl = qObj.askedFileUrl;
+    }
+
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName("QA");
     
@@ -462,9 +472,16 @@ function addQuestion(category, question, askedBy, askedFileUrl) {
       }
     }
     
-    var newId = "qa_" + new Date().getTime();
+    var newId = (qObj && qObj.id) ? qObj.id : ("qa_" + new Date().getTime());
     var formattedDate = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd HH:mm:ss");
     
+    // หากส่งมาพร้อมคำตอบแล้ว (เช่น บันทึกจากระบบตอบอัตโนมัติ)
+    if (qObj && (qObj.status === "ตอบแล้ว" || qObj.isAutoAnswer) && qObj.answer) {
+      var ansBy = qObj.answeredBy || "ระบบตอบอัตโนมัติ (AI Bot)";
+      sheet.appendRow([newId, category, question, askedBy, formattedDate, qObj.answer, ansBy, formattedDate, "ตอบแล้ว", askedFileUrl || "", ""]);
+      return "🤖 ระบบได้ตอบคำถามของคุณโดยอัตโนมัติเรียบร้อยแล้ว! สามารถเช็คคำตอบได้ที่แท็บ 'ตอบแล้ว' นะครับ";
+    }
+
     // ดึงสถานะเปิดใช้งาน Auto-Answer
     var config = getSystemConfig();
     var isAutoAnswerEnabled = config.auto_answer_status !== "ปิดใช้งาน";
@@ -473,7 +490,7 @@ function addQuestion(category, question, askedBy, askedFileUrl) {
     
     if (isAutoAnswerEnabled) {
       var matchResult = findBestAutoAnswer(question);
-      if (matchResult && matchResult.score >= 0.55) {
+      if (matchResult && matchResult.score >= 0.50) {
         autoAnswered = true;
         autoAnswerText = matchResult.answer;
       }
@@ -494,6 +511,26 @@ function addQuestion(category, question, askedBy, askedFileUrl) {
     if (hasLock && lock) {
       try { lock.releaseLock(); } catch(eRel) {}
     }
+  }
+}
+
+// 7.1 บันทึกคำถามพร้อมคำตอบอัตโนมัติลงชีต QA โดยตรง
+function addAndAnswerQuestion(qaId, category, question, askedBy, answer, answeredBy, askedFileUrl) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("QA");
+    if (!sheet) {
+      sheet = ss.insertSheet("QA");
+      sheet.appendRow(["รหัสคำถาม", "หมวดหมู่", "คำถาม", "ถามโดย", "เวลาที่ถาม", "คำตอบ", "ตอบโดย", "เวลาที่ตอบ", "สถานะ", "AskedFile", "AnsweredFile"]);
+    }
+    var id = qaId || ("qa_" + new Date().getTime());
+    var formattedDate = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd HH:mm:ss");
+    var ansBy = answeredBy || "ระบบตอบอัตโนมัติ (AI Bot)";
+    
+    sheet.appendRow([id, category, question, askedBy, formattedDate, answer, ansBy, formattedDate, "ตอบแล้ว", askedFileUrl || "", ""]);
+    return { success: true, id: id };
+  } catch (err) {
+    return { success: false, error: err.toString() };
   }
 }
 
@@ -4280,7 +4317,8 @@ function doPost(e) {
       "getEmployeeInfoForRegistration": getEmployeeInfoForRegistration,
       "resetEmployeePassword": resetEmployeePassword,
       "migrateEmployeesRoleToSpringle": migrateEmployeesRoleToSpringle,
-      "getRegisteredPushTokens": getRegisteredPushTokens
+      "getRegisteredPushTokens": getRegisteredPushTokens,
+      "addAndAnswerQuestion": addAndAnswerQuestion
     };
     
     var fn = null;

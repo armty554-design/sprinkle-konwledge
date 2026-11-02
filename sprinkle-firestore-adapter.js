@@ -629,17 +629,22 @@
                 qObj = {
                     category: String(arguments[0] || "").trim(),
                     question: String(arguments[1] || "").trim(),
-                    askedBy: String(arguments[2] || "").trim()
+                    askedBy: String(arguments[2] || "").trim(),
+                    askedFileUrl: String(arguments[3] || "").trim()
                 };
             }
             var docId = String(qObj.id || ("qa_" + Date.now()));
             qObj.id = docId;
-            qObj.status = qObj.status || "รอคำตอบ";
+            qObj.status = qObj.status || (qObj.answer ? "ตอบแล้ว" : "รอคำตอบ");
             qObj.askedTime = qObj.askedTime || new Date().toISOString();
 
             return db.collection('qa').doc(docId).set(qObj).then(function() {
-                syncToGoogleSheets('addQuestion', [qObj.category, qObj.question, qObj.askedBy]);
-                return "ส่งคำถามเรียบร้อยแล้ว!";
+                if (qObj.status === "ตอบแล้ว" && qObj.answer) {
+                    syncToGoogleSheets('addAndAnswerQuestion', [docId, qObj.category, qObj.question, qObj.askedBy, qObj.answer, qObj.answeredBy || "ระบบตอบอัตโนมัติ (AI Bot)", qObj.askedFileUrl || ""]);
+                } else {
+                    syncToGoogleSheets('addQuestion', [qObj.category, qObj.question, qObj.askedBy, qObj.askedFileUrl || ""]);
+                }
+                return (qObj.status === "ตอบแล้ว" || qObj.isAutoAnswer) ? "🤖 ระบบได้ตอบคำถามของคุณโดยอัตโนมัติเรียบร้อยแล้ว!" : "ส่งคำถามเรียบร้อยแล้ว!";
             });
         },
 

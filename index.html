@@ -10050,6 +10050,242 @@ function openAudienceFolder(aud) {
                 .updateKnowledgeOrdersBulk(payload);
         }
 
+        // ==================== ระบบจับคู่และตอบคำถามอัตโนมัติ (AI Smart Q&A & Instant Suggestions) ====================
+        var QA_SYNONYM_GROUPS = [
+            ["ลืม", "จำไม่ได้", "เปลี่ยนรหัส", "รีเซ็ตรหัส", "reset", "password", "รหัสผ่าน"],
+            ["ส่งน้ำ", "จัดส่ง", "ส่งของ", "ขนส่ง", "บริการจัดส่ง"],
+            ["เบิก", "ขอเบิก", "ขอรับ", "อุปกรณ์", "ยูนิฟอร์ม", "เสื้อ", "ชุด"],
+            ["วันหยุด", "หยุด", "ลา", "ลาป่วย", "ลากิจ", "วันลา", "วันหยุดประเพณี"],
+            ["สวัสดิการ", "รักษาพยาบาล", "ประกัน", "ประกันสังคม", "พยาบาล", "ตรวจสุขภาพ"],
+            ["รถ", "เบอร์รถ", "รถยนต์", "ยานพาหนะ", "ซ่อมรถ", "น้ำมัน", "ค่าน้ำมัน"],
+            ["ถัง", "ถังน้ำ", "คุณภาพน้ำ", "ตรวจน้ำ", "เชื้อโรค", "มาตรฐาน", "สุขาภิบาล"],
+            ["เงินเดือน", "สลิป", "ค่าจ้าง", "รายได้", "โบนัส", "โอที", "ot", "เบี้ยขยัน"],
+            ["แอป", "แอพ", "ระบบ", "เข้าสู่ระบบ", "login", "ล็อคอิน", "ออกจากระบบ"],
+            ["คู่มือ", "เอกสาร", "แนวทาง", "ขั้นตอน", "ระเบียบ", "นโยบาย", "วิธีปฏิบัติ"]
+        ];
+
+        var QA_STOPWORDS = [
+            "ครับผม", "ครับ", "ค่ะ", "นะคะ", "นะ", "หน่อย", "รบกวน", "ช่วย", "อยากทราบ", 
+            "ขอถาม", "มีใคร", "อย่างไร", "บ้าง", "ไหม", "สอบถาม", "สวัสดี", "ถาม", "เรื่อง", 
+            "เกี่ยวกับ", "ทำยังไง", "อย่างไรบ้าง", "ของ", "ค่า", "หน่อยครับ", "หน่อยค่ะ", "สอบถามเรื่อง",
+            "มีขั้นตอน", "ขั้นตอนไหน", "ที่ไหน", "ใคร", "ทำไม", "อะไร"
+        ];
+
+        function cleanThaiTextForQA(str) {
+            var s = String(str || "").toLowerCase();
+            QA_STOPWORDS.forEach(function(w) {
+                s = s.split(w).join("");
+            });
+            return s.replace(/[^a-z0-9\u0e00-\u0e7f]/g, "").trim();
+        }
+
+        function calculateQASimilarity(query, reference) {
+            if (!query || !reference) return 0;
+            var origQ = String(query).toLowerCase();
+            var origR = String(reference).toLowerCase();
+
+            var cleanQ = cleanThaiTextForQA(origQ);
+            var cleanR = cleanThaiTextForQA(origR);
+
+            if (!cleanQ || !cleanR) return 0;
+            if (cleanQ === cleanR) return 1.0;
+
+            var score = 0;
+            // ตรวจสอบ Substring ตรงๆ
+            if (cleanQ.indexOf(cleanR) !== -1 || cleanR.indexOf(cleanQ) !== -1) {
+                score = Math.max(score, 0.65);
+            }
+
+            // คำนวณ Bigrams Recall & Jaccard
+            var b1 = [];
+            for (var i = 0; i < cleanQ.length - 1; i++) b1.push(cleanQ.substr(i, 2));
+            var b2 = [];
+            for (var j = 0; j < cleanR.length - 1; j++) b2.push(cleanR.substr(j, 2));
+
+            if (b1.length > 0 && b2.length > 0) {
+                var matchCount = 0;
+                b1.forEach(function(bg) {
+                    if (b2.indexOf(bg) !== -1) matchCount++;
+                });
+                var recall = matchCount / Math.min(b1.length, b2.length);
+                score = Math.max(score, recall * 0.85);
+            }
+
+            // Synonym Boost
+            QA_SYNONYM_GROUPS.forEach(function(group) {
+                var qHas = group.some(function(w) { return origQ.indexOf(w) !== -1; });
+                var rHas = group.some(function(w) { return origR.indexOf(w) !== -1; });
+                if (qHas && rHas) score += 0.25;
+            });
+
+            return Math.min(score, 1.0);
+        }
+
+        var _qaSuggestDebounceTimer = null;
+        function debounceQAInstantSuggestions() {
+            clearTimeout(_qaSuggestDebounceTimer);
+            _qaSuggestDebounceTimer = setTimeout(function() {
+                var qInput = document.getElementById('qaQuestionInput');
+                var query = qInput ? qInput.value.trim() : "";
+                var container = document.getElementById('qaInstantSuggestionsContainer');
+                var listEl = document.getElementById('qaInstantSuggestionsList');
+                if (!container || !listEl) return;
+
+                if (!query || query.length < 3) {
+                    container.classList.add('hidden');
+                    listEl.innerHTML = "";
+                    return;
+                }
+
+                var matches = getQAMatches(query, 0.40, 3);
+                if (matches.length === 0) {
+                    container.classList.add('hidden');
+                    listEl.innerHTML = "";
+                    return;
+                }
+
+                var html = '';
+                matches.forEach(function(m) {
+                    if (m.type === 'knowledge') {
+                        var k = m.item;
+                        html += '<div class="p-2.5 bg-white rounded-xl border border-blue-150 shadow-xs flex items-center justify-between gap-3">' +
+                            '<div class="min-w-0 flex-1">' +
+                                '<div class="flex items-center gap-1.5">' +
+                                    '<span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full">📚 คู่มือ</span>' +
+                                    '<span class="text-[10px] text-gray-500 font-semibold">' + escapeHtml(k.category || k.mainFolder || '-') + '</span>' +
+                                '</div>' +
+                                '<h5 class="text-xs sm:text-sm font-bold text-blue-950 truncate mt-0.5">' + escapeHtml(k.title) + '</h5>' +
+                            '</div>' +
+                            '<button type="button" onclick="closeAskQuestionModal(); openContentViewer(\'' + k.id + '\');" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl shrink-0 transition-all active:scale-95 shadow-xs flex items-center gap-1">' +
+                                '<span>📖 เปิดอ่าน</span>' +
+                            '</button>' +
+                        '</div>';
+                    } else {
+                        var q = m.item;
+                        var ansShort = q.answer ? q.answer.replace(/<[^>]*>/g, '').substring(0, 70) + '...' : '';
+                        html += '<div class="p-2.5 bg-white rounded-xl border border-indigo-150 shadow-xs space-y-1">' +
+                            '<div class="flex items-center gap-1.5">' +
+                                '<span class="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full">💡 คำตอบเดิม</span>' +
+                                '<span class="text-[10px] text-gray-500 font-semibold truncate">คำถาม: "' + escapeHtml(q.question) + '"</span>' +
+                            '</div>' +
+                            '<p class="text-xs font-semibold text-gray-700 line-clamp-2 pl-1">' + escapeHtml(ansShort) + '</p>' +
+                        '</div>';
+                    }
+                });
+
+                listEl.innerHTML = html;
+                container.classList.remove('hidden');
+            }, 250);
+        }
+
+        function getQAMatches(query, minScore, maxResults) {
+            minScore = minScore || 0.40;
+            maxResults = maxResults || 3;
+            var candidates = [];
+
+            // 1. ตรวจสอบคลังความรู้ (allDatabaseData)
+            if (typeof allDatabaseData !== 'undefined' && Array.isArray(allDatabaseData)) {
+                allDatabaseData.forEach(function(k) {
+                    if (k.status === 'เปิดใช้งาน' || !k.status) {
+                        var titleScore = calculateQASimilarity(query, k.title);
+                        var descScore = k.description ? calculateQASimilarity(query, k.description) : 0;
+                        var subScore = k.subCategory ? calculateQASimilarity(query, k.subCategory) : 0;
+                        var maxS = Math.max(titleScore, descScore * 0.8, subScore * 0.7);
+                        if (maxS >= minScore) {
+                            candidates.push({
+                                type: 'knowledge',
+                                title: k.title,
+                                score: maxS,
+                                item: k
+                            });
+                        }
+                    }
+                });
+            }
+
+            // 2. ตรวจสอบคำถามเดิมที่เคยตอบแล้ว (allQAData)
+            if (typeof allQAData !== 'undefined' && Array.isArray(allQAData)) {
+                allQAData.forEach(function(qa) {
+                    if ((qa.status === 'ตอบแล้ว' || qa.answer) && qa.question) {
+                        var qScore = calculateQASimilarity(query, qa.question);
+                        if (qScore >= minScore) {
+                            candidates.push({
+                                type: 'qa',
+                                title: qa.question,
+                                score: qScore,
+                                item: qa
+                            });
+                        }
+                    }
+                });
+            }
+
+            candidates.sort(function(a, b) { return b.score - a.score; });
+            return candidates.slice(0, maxResults);
+        }
+
+        function findBestAutoAnswerClient(question) {
+            var matches = getQAMatches(question, 0.45, 4);
+            if (matches.length === 0) return null;
+            var bestMatch = matches[0];
+            if (bestMatch.score < 0.50) return null;
+
+            var autoAnswerText = "";
+            var relatedItems = [];
+
+            if (bestMatch.type === "knowledge") {
+                var k = bestMatch.item;
+                autoAnswerText = '🤖 <b>ระบบตอบกลับอัตโนมัติ (AI Assistant):</b> พบข้อมูลคู่มือในคลังความรู้ที่ตรงกับคำถามของคุณครับ<br><br>' +
+                    '📌 <b>หัวข้อคู่มือ:</b> ' + escapeHtml(k.title) + '<br>' +
+                    '📂 <b>หมวดหมู่:</b> ' + escapeHtml(k.category || k.mainFolder || '-') + '<br>' +
+                    '<div style="margin-top:10px;">' +
+                        '<button type="button" onclick="openContentViewer(\'' + k.id + '\')" style="background:#2563eb;color:#ffffff;font-weight:bold;padding:7px 16px;border-radius:12px;border:none;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:6px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">' +
+                            '<span>📖</span> <span>เปิดอ่านคู่มือนี้ทันที</span>' +
+                        '</button>' +
+                    '</div>';
+
+                if (k.additionalLinks) {
+                    try {
+                        var links = typeof k.additionalLinks === 'string' ? JSON.parse(k.additionalLinks) : k.additionalLinks;
+                        if (Array.isArray(links) && links.length > 0) {
+                            autoAnswerText += '<br>📂 <b>ลิงก์แนบเพิ่มเติม:</b>';
+                            links.forEach(function(l) {
+                                autoAnswerText += '<br>• <a href="' + escapeHtml(l.url) + '" target="_blank" style="color:#2563eb;text-decoration:underline;">' + escapeHtml(l.note || l.url) + '</a>';
+                            });
+                        }
+                    } catch(e) {}
+                }
+            } else {
+                var q = bestMatch.item;
+                autoAnswerText = '🤖 <b>ระบบตอบกลับอัตโนมัติ (อ้างอิงจากคำถามที่ใกล้เคียงกัน):</b><br><br>' +
+                    (q.answer || '') + '<br><br>' +
+                    '<span style="font-size:12px;color:#6b7280;font-weight:normal;">(คำถามอ้างอิงเดิม: "' + escapeHtml(q.question) + '")</span>';
+            }
+
+            // ค้นหาหัวข้อใกล้เคียงเพิ่มเติม
+            for (var i = 1; i < matches.length; i++) {
+                var m = matches[i];
+                if (m.score >= 0.40 && m.title !== bestMatch.title && relatedItems.length < 2) {
+                    if (m.type === 'knowledge') {
+                        relatedItems.push('• <a href="javascript:void(0)" onclick="openContentViewer(\'' + m.item.id + '\')" style="color:#2563eb;font-weight:bold;text-decoration:underline;">' + escapeHtml(m.title) + ' (คลังความรู้)</a>');
+                    } else {
+                        relatedItems.push('• ประวัติ Q&A เรื่อง: <i>"' + escapeHtml(m.title) + '"</i>');
+                    }
+                }
+            }
+
+            if (relatedItems.length > 0) {
+                autoAnswerText += '<br><br>💡 <b>หัวข้อใกล้เคียงอื่นๆ ที่คุณอาจสนใจ:</b><br>' + relatedItems.join('<br>');
+            }
+
+            return {
+                type: bestMatch.type,
+                score: bestMatch.score,
+                title: bestMatch.title,
+                answer: autoAnswerText
+            };
+        }
+
         // ==================== ส่วน Q&A (Q&A Module) ====================
         function filterQA(filter) {
             activeQAFilter = filter;
@@ -10068,17 +10304,28 @@ function openAudienceFolder(aud) {
 
         function renderQA() {
             var container = document.getElementById('qaListContainer');
+            if (!container) return;
             container.innerHTML = "";
 
-            var filteredQA = [];
+            var answeredList = [];
+            var pendingList = [];
             for (var i = 0; i < allQAData.length; i++) {
-                var qa = allQAData[i];
-                if (activeQAFilter === 'answered' && qa.status === 'ตอบแล้ว') {
-                    filteredQA.push(qa);
-                } else if (activeQAFilter === 'pending' && qa.status === 'รอดำเนินการ') {
-                    filteredQA.push(qa);
+                var qaItem = allQAData[i];
+                var isAns = (qaItem.status === 'ตอบแล้ว' || (qaItem.answer && String(qaItem.answer).trim() !== ""));
+                if (isAns) {
+                    answeredList.push(qaItem);
+                } else {
+                    pendingList.push(qaItem);
                 }
             }
+
+            // อัปเดตตัวเลขจำนวนบนปุ่มตัวกรอง
+            var btnAns = document.getElementById('btnFilterQAAnswered');
+            if (btnAns) btnAns.innerHTML = '💡 ตอบแล้ว (' + answeredList.length + ')';
+            var btnPen = document.getElementById('btnFilterQAPending');
+            if (btnPen) btnPen.innerHTML = '⏳ กำลังรอคำตอบ (' + pendingList.length + ')';
+
+            var filteredQA = (activeQAFilter === 'answered') ? answeredList : pendingList;
 
             if (filteredQA.length === 0) {
                 container.innerHTML = '<div class="bg-white p-8 rounded-3xl border border-gray-200 text-center text-gray-500 shadow-sm">' +
@@ -10092,29 +10339,49 @@ function openAudienceFolder(aud) {
                 var qa = filteredQA[i];
                 var answerHtml = "";
                 var actionBtnHtml = "";
+                var isAns = (qa.status === 'ตอบแล้ว' || (qa.answer && String(qa.answer).trim() !== ""));
 
-                if (qa.status === 'ตอบแล้ว') {
-                    answerHtml = '<div class="mt-4 bg-green-50 border-l-4 border-green-500 p-4 rounded-r-xl">' +
-                        '<span class="text-sm font-extrabold text-green-800 block">💡 คำตอบจาก คุณ ' + qa.answeredBy + ' (' + formatThaiDate(qa.answeredTime) + '):</span>' +
-                        '<p class="text-base sm:text-xl text-green-900 font-bold mt-1">' + qa.answer + '</p>' +
+                if (isAns) {
+                    var isAuto = (qa.answeredBy && (qa.answeredBy.indexOf('อัตโนมัติ') !== -1 || qa.answeredBy.indexOf('Bot') !== -1 || qa.answeredBy.indexOf('AI') !== -1)) || qa.isAutoAnswer;
+                    
+                    var badgeBot = isAuto 
+                        ? '<span class="inline-flex items-center gap-1 bg-indigo-100 text-indigo-800 text-xs font-extrabold px-2.5 py-0.5 rounded-full border border-indigo-200 ml-2">🤖 ตอบอัตโนมัติ</span>'
+                        : '';
+                    
+                    var bgStyle = isAuto ? 'bg-indigo-50/70 border-l-4 border-indigo-500' : 'bg-green-50 border-l-4 border-green-500';
+                    var textStyle = isAuto ? 'text-indigo-950' : 'text-green-900';
+
+                    answerHtml = '<div class="mt-4 ' + bgStyle + ' p-4 rounded-r-2xl">' +
+                        '<div class="flex items-center justify-between flex-wrap gap-2 mb-1.5">' +
+                            '<span class="text-sm font-extrabold ' + (isAuto ? 'text-indigo-800' : 'text-green-800') + ' flex items-center">' +
+                                '💡 คำตอบจาก: ' + escapeHtml(qa.answeredBy || 'ระบบ') + badgeBot +
+                            '</span>' +
+                            '<span class="text-xs text-gray-500 font-bold">' + formatThaiDate(qa.answeredTime) + '</span>' +
+                        '</div>' +
+                        '<div class="text-base sm:text-lg ' + textStyle + ' font-bold mt-1 leading-relaxed">' + (isAuto ? qa.answer : escapeHtml(qa.answer)) + '</div>' +
                     '</div>';
-                } else {
-                    // ตรวจสอบสิทธิ์ตอบ Q&A จาก canAnswerQA ที่ดึงมาจากคอลัมน์ D ของชีต Employees
+
+                    // ผู้มีสิทธิ์ตอบสามารถกดแก้ไขหรือปรับปรุงคำตอบได้ตลอดเวลา
                     if (currentUser.canAnswerQA) {
-                        actionBtnHtml = '<button onclick="openAnswerModal(\'' + qa.id + '\', \'' + qa.question + '\')" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold text-lg mt-3 shadow-md transition-all">✍️ กดเขียนคำตอบตรงนี้</button>';
+                        actionBtnHtml = '<button onclick="openAnswerModal(\'' + qa.id + '\', \'' + escapeHtml(qa.question) + '\', \'' + escapeHtml(qa.answer || '') + '\')" class="bg-gray-100 hover:bg-blue-600 hover:text-white text-gray-700 px-4 py-2 rounded-xl font-bold text-xs mt-3 border border-gray-200 transition-all flex items-center gap-1.5 shadow-2xs">✏️ แก้ไข/เพิ่มเติมคำตอบ</button>';
+                    }
+                } else {
+                    // ตรวจสอบสิทธิ์ตอบ Q&A จาก canAnswerQA
+                    if (currentUser.canAnswerQA) {
+                        actionBtnHtml = '<button onclick="openAnswerModal(\'' + qa.id + '\', \'' + escapeHtml(qa.question) + '\')" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold text-base sm:text-lg mt-3 shadow-md transition-all flex items-center gap-2">✍️ กดเขียนคำตอบตรงนี้</button>';
                     } else {
-                        answerHtml = '<div class="mt-4 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-xl">' +
-                            '<p class="text-lg text-yellow-800 font-bold">⏳ คำถามกำลังรอพี่ๆ ผู้จัดการมาตอบนะครับ จะมาแสดงตรงนี้เมื่อตอบเสร็จแล้ว</p>' +
+                        answerHtml = '<div class="mt-4 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-2xl">' +
+                            '<p class="text-base sm:text-lg text-amber-900 font-bold">⏳ คำถามกำลังรอพี่ๆ ผู้จัดการมาตอบนะครับ จะมาแสดงตรงนี้เมื่อตอบเสร็จแล้ว</p>' +
                         '</div>';
                     }
                 }
 
                 container.innerHTML += '<div class="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm transition-all">' +
                     '<div class="flex justify-between items-start gap-2">' +
-                        '<span class="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold">' + qa.category + '</span>' +
+                        '<span class="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold">' + escapeHtml(qa.category || 'ทั่วไป') + '</span>' +
                     '</div>' +
-                    '<h4 class="text-lg sm:text-2xl font-extrabold text-gray-800 mt-2">คำถาม: "' + qa.question + '"</h4>' +
-                    '<span class="text-sm font-semibold text-gray-400 block mt-1">ถามโดย: ไม่ระบุชื่อ • เวลา: ' + formatThaiDate(qa.askedTime) + '</span>' +
+                    '<h4 class="text-lg sm:text-2xl font-extrabold text-gray-850 mt-2">คำถาม: "' + escapeHtml(qa.question) + '"</h4>' +
+                    '<span class="text-sm font-semibold text-gray-400 block mt-1">ถามโดย: ' + escapeHtml(qa.askedBy || 'พนักงาน') + ' • เวลา: ' + formatThaiDate(qa.askedTime) + '</span>' +
                     answerHtml +
                     actionBtnHtml +
                 '</div>';
@@ -10122,14 +10389,25 @@ function openAudienceFolder(aud) {
         }
 
         function openAskQuestionModal() {
-            document.getElementById('askQuestionModal').classList.remove('hidden');
-            document.getElementById('askQuestionModal').classList.add('flex');
-            document.getElementById('qaQuestionInput').value = "";
+            var modal = document.getElementById('askQuestionModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+            var input = document.getElementById('qaQuestionInput');
+            if (input) input.value = "";
+            var container = document.getElementById('qaInstantSuggestionsContainer');
+            if (container) container.classList.add('hidden');
         }
 
         function closeAskQuestionModal() {
-            document.getElementById('askQuestionModal').classList.add('hidden');
-            document.getElementById('askQuestionModal').classList.remove('flex');
+            var modal = document.getElementById('askQuestionModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+            var container = document.getElementById('qaInstantSuggestionsContainer');
+            if (container) container.classList.add('hidden');
         }
 
         function setSubmitQuestionBtnState(isBusy) {
@@ -10149,31 +10427,66 @@ function openAudienceFolder(aud) {
             if (window.isSubmittingQuestion) return;
             var cat = document.getElementById('qaCatSelect').value;
             var question = document.getElementById('qaQuestionInput').value.trim();
+            var fileUrl = document.getElementById('qaQuestionFileUrl') ? document.getElementById('qaQuestionFileUrl').value.trim() : "";
 
             if (!question) return alert("กรุณาพิมพ์คำถามที่ต้องการถามด้วยครับ");
 
+            // ตรวจสอบสถานะการเปิดใช้งานระบบตอบคำถามอัตโนมัติ (Auto-Answer Status)
+            var isAutoEnabled = true;
+            if (systemConfigData && systemConfigData.auto_answer_status === "ปิดใช้งาน") {
+                isAutoEnabled = false;
+            }
+
+            var autoAnswerObj = null;
+            if (isAutoEnabled) {
+                autoAnswerObj = findBestAutoAnswerClient(question);
+            }
+
             setSubmitQuestionBtnState(true);
-            showLoading("กำลังส่งคำถามไปยังหัวหน้างาน...");
+            showLoading(autoAnswerObj ? "กำลังวิเคราะห์และจัดทำคำตอบอัตโนมัติ..." : "กำลังส่งคำถามไปยังหัวหน้างาน...");
+
+            var qPayload = {
+                category: cat,
+                question: question,
+                askedBy: (currentUser && currentUser.name) ? currentUser.name : "พนักงาน",
+                askedFileUrl: fileUrl || ""
+            };
+
+            if (autoAnswerObj) {
+                qPayload.status = "ตอบแล้ว";
+                qPayload.answer = autoAnswerObj.answer;
+                qPayload.answeredBy = "ระบบตอบอัตโนมัติ (AI Bot)";
+                qPayload.answeredTime = new Date().toISOString();
+                qPayload.isAutoAnswer = true;
+            } else {
+                qPayload.status = "รอดำเนินการ";
+            }
+
             google.script.run.withSuccessHandler(function(msg) {
                 setSubmitQuestionBtnState(false);
                 hideLoading();
-                alert(msg);
                 closeAskQuestionModal();
+                if (autoAnswerObj) {
+                    alert("🤖 ระบบได้ตอบคำถามของคุณโดยอัตโนมัติทันทีเรียบร้อยแล้ว!\n\n💡 พบข้อมูลคู่มือที่ตรงกับคำถามของคุณ:\n\"" + autoAnswerObj.title + "\"\n\nสามารถดูรายละเอียดคำตอบได้ที่แท็บ 'ตอบแล้ว' ทันทีครับ");
+                    filterQA('answered');
+                } else {
+                    alert(msg || "ส่งคำถามเรียบร้อยแล้ว! รอกรรมการหรือผู้จัดการมาตอบนะครับ");
+                }
                 loadData();
             }).withFailureHandler(function(err) {
                 setSubmitQuestionBtnState(false);
                 hideLoading();
                 alert("เกิดข้อผิดพลาดในการส่งคำถาม: " + err.toString());
-            }).addQuestion(cat, question, currentUser.name);
+            }).addQuestion(qPayload);
         }
 
-        function openAnswerModal(qaId, questionText) {
+        function openAnswerModal(qaId, questionText, currentAnswer) {
             document.getElementById('answerModal').classList.remove('hidden');
             document.getElementById('answerModal').classList.add('flex');
             
             document.getElementById('targetQuestionId').value = qaId;
-            document.getElementById('targetQuestionText').innerText = 'พนักงานถามว่า: "' + questionText + '"';
-            document.getElementById('qaAnswerInput').value = "";
+            document.getElementById('targetQuestionText').innerText = 'คำถาม: "' + questionText + '"';
+            document.getElementById('qaAnswerInput').value = currentAnswer || "";
         }
 
         function closeAnswerModal() {
@@ -14083,7 +14396,21 @@ function cancelKnowledgeEdit() {
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-1">เขียนคำถามของคุณที่นี่ (พิมพ์ให้ละเอียดและเข้าใจง่าย)</label>
-                    <textarea id="qaQuestionInput" rows="4" placeholder="พิมพ์ข้อความคำถามที่นี่..." class="w-full p-3.5 border-2 rounded-xl text-base bg-gray-50 focus:border-blue-600 outline-none"></textarea>
+                    <textarea id="qaQuestionInput" oninput="debounceQAInstantSuggestions()" rows="4" placeholder="พิมพ์ข้อความคำถามที่นี่..." class="w-full p-3.5 border-2 rounded-xl text-base bg-gray-50 focus:border-blue-600 outline-none"></textarea>
+                    
+                    <!-- กล่องแสดงคำตอบ/คู่มือแนะนำทันทีขณะพิมพ์ (Live Suggestion Box) -->
+                    <div id="qaInstantSuggestionsContainer" class="hidden mt-2 p-3 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-extrabold text-blue-900 flex items-center gap-1.5">
+                                <span>💡</span> <span>พบข้อมูลคู่มือ/คำตอบที่เกี่ยวข้องทันที:</span>
+                            </span>
+                            <span class="text-[10px] bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-full">แนะนำ</span>
+                        </div>
+                        <div id="qaInstantSuggestionsList" class="space-y-1.5 max-h-48 overflow-y-auto pr-1"></div>
+                        <p class="text-[11px] text-gray-500 font-semibold pt-1 border-t border-blue-150">
+                            * หากข้อมูลด้านบนช่วยตอบคำถามของคุณได้แล้ว สามารถเปิดอ่านได้เลยโดยไม่ต้องกดส่งคำถามซ้ำครับ
+                        </p>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-1">ลิงก์รูปภาพหรือไฟล์ประกอบ (ตัวเลือกเสริม)</label>
