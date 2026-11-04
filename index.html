@@ -3412,6 +3412,13 @@
             return r === 'แอดมิน' || r === 'ผู้จัดการ' || r.indexOf('ผู้จัดการ') !== -1 || r.toLowerCase().indexOf('admin') !== -1 || r.toLowerCase().indexOf('manager') !== -1;
         }
 
+        // ฟังก์ชันตรวจสอบว่าเป็นตำแหน่งแอดมิน (Admin) หรือไม่
+        function isUserAdmin() {
+            if (!currentUser || !currentUser.role) return false;
+            var r = currentUser.role.toString().trim().toLowerCase();
+            return r === 'แอดมิน' || r === 'admin' || r.indexOf('แอดมิน') !== -1 || r.indexOf('admin') !== -1;
+        }
+
         // ฟังก์ชันตรวจสอบความสอดคล้องของกลุ่มเป้าหมาย (Audience Match)
         // - พนักงาน/ผู้จัดการ/แอดมิน: เห็นเนื้อหาทั้งหมด
         // - พี่สปริงเคิล (ผปก.): เห็นเฉพาะเนื้อหาที่ระบุถึงพี่สปริงเคิล/ผู้ประกอบการ หรือทุกคน (และซ่อนรวมภาพสื่อประชาสัมพันธ์)
@@ -10377,12 +10384,19 @@ function openAudienceFolder(aud) {
                     }
                 }
 
+                var askerMetaHtml = "";
+                if (isUserAdmin()) {
+                    askerMetaHtml = '<span class="text-sm font-semibold text-gray-400 block mt-1">ถามโดย: ' + escapeHtml(qa.askedBy || 'พนักงาน') + ' • เวลา: ' + formatThaiDate(qa.askedTime) + '</span>';
+                } else {
+                    askerMetaHtml = '<span class="text-sm font-semibold text-gray-400 block mt-1">เวลา: ' + formatThaiDate(qa.askedTime) + '</span>';
+                }
+
                 container.innerHTML += '<div class="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm transition-all">' +
                     '<div class="flex justify-between items-start gap-2">' +
                         '<span class="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold">' + escapeHtml(qa.category || 'ทั่วไป') + '</span>' +
                     '</div>' +
                     '<h4 class="text-lg sm:text-2xl font-extrabold text-gray-850 mt-2">คำถาม: "' + escapeHtml(qa.question) + '"</h4>' +
-                    '<span class="text-sm font-semibold text-gray-400 block mt-1">ถามโดย: ' + escapeHtml(qa.askedBy || 'พนักงาน') + ' • เวลา: ' + formatThaiDate(qa.askedTime) + '</span>' +
+                    askerMetaHtml +
                     answerHtml +
                     actionBtnHtml +
                 '</div>';
