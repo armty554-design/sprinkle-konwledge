@@ -896,8 +896,8 @@
     </div>
 
     <!-- ==================== โมดอลแสดงเนื้อหาคู่มือ/ภาพเอกสาร (Content Viewer Modal) ==================== -->
-    <div id="contentArea" class="fixed inset-0 bg-black bg-opacity-65 flex items-center justify-center p-0 sm:p-4 md:p-6 hidden z-[999]">
-        <div class="bg-white rounded-none sm:rounded-3xl w-full max-w-5xl h-full max-h-screen sm:max-h-[85vh] flex flex-col p-3 sm:p-6 border-0 sm:border-4 sm:border-blue-500 shadow-2xl relative overflow-hidden">
+    <div id="contentArea" class="fixed inset-0 bg-black bg-opacity-65 flex items-center justify-center p-0 sm:p-4 md:p-6 hidden z-50" style="z-index: 99999;">
+        <div class="bg-white rounded-none sm:rounded-3xl w-full max-w-5xl h-full flex flex-col p-3 sm:p-6 border-0 sm:border-4 sm:border-blue-500 shadow-2xl relative overflow-hidden" style="max-height: 100vh; max-height: 100dvh;">
             <!-- ส่วนหัวโมดอล -->
             <div class="flex items-center justify-between gap-3 border-b pb-4 mb-4 flex-shrink-0">
                 <h2 id="contentTitle" class="text-xl md:text-2xl font-extrabold text-blue-950 truncate flex-1 min-w-0">ชื่อเอกสารข้อมูล</h2>
@@ -1354,14 +1354,14 @@
                     class="flex-1 min-w-[150px] py-4 px-4 rounded-xl text-lg font-extrabold text-center transition-all flex items-center justify-center gap-2 bg-white text-blue-900 hover:bg-blue-50 hidden">
                 <span>🗂️</span> <span>จัดการศูนย์การเรียนรู้</span>
             </button>
-            <button onclick="switchTab('manage_permissions')" id="tabBtnManagePermissions" 
-                    class="flex-1 min-w-[150px] py-4 px-4 rounded-xl text-lg font-extrabold text-center transition-all flex items-center justify-center gap-2 bg-white text-blue-900 hover:bg-blue-50 hidden">
-                <span>👥</span> <span id="tabBtnManagePermissionsText">จัดการสิทธิ์</span>
+            <button onclick="switchTab('manage_settings')" id="tabBtnManageSettings" 
+                    class="flex-1 min-w-[150px] py-4 px-4 rounded-xl text-lg font-extrabold text-center transition-all flex items-center justify-center gap-2 bg-white text-blue-900 hover:bg-blue-50 hidden cursor-pointer">
+                <span>⚙️</span> <span id="tabBtnManageSettingsText">ตั้งค่าระบบ</span>
+                <span id="tabManageSettingsBadge" class="hidden bg-amber-500 text-white text-[11px] font-extrabold px-2 py-0.5 rounded-full shadow-xs">0</span>
             </button>
-            <button onclick="switchTab('manage_notifications')" id="tabBtnManageNotifications" 
-                    class="flex-1 min-w-[150px] py-4 px-4 rounded-xl text-lg font-extrabold text-center transition-all flex items-center justify-center gap-2 bg-white text-blue-900 hover:bg-blue-50 hidden">
-                <span>🔔</span> <span id="tabBtnManageNotificationsText">ระบบแจ้งเตือน</span>
-            </button>
+            <!-- Hidden proxies for legacy compatibility -->
+            <button onclick="switchTab('manage_permissions')" id="tabBtnManagePermissions" class="hidden" style="display:none !important;"><span id="tabBtnManagePermissionsText">จัดการสิทธิ์</span></button>
+            <button onclick="switchTab('manage_notifications')" id="tabBtnManageNotifications" class="hidden" style="display:none !important;"><span id="tabBtnManageNotificationsText">ระบบแจ้งเตือน</span></button>
         </div>
 
         <!-- ==================== ส่วนหน้าหลัก (Home Section) ==================== -->
@@ -2556,9 +2556,45 @@
             </div>
         </div>
 
-        <!-- ==================== ส่วนจัดการสิทธิ์และระบบ (Manage Permissions Section) ==================== -->
-        <div id="sectionManagePermissions" class="space-y-6 hidden">
-            <!-- ส่วนการ์ดรายการรออนุมัติการสมัครสมาชิกใหม่ -->
+        <!-- ==================== ส่วนตั้งค่าระบบรวมศูนย์ (Unified Settings Section) ==================== -->
+        <div id="sectionManageSettings" class="space-y-6 hidden">
+            <!-- Header Card with Segmented Sub-Tab Bar -->
+            <div class="bg-white p-4 sm:p-7 rounded-3xl shadow-xl border border-gray-200">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-blue-950 flex items-center gap-2.5">
+                            <span>⚙️</span> <span>ศูนย์รวมการตั้งค่าและจัดการระบบ</span>
+                        </h2>
+                        <p class="text-gray-500 text-xs sm:text-sm font-semibold mt-1">
+                            จัดการสิทธิ์สมาชิกและพนักงาน, บริหารการแจ้งเตือน Push, และกำหนดค่าระบบหลักทั้งหมดในที่เดียว
+                        </p>
+                    </div>
+                    <button onclick="refreshData(); if(activeSettingsSubTab==='notifications'){loadNotificationSubscribersData(); loadNotificationHistoryData();}" class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold border border-blue-200 transition-all active:scale-95 flex items-center gap-2 shadow-xs shrink-0 cursor-pointer">
+                        🔄 รีเฟรชข้อมูล
+                    </button>
+                </div>
+                
+                <!-- Segmented Control for Sub-Tabs -->
+                <div class="flex p-1.5 bg-gray-100 rounded-2xl gap-1.5 mt-5 overflow-x-auto">
+                    <!-- Sub-Tab 1: สิทธิ์และสมาชิก -->
+                    <button type="button" id="btnSettingsSubPermissions" onclick="switchSettingsSubTab('permissions')" class="flex-1 min-w-[150px] py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold text-center transition-all flex items-center justify-center gap-1.5 bg-blue-600 text-white shadow-sm cursor-pointer">
+                        <span>👥</span> <span>จัดการสิทธิ์ & สมาชิก</span>
+                        <span id="settingsPendingBadge" class="hidden bg-amber-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">0</span>
+                    </button>
+                    <!-- Sub-Tab 2: ระบบแจ้งเตือน -->
+                    <button type="button" id="btnSettingsSubNotifications" onclick="switchSettingsSubTab('notifications')" class="flex-1 min-w-[150px] py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold text-center transition-all flex items-center justify-center gap-1.5 bg-transparent text-gray-600 hover:text-blue-700 hover:bg-white/60 cursor-pointer">
+                        <span>🔔</span> <span>ระบบการแจ้งเตือน</span>
+                    </button>
+                    <!-- Sub-Tab 3: ตั้งค่าระบบ & เครื่องมือ -->
+                    <button type="button" id="btnSettingsSubSystem" onclick="switchSettingsSubTab('system')" class="flex-1 min-w-[150px] py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold text-center transition-all flex items-center justify-center gap-1.5 bg-transparent text-gray-600 hover:text-blue-700 hover:bg-white/60 cursor-pointer">
+                        <span>🔧</span> <span>ตั้งค่าระบบ & เครื่องมือ</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Panel 1: จัดการสิทธิ์ & สมาชิก (Permissions Panel) -->
+            <div id="settingsPanelPermissions" class="space-y-6">
+                <!-- ส่วนการ์ดรายการรออนุมัติการสมัครสมาชิกใหม่ -->
             <div id="adminPendingApprovalsCard" class="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 p-5 sm:p-7 rounded-3xl shadow-xl">
                 <div class="flex justify-between items-center gap-3 mb-4 flex-wrap">
                     <div class="flex items-center gap-3">
@@ -2739,55 +2775,11 @@
                     </div>
                 </div>
             </div>
-
-            <!-- ส่วนตั้งค่าระบบหลัก -->
-            <div id="adminSystemConfigCard" class="bg-white p-8 rounded-3xl shadow-xl border border-gray-200 mt-6">
-                <h3 class="text-2xl font-extrabold mb-6 text-blue-900 border-b pb-3">🔧 ตั้งค่าระบบหลัก</h3>
-                <div class="space-y-5 bg-gray-50 p-6 rounded-2xl border border-gray-200">
-                    <div>
-                        <label class="block text-base font-bold text-gray-700 mb-2">💻 Status ของระบบ (Maintenance Mode)</label>
-                        <select id="sysStatusSelect" class="w-full p-4 border rounded-xl bg-white outline-none focus:border-blue-600">
-                            <option value="เปิดใช้งาน">🟢 เปิดใช้งานปกติ (Online)</option>
-                            <option value="ปิดปรับปรุง">🔴 ปิดปรับปรุงชั่วคราว (Maintenance Mode)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-base font-bold text-gray-700 mb-2">🤖 ระบบตอบคำถามอัตโนมัติ (Auto-Answer System)</label>
-                        <select id="sysAutoAnswerSelect" class="w-full p-4 border rounded-xl bg-white outline-none focus:border-blue-600">
-                            <option value="เปิดใช้งาน">🟢 เปิดใช้งานตอบคำถามอัตโนมัติ (Enabled)</option>
-                            <option value="ปิดใช้งาน">🔴 ปิดใช้งานตอบคำถามอัตโนมัติ (Disabled)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-base font-bold text-gray-700 mb-2">🤖 ลิงก์เชื่อมโยงแชท Google NotebookLM</label>
-                        <input type="text" id="sysNotebookLMUrlInput" placeholder="ใส่ลิงก์แชร์ของ NotebookLM ตรงนี้..." class="w-full p-4 border rounded-xl bg-white outline-none focus:border-blue-600">
-                    </div>
-                    <button onclick="saveSysConfigData()" class="w-full bg-green-600 hover:bg-green-700 text-white p-4 rounded-xl font-bold text-lg transition-all active:scale-95">
-                        💾 บันทึกการตั้งค่าระบบหลัก
-                    </button>
-                    <!-- Dual-Sync Status & Management -->
-                    <div class="mt-6 pt-5 border-t border-gray-200">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-blue-100 shadow-sm">
-                            <div>
-                                <h4 class="text-base font-bold text-gray-800 flex items-center gap-2">
-                                    <span>🔄</span> ระบบ Dual-Sync ซิงค์ลง Google Sheets อัตโนมัติ
-                                </h4>
-                                <p class="text-xs text-gray-500 mt-0.5">
-                                    สถานะ: <span class="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">🟢 เปิดใช้งาน (Active)</span> — ทุกการเพิ่ม/แก้ไขจะลง Cloud Firestore และซิงค์ลง Google Sheets อัตโนมัติ
-                                </p>
-                            </div>
-                            <button type="button" onclick="handleManualSheetsSync()" class="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-xs font-bold shadow hover:from-blue-700 hover:to-indigo-700 transition flex items-center justify-center gap-1.5 active:scale-95 shrink-0">
-                                <span>📥</span> ซิงค์ข้อมูลจาก Google Sheets
-                            </button>
-                        </div>
-                    </div>
-                </div>
             </div>
-        </div>
 
-        <!-- ==================== ส่วนจัดการระบบแจ้งเตือน (Manage Notifications Section) ==================== -->
-        <div id="sectionManageNotifications" class="space-y-6 hidden">
-            <!-- ส่วนหัวข้อหลักและการทำงานด่วน -->
+            <!-- Panel 2: ระบบการแจ้งเตือน (Notifications Panel) -->
+            <div id="settingsPanelNotifications" class="space-y-6 hidden">
+                <!-- ส่วนหัวข้อหลักและการทำงานด่วน -->
             <div class="bg-white p-4 sm:p-8 rounded-3xl shadow-xl border border-gray-200">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4">
                     <div>
@@ -3189,7 +3181,96 @@
                     </div>
                 </div>
             </div>
+            </div>
+
+            <!-- Panel 3: ตั้งค่าระบบ & เครื่องมือหลัก (System & Tools Panel) -->
+            <div id="settingsPanelSystem" class="space-y-6 hidden">
+                <!-- ส่วนตั้งค่าระบบหลัก -->
+            <div id="adminSystemConfigCard" class="bg-white p-8 rounded-3xl shadow-xl border border-gray-200 mt-6">
+                <h3 class="text-2xl font-extrabold mb-6 text-blue-900 border-b pb-3">🔧 ตั้งค่าระบบหลัก</h3>
+                <div class="space-y-5 bg-gray-50 p-6 rounded-2xl border border-gray-200">
+                    <div>
+                        <label class="block text-base font-bold text-gray-700 mb-2">💻 Status ของระบบ (Maintenance Mode)</label>
+                        <select id="sysStatusSelect" class="w-full p-4 border rounded-xl bg-white outline-none focus:border-blue-600">
+                            <option value="เปิดใช้งาน">🟢 เปิดใช้งานปกติ (Online)</option>
+                            <option value="ปิดปรับปรุง">🔴 ปิดปรับปรุงชั่วคราว (Maintenance Mode)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-base font-bold text-gray-700 mb-2">🤖 ระบบตอบคำถามอัตโนมัติ (Auto-Answer System)</label>
+                        <select id="sysAutoAnswerSelect" class="w-full p-4 border rounded-xl bg-white outline-none focus:border-blue-600">
+                            <option value="เปิดใช้งาน">🟢 เปิดใช้งานตอบคำถามอัตโนมัติ (Enabled)</option>
+                            <option value="ปิดใช้งาน">🔴 ปิดใช้งานตอบคำถามอัตโนมัติ (Disabled)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-base font-bold text-gray-700 mb-2">🤖 ลิงก์เชื่อมโยงแชท Google NotebookLM</label>
+                        <input type="text" id="sysNotebookLMUrlInput" placeholder="ใส่ลิงก์แชร์ของ NotebookLM ตรงนี้..." class="w-full p-4 border rounded-xl bg-white outline-none focus:border-blue-600">
+                    </div>
+                    <button onclick="saveSysConfigData()" class="w-full bg-green-600 hover:bg-green-700 text-white p-4 rounded-xl font-bold text-lg transition-all active:scale-95">
+                        💾 บันทึกการตั้งค่าระบบหลัก
+                    </button>
+                    <!-- Dual-Sync Status & Management -->
+                    <div class="mt-6 pt-5 border-t border-gray-200">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-blue-100 shadow-sm">
+                            <div>
+                                <h4 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                                    <span>🔄</span> ระบบ Dual-Sync ซิงค์ลง Google Sheets อัตโนมัติ
+                                </h4>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    สถานะ: <span class="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">🟢 เปิดใช้งาน (Active)</span> — ทุกการเพิ่ม/แก้ไขจะลง Cloud Firestore และซิงค์ลง Google Sheets อัตโนมัติ
+                                </p>
+                            </div>
+                            <button type="button" onclick="handleManualSheetsSync()" class="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-xs font-bold shadow hover:from-blue-700 hover:to-indigo-700 transition flex items-center justify-center gap-1.5 active:scale-95 shrink-0">
+                                <span>📥</span> ซิงค์ข้อมูลจาก Google Sheets
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+                <!-- Quick Admin Tools Card (เครื่องมือด่วนสำหรับผู้ดูแล) -->
+                <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-gray-200">
+                    <h3 class="text-xl sm:text-2xl font-extrabold mb-2 text-blue-950 flex items-center gap-2">
+                        <span>🛠️</span> <span>เครื่องมือและยูทิลิตี้สำหรับผู้ดูแลระบบ</span>
+                    </h3>
+                    <p class="text-xs sm:text-sm text-gray-500 font-semibold mb-6">
+                        เครื่องมือจัดการลำดับคลังความรู้ และการซิงค์ข้อมูลระหว่าง Cloud Firestore และ Google Sheets
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="p-5 rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200 flex flex-col justify-between">
+                            <div>
+                                <span class="text-2xl">🔄</span>
+                                <h4 class="font-extrabold text-base text-indigo-950 mt-2">จัดเรียงลำดับโฟลเดอร์ & คู่มือ</h4>
+                                <p class="text-xs text-gray-650 font-medium mt-1">
+                                    ปรับเปลี่ยนลำดับการแสดงผลของโฟลเดอร์หลัก, โฟลเดอร์ย่อย และหัวข้อเรื่องในหน้าคลังความรู้
+                                </p>
+                            </div>
+                            <button type="button" onclick="openKnowledgeReorderModal()" class="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold text-xs sm:text-sm transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer">
+                                <span>📑</span> <span>เปิดหน้าต่างจัดเรียงลำดับ</span>
+                            </button>
+                        </div>
+
+                        <div class="p-5 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 flex flex-col justify-between">
+                            <div>
+                                <span class="text-2xl">📥</span>
+                                <h4 class="font-extrabold text-base text-emerald-950 mt-2">ซิงค์ดึงข้อมูลจาก Google Sheets</h4>
+                                <p class="text-xs text-gray-650 font-medium mt-1">
+                                    ดึงข้อมูลล่าสุดจาก Google Sheets กลับมาอัปเดตบน Cloud Firestore ทันที
+                                </p>
+                            </div>
+                            <button type="button" onclick="handleManualSheetsSync()" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-xs sm:text-sm transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer">
+                                <span>🔄</span> <span>สั่งซิงค์ข้อมูล Google Sheets</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+
+        <!-- Hidden proxy sections for complete backwards compatibility -->
+        <div id="sectionManagePermissions" style="display:none !important;" class="hidden"></div>
+        <div id="sectionManageNotifications" style="display:none !important;" class="hidden"></div>
 
         <!-- ส่วนท้ายกระดาษ (Footer Credits & Contact) -->
         <footer class="max-w-6xl mx-auto px-4 py-8 mt-12 border-t border-gray-200 text-center text-xs text-gray-400 font-bold space-y-1">
@@ -3755,6 +3836,72 @@
         function toggleRecommendAutoRotate() {}
         function updateRecommendAutoRotateBtnUI() {}
 
+        var activeSettingsSubTab = 'permissions';
+
+        function switchSettingsSubTab(subTab) {
+            // สิทธิ์การเข้าถึงแท็บย่อย (system เข้าได้เฉพาะแอดมิน)
+            if (subTab === 'system' && (!currentUser || currentUser.role !== 'แอดมิน')) {
+                subTab = 'permissions';
+            }
+            activeSettingsSubTab = subTab;
+
+            var panelPerm = document.getElementById('settingsPanelPermissions');
+            var panelNotif = document.getElementById('settingsPanelNotifications');
+            var panelSys = document.getElementById('settingsPanelSystem');
+
+            var btnPerm = document.getElementById('btnSettingsSubPermissions');
+            var btnNotif = document.getElementById('btnSettingsSubNotifications');
+            var btnSys = document.getElementById('btnSettingsSubSystem');
+
+            if (panelPerm) panelPerm.classList.add('hidden');
+            if (panelNotif) panelNotif.classList.add('hidden');
+            if (panelSys) panelSys.classList.add('hidden');
+
+            var normalBtnClass = "flex-1 min-w-[150px] py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold text-center transition-all flex items-center justify-center gap-1.5 bg-transparent text-gray-600 hover:text-blue-700 hover:bg-white/60 cursor-pointer";
+            var activeBtnClass = "flex-1 min-w-[150px] py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold text-center transition-all flex items-center justify-center gap-1.5 bg-blue-600 text-white shadow-sm cursor-pointer";
+
+            if (btnPerm) btnPerm.className = normalBtnClass;
+            if (btnNotif) btnNotif.className = normalBtnClass;
+            if (btnSys) btnSys.className = normalBtnClass;
+
+            if (subTab === 'permissions') {
+                if (panelPerm) panelPerm.classList.remove('hidden');
+                if (btnPerm) btnPerm.className = activeBtnClass;
+
+                renderPendingApprovalsTable();
+                var manageEmpCard = document.getElementById('adminManageEmployeesCard');
+                var rolePermWrapper = document.getElementById('adminRolePermissionsWrapper');
+
+                if (currentUser && currentUser.role === 'แอดมิน') {
+                    if (manageEmpCard) manageEmpCard.classList.remove('hidden');
+                    if (rolePermWrapper) rolePermWrapper.classList.remove('hidden');
+                    renderAdminEmployeesList();
+                    renderAdminRolePermissionsList();
+                } else {
+                    if (manageEmpCard) manageEmpCard.classList.add('hidden');
+                    if (rolePermWrapper) rolePermWrapper.classList.add('hidden');
+                }
+            } else if (subTab === 'notifications') {
+                if (panelNotif) panelNotif.classList.remove('hidden');
+                if (btnNotif) btnNotif.className = activeBtnClass;
+
+                loadNotificationSubscribersData();
+                loadNotificationHistoryData();
+                updateAudienceEstimatePreview();
+            } else if (subTab === 'system') {
+                if (panelSys) panelSys.classList.remove('hidden');
+                if (btnSys) btnSys.className = activeBtnClass;
+
+                loadSystemConfigData();
+            }
+
+            try {
+                if (window.history && window.history.replaceState && activeTab === 'manage_settings') {
+                    window.history.replaceState(null, '', '#manage_settings?sub=' + subTab);
+                }
+            } catch(e) {}
+        }
+
         var activeTab = 'home';
         var activeQAFilter = 'answered';
         var currentKnowledgeSubTab = 'document'; // แท็บย่อยคลังความรู้พนักงาน (document/video)
@@ -3798,20 +3945,27 @@
             }
 
             if (isUserManagerOrAdmin()) {
-                document.getElementById('tabBtnManagePermissions').classList.remove('hidden');
-                var textEl = document.getElementById('tabBtnManagePermissionsText');
+                var settingsTabBtn = document.getElementById('tabBtnManageSettings');
+                if (settingsTabBtn) settingsTabBtn.classList.remove('hidden');
+                var textEl = document.getElementById('tabBtnManageSettingsText');
                 if (textEl) {
-                    textEl.innerText = (currentUser.role === 'แอดมิน') ? "จัดการสิทธิ์" : "อนุมัติสมาชิกใหม่";
+                    textEl.innerText = (currentUser.role === 'แอดมิน') ? "ตั้งค่าระบบ" : "อนุมัติ & แจ้งเตือน";
                 }
-                var notifyBtn = document.getElementById('tabBtnManageNotifications');
-                if (notifyBtn) notifyBtn.classList.remove('hidden');
+                var subSysBtn = document.getElementById('btnSettingsSubSystem');
+                if (subSysBtn) {
+                    if (currentUser.role === 'แอดมิน') subSysBtn.classList.remove('hidden');
+                    else subSysBtn.classList.add('hidden');
+                }
+                var mSheetSettingsBtn = document.getElementById('mSheetBtnManageSettings');
+                if (mSheetSettingsBtn) mSheetSettingsBtn.classList.remove('hidden');
             } else {
-                document.getElementById('tabBtnManagePermissions').classList.add('hidden');
-                var notifyBtn = document.getElementById('tabBtnManageNotifications');
-                if (notifyBtn) notifyBtn.classList.add('hidden');
+                var settingsTabBtn = document.getElementById('tabBtnManageSettings');
+                if (settingsTabBtn) settingsTabBtn.classList.add('hidden');
+                var mSheetSettingsBtn = document.getElementById('mSheetBtnManageSettings');
+                if (mSheetSettingsBtn) mSheetSettingsBtn.classList.add('hidden');
                 
-                // หากพนักงานอยู่ในแท็บจัดการสิทธิ์หรือจัดการแจ้งเตือนที่โดนปิด ให้ดึงกลับสู่หน้าแรก
-                if (activeTab === 'manage_permissions' || activeTab === 'manage_notifications') {
+                // หากพนักงานอยู่ในแท็บตั้งค่าหรือจัดการสิทธิ์ที่โดนปิด ให้ดึงกลับสู่หน้าแรก
+                if (activeTab === 'manage_settings' || activeTab === 'manage_permissions' || activeTab === 'manage_notifications') {
                     switchTab('home');
                 }
             }
@@ -4198,17 +4352,20 @@
                     renderAdminAnnouncementsList();
                 } else if (activeTab === 'manage_knowledge') {
                     renderAdminKnowledgeList();
-                } else if (activeTab === 'manage_permissions') {
-                    if (currentUser.role === 'แอดมิน') {
-                        renderAdminEmployeesList();
-                        renderAdminRolePermissionsList();
-                    } else {
+                } else if (activeTab === 'manage_settings' || activeTab === 'manage_permissions' || activeTab === 'manage_notifications') {
+                    if (activeSettingsSubTab === 'permissions') {
+                        if (currentUser.role === 'แอดมิน') {
+                            renderAdminEmployeesList();
+                            renderAdminRolePermissionsList();
+                        }
                         renderPendingApprovalsTable();
+                    } else if (activeSettingsSubTab === 'notifications') {
+                        loadNotificationSubscribersData();
+                        loadNotificationHistoryData();
+                        updateAudienceEstimatePreview();
+                    } else if (activeSettingsSubTab === 'system') {
+                        loadSystemConfigData();
                     }
-                } else if (activeTab === 'manage_notifications') {
-                    loadNotificationSubscribersData();
-                    loadNotificationHistoryData();
-                    updateAudienceEstimatePreview();
                 }
             }
 
@@ -4232,7 +4389,7 @@
         }
 
         // ดึงข้อมูลหลักจาก Firestore / Apps Script พร้อมระบบแคชและอัปเดตทันใจ
-        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v6';
+        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v7';
 
         function loadData(onComplete) {
             recommendStatsData = null;
@@ -6169,13 +6326,18 @@
             if (!annId && !manualId && window.location.hash) {
                 var hashVal = window.location.hash.replace('#', '').trim();
                 var tabTarget = hashVal.split('?')[0];
-                var validTabs = ['home', 'knowledge', 'qa', 'recommend', 'manage_home', 'manage_knowledge', 'manage_permissions', 'manage_notifications'];
+                var validTabs = ['home', 'knowledge', 'qa', 'recommend', 'manage_home', 'manage_knowledge', 'manage_settings', 'manage_permissions', 'manage_notifications'];
                 if (validTabs.indexOf(tabTarget) !== -1) {
                     switchTab(tabTarget);
                     if (tabTarget === 'recommend' && hashVal.indexOf('tab=') !== -1) {
                         var subMatch = hashVal.match(/tab=([^&#]+)/);
                         if (subMatch && (subMatch[1] === 'all' || subMatch[1] === 'employee' || subMatch[1] === 'operator')) {
                             setRecommendSubTab(subMatch[1], false);
+                        }
+                    } else if (tabTarget === 'manage_settings' && hashVal.indexOf('sub=') !== -1) {
+                        var subMatch = hashVal.match(/sub=([^&#]+)/);
+                        if (subMatch && (subMatch[1] === 'permissions' || subMatch[1] === 'notifications' || subMatch[1] === 'system')) {
+                            switchSettingsSubTab(subMatch[1]);
                         }
                     }
                     return true;
@@ -6263,7 +6425,7 @@
 
         function switchTab(tab) {
             // การป้องกันสิทธิ์ในการใช้งานเมนูแอดมิน/ผู้จัดการ
-            if ((tab === 'manage_permissions' || tab === 'manage_notifications') && !isUserManagerOrAdmin()) {
+            if ((tab === 'manage_settings' || tab === 'manage_permissions' || tab === 'manage_notifications') && !isUserManagerOrAdmin()) {
                 switchTab('home');
                 return;
             }
@@ -6272,12 +6434,12 @@
                 return;
             }
 
-            activeTab = tab;
+            activeTab = (tab === 'manage_permissions' || tab === 'manage_notifications') ? 'manage_settings' : tab;
             try {
                 if (window.history && window.history.replaceState) {
                     var curH = window.location.hash || '';
                     if (!curH.includes('knowledge/') && !curH.includes('announcement/') && !curH.includes('manual/')) {
-                        window.history.replaceState(null, '', '#' + tab);
+                        window.history.replaceState(null, '', '#' + activeTab);
                     }
                 }
             } catch(eHash) {}
@@ -6289,12 +6451,15 @@
             document.getElementById('sectionRecommend').classList.add('hidden');
             document.getElementById('sectionManageHome').classList.add('hidden');
             document.getElementById('sectionManageKnowledge').classList.add('hidden');
-            document.getElementById('sectionManagePermissions').classList.add('hidden');
+            var secSettings = document.getElementById('sectionManageSettings');
+            if (secSettings) secSettings.classList.add('hidden');
+            var secPerm = document.getElementById('sectionManagePermissions');
+            if (secPerm) secPerm.classList.add('hidden');
             var notifSection = document.getElementById('sectionManageNotifications');
             if (notifSection) notifSection.classList.add('hidden');
             
             // ตั้งค่าดีไซน์และสีแท็บแบบไม่ได้เลือกเป็นสีปกติ
-            var tabs = ['Home', 'Knowledge', 'QA', 'Recommend', 'ManageHome', 'ManageKnowledge', 'ManagePermissions', 'ManageNotifications'];
+            var tabs = ['Home', 'Knowledge', 'QA', 'Recommend', 'ManageHome', 'ManageKnowledge', 'ManageSettings', 'ManagePermissions', 'ManageNotifications'];
             tabs.forEach(function(t) {
                 var btn = document.getElementById('tabBtn' + t);
                 if (btn) {
@@ -6328,39 +6493,19 @@
                 document.getElementById('tabBtnManageKnowledge').className = "flex-1 min-w-[150px] py-4 px-4 rounded-xl text-lg font-extrabold text-center transition-all flex items-center justify-center gap-2 bg-blue-600 text-white shadow-md transform scale-[1.01]";
                 renderAdminKnowledgeList();
                 renderViewStatistics();
-            } else if (tab === 'manage_permissions') {
-                document.getElementById('sectionManagePermissions').classList.remove('hidden');
-                document.getElementById('tabBtnManagePermissions').className = "flex-1 min-w-[150px] py-4 px-4 rounded-xl text-lg font-extrabold text-center transition-all flex items-center justify-center gap-2 bg-blue-600 text-white shadow-md transform scale-[1.01]";
-                
-                // โหลดและแสดงรายการคำขอที่รออนุมัติเสมอสำหรับ ผู้จัดการขึ้นไป
-                renderPendingApprovalsTable();
-
-                var manageEmpCard = document.getElementById('adminManageEmployeesCard');
-                var rolePermWrapper = document.getElementById('adminRolePermissionsWrapper');
-                var sysConfigCard = document.getElementById('adminSystemConfigCard');
-
-                if (currentUser.role === 'แอดมิน') {
-                    if (manageEmpCard) manageEmpCard.classList.remove('hidden');
-                    if (rolePermWrapper) rolePermWrapper.classList.remove('hidden');
-                    if (sysConfigCard) sysConfigCard.classList.remove('hidden');
-                    renderAdminEmployeesList();
-                    renderAdminRolePermissionsList();
-                    loadSystemConfigData(); // โหลดข้อมูลตั้งค่าระบบหลักเมื่อเข้าแท็บแอดมิน
-                } else {
-                    // ผู้จัดการ: แสดงเฉพาะการ์ดอนุมัติสมาชิกใหม่ ซ่อนส่วนจัดการสิทธิ์และระบบของแอดมิน
-                    if (manageEmpCard) manageEmpCard.classList.add('hidden');
-                    if (rolePermWrapper) rolePermWrapper.classList.add('hidden');
-                    if (sysConfigCard) sysConfigCard.classList.add('hidden');
+            } else if (tab === 'manage_settings' || tab === 'manage_permissions' || tab === 'manage_notifications') {
+                var secSettings = document.getElementById('sectionManageSettings');
+                if (secSettings) secSettings.classList.remove('hidden');
+                var settingsBtn = document.getElementById('tabBtnManageSettings');
+                if (settingsBtn) {
+                    settingsBtn.className = "flex-1 min-w-[150px] py-4 px-4 rounded-xl text-lg font-extrabold text-center transition-all flex items-center justify-center gap-2 bg-blue-600 text-white shadow-md transform scale-[1.01]";
                 }
-            } else if (tab === 'manage_notifications') {
-                if (notifSection) notifSection.classList.remove('hidden');
-                var notifBtn = document.getElementById('tabBtnManageNotifications');
-                if (notifBtn) {
-                    notifBtn.className = "flex-1 min-w-[150px] py-4 px-4 rounded-xl text-lg font-extrabold text-center transition-all flex items-center justify-center gap-2 bg-blue-600 text-white shadow-md transform scale-[1.01]";
-                }
-                loadNotificationSubscribersData();
-                loadNotificationHistoryData();
-                updateAudienceEstimatePreview();
+
+                var targetSub = activeSettingsSubTab || 'permissions';
+                if (tab === 'manage_permissions') targetSub = 'permissions';
+                else if (tab === 'manage_notifications') targetSub = 'notifications';
+
+                switchSettingsSubTab(targetSub);
             }
             
             // เรียกฟังก์ชันเพื่อคุมสถานะการซ่อนเมนูแอดมินป้องกันไม่ให้แอปแสดงกลับขึ้นมาเมื่อเปลี่ยนแท็บ
@@ -11768,6 +11913,29 @@ function renderPendingApprovalsTable() {
             badge.className = "bg-gray-400 text-white text-xs font-bold px-3 py-1 rounded-full shadow-xs";
         }
     }
+
+    var settingsBadge = document.getElementById('tabManageSettingsBadge');
+    var subPendingBadge = document.getElementById('settingsPendingBadge');
+    var mSheetBadge = document.getElementById('mSheetSettingsBadge');
+
+    if (pendingList.length > 0) {
+        if (settingsBadge) {
+            settingsBadge.innerText = pendingList.length;
+            settingsBadge.classList.remove('hidden');
+        }
+        if (subPendingBadge) {
+            subPendingBadge.innerText = pendingList.length;
+            subPendingBadge.classList.remove('hidden');
+        }
+        if (mSheetBadge) {
+            mSheetBadge.innerText = pendingList.length + " คำขอ";
+            mSheetBadge.classList.remove('hidden');
+        }
+    } else {
+        if (settingsBadge) settingsBadge.classList.add('hidden');
+        if (subPendingBadge) subPendingBadge.classList.add('hidden');
+        if (mSheetBadge) mSheetBadge.classList.add('hidden');
+    }
     
     if (pendingList.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-gray-500 font-bold">✨ ไม่มีคำขอลงทะเบียนรออนุมัติในขณะนี้</td></tr>';
@@ -14270,10 +14438,10 @@ function cancelKnowledgeEdit() {
     </div>
 
     <!-- ==================== โมดอลแสดงรายละเอียดประวัติการส่งแจ้งเตือน (Notification Audit Detail Modal) ==================== -->
-    <div id="notificationDetailModal" class="fixed inset-0 flex items-center justify-center p-4 z-[99999] hidden" style="background-color: rgba(0, 0, 0, 0.75); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);">
-        <div class="bg-white rounded-3xl w-full max-w-3xl flex flex-col p-5 sm:p-7 shadow-2xl relative overflow-hidden transform transition-all max-h-[90vh] border border-blue-150">
+    <div id="notificationDetailModal" class="fixed inset-0 flex items-center justify-center p-3 sm:p-4 z-50 hidden" style="z-index: 99999; background-color: rgba(0, 0, 0, 0.75); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);">
+        <div class="bg-white rounded-3xl w-full max-w-3xl flex flex-col p-5 sm:p-7 shadow-2xl relative overflow-hidden transform transition-all border border-blue-200" style="max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); display: flex; flex-direction: column;">
             <!-- Header -->
-            <div class="flex items-center justify-between gap-3 border-b pb-4 mb-4 shrink-0">
+            <div class="flex items-center justify-between gap-3 border-b pb-4 mb-4 flex-shrink-0" style="flex-shrink: 0;">
                 <div class="min-w-0">
                     <span id="modalNotifId" class="text-xs font-mono text-blue-600 font-bold block mb-1"></span>
                     <h3 class="text-xl sm:text-2xl font-extrabold text-blue-950 flex items-center gap-2">
@@ -14412,28 +14580,28 @@ function cancelKnowledgeEdit() {
     </div>
 
     <!-- ==================== โมดอลถามคำถาม Q&A (Ask Question Modal) ==================== -->
-    <div id="askQuestionModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto z-[999999]" style="backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);" onclick="if(event.target === this) closeAskQuestionModal()">
-        <div class="bg-white rounded-3xl max-w-lg w-full border-2 border-blue-400 shadow-2xl my-auto flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden" onclick="event.stopPropagation()">
+    <div id="askQuestionModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-2 sm:p-4 hidden overflow-hidden z-50" style="z-index: 999999; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);" onclick="if(event.target === this) closeAskQuestionModal()">
+        <div class="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full border-2 border-blue-400 shadow-2xl overflow-hidden flex flex-col" style="max-height: calc(100vh - 20px); max-height: calc(100dvh - 20px); display: flex; flex-direction: column;" onclick="event.stopPropagation()">
             
-            <!-- Modal Header (Sticky / Shrink-0) -->
-            <div class="p-4 sm:p-5 border-b border-gray-150 flex items-center justify-between shrink-0 bg-gradient-to-r from-blue-50/70 to-indigo-50/70">
-                <div class="flex items-center gap-2">
-                    <span class="text-2xl">❓</span>
-                    <div>
-                        <h3 class="text-lg sm:text-xl font-extrabold text-blue-950 leading-tight">เขียนคำถามใหม่ถึงหัวหน้างาน</h3>
-                        <p class="text-xs text-gray-500 font-medium">ถามข้อสงสัย ระบบจะช่วยค้นหาคู่มือให้อัตโนมัติ</p>
+            <!-- Modal Header (Sticky / Never Scrolls Away) -->
+            <div class="p-3.5 sm:p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0" style="flex-shrink: 0;">
+                <div class="flex items-center gap-2 min-w-0 pr-2">
+                    <span class="text-xl sm:text-2xl flex-shrink-0">❓</span>
+                    <div class="min-w-0">
+                        <h3 class="text-base sm:text-lg font-extrabold text-blue-950 leading-tight truncate">เขียนคำถามใหม่ถึงหัวหน้างาน</h3>
+                        <p class="text-[11px] sm:text-xs text-gray-500 font-medium truncate">ถามข้อสงสัย ระบบจะช่วยค้นหาคู่มือให้อัตโนมัติ</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeAskQuestionModal()" class="w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 flex items-center justify-center font-bold text-lg transition-all active:scale-95 cursor-pointer shrink-0" title="ปิดหน้าต่าง">
+                <button type="button" onclick="closeAskQuestionModal()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 flex items-center justify-center font-bold text-base sm:text-lg transition-all active:scale-95 cursor-pointer flex-shrink-0" title="ปิดหน้าต่าง">
                     ✕
                 </button>
             </div>
 
-            <!-- Modal Body (Scrollable) -->
-            <div class="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4">
+            <!-- Modal Body (Scrollable Inside, Never Pushes Header or Footer Off-Screen) -->
+            <div class="p-3.5 sm:p-5 space-y-3 sm:space-y-4 overflow-y-auto" style="flex: 1 1 auto; min-height: 0; overflow-y: auto;">
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">เลือกหมวดหมู่คำถาม</label>
-                    <select id="qaCatSelect" class="w-full p-3 border-2 rounded-xl text-sm sm:text-base bg-gray-50 focus:border-blue-600 outline-none">
+                    <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">เลือกหมวดหมู่คำถาม</label>
+                    <select id="qaCatSelect" class="w-full p-2.5 sm:p-3 border-2 border-gray-200 rounded-xl text-xs sm:text-sm bg-gray-50 focus:border-blue-600 outline-none">
                         <option value="การทำงาน">การทำงาน / การทำงานประจำวัน</option>
                         <option value="สวัสดิการ">สวัสดิการ / การรักษาพยาบาล</option>
                         <option value="การใช้งานระบบ">การใช้ระบบคอมพิวเตอร์ / อีเมล</option>
@@ -14441,35 +14609,35 @@ function cancelKnowledgeEdit() {
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">เขียนคำถามของคุณที่นี่ (พิมพ์ให้ละเอียดและเข้าใจง่าย)</label>
-                    <textarea id="qaQuestionInput" oninput="debounceQAInstantSuggestions()" rows="3" placeholder="พิมพ์ข้อความคำถามที่นี่..." class="w-full p-3 border-2 rounded-xl text-sm sm:text-base bg-gray-50 focus:border-blue-600 outline-none"></textarea>
+                    <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">เขียนคำถามของคุณที่นี่ (พิมพ์ให้ละเอียดและเข้าใจง่าย)</label>
+                    <textarea id="qaQuestionInput" oninput="debounceQAInstantSuggestions()" rows="3" placeholder="พิมพ์ข้อความคำถามที่นี่..." class="w-full p-2.5 sm:p-3 border-2 border-gray-200 rounded-xl text-xs sm:text-sm bg-gray-50 focus:border-blue-600 outline-none"></textarea>
                     
                     <!-- กล่องแสดงคำตอบ/คู่มือแนะนำทันทีขณะพิมพ์ (Live Suggestion Box) -->
-                    <div id="qaInstantSuggestionsContainer" class="hidden mt-2 p-3 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl space-y-2">
+                    <div id="qaInstantSuggestionsContainer" class="hidden mt-2 p-2.5 sm:p-3 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl space-y-2">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-extrabold text-blue-900 flex items-center gap-1.5">
                                 <span>💡</span> <span>พบข้อมูลคู่มือ/คำตอบที่เกี่ยวข้องทันที:</span>
                             </span>
                             <span class="text-[10px] bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-full">แนะนำ</span>
                         </div>
-                        <div id="qaInstantSuggestionsList" class="space-y-1.5 max-h-40 overflow-y-auto pr-1"></div>
-                        <p class="text-[11px] text-gray-500 font-semibold pt-1 border-t border-blue-150">
+                        <div id="qaInstantSuggestionsList" class="space-y-1.5 overflow-y-auto pr-1" style="max-height: 160px; overflow-y: auto;"></div>
+                        <p class="text-[11px] text-gray-500 font-semibold pt-1 border-t border-blue-100">
                             * หากข้อมูลด้านบนช่วยตอบคำถามของคุณได้แล้ว สามารถเปิดอ่านได้เลยโดยไม่ต้องกดส่งคำถามซ้ำครับ
                         </p>
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">ลิงก์รูปภาพหรือไฟล์ประกอบ (ตัวเลือกเสริม)</label>
-                    <input type="text" id="qaQuestionFileUrl" placeholder="ใส่ลิงก์รูปภาพ/ไฟล์ หรือกดอัปโหลดด้านล่าง..." class="w-full p-3 border-2 rounded-xl text-sm sm:text-base bg-gray-50 focus:border-blue-600 outline-none">
+                    <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">ลิงก์รูปภาพหรือไฟล์ประกอบ (ตัวเลือกเสริม)</label>
+                    <input type="text" id="qaQuestionFileUrl" placeholder="ใส่ลิงก์รูปภาพ/ไฟล์ หรือกดอัปโหลดด้านล่าง..." class="w-full p-2.5 sm:p-3 border-2 border-gray-200 rounded-xl text-xs sm:text-sm bg-gray-50 focus:border-blue-600 outline-none">
                 </div>
-                <div class="p-3 border rounded-2xl bg-gray-50 border-gray-200">
+                <div class="p-2.5 sm:p-3 border border-gray-200 rounded-2xl bg-gray-50">
                     <label class="block text-xs font-bold text-gray-700 mb-1">📷 หรืออัปโหลดไฟล์ประกอบเข้า Google Drive</label>
                     <div class="flex gap-2 items-center" id="qaFileWrapper">
                         <input type="file" id="qaQuestionFileInput" onchange="uploadQAQuestionFile()" class="flex-1 text-xs bg-white p-2 border rounded-xl">
                     </div>
                     <div id="qaFileUploadedContainer" class="hidden flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-xl mt-1">
                         <span class="text-green-800 font-semibold text-xs truncate">✅ อัปโหลดสำเร็จ!</span>
-                        <div class="flex gap-1.5 shrink-0">
+                        <div class="flex gap-1.5 flex-shrink-0">
                             <button type="button" onclick="changeQAFile()" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold text-[10px] transition-all cursor-pointer">🔄 เปลี่ยน</button>
                             <button type="button" onclick="clearQAFile()" class="bg-red-100 hover:bg-red-200 text-red-800 px-2 py-1 rounded font-bold text-[10px] transition-all cursor-pointer">🗑️ ลบ</button>
                         </div>
@@ -14478,53 +14646,55 @@ function cancelKnowledgeEdit() {
                 </div>
             </div>
 
-            <!-- Modal Footer (Sticky / Shrink-0) -->
-            <div class="p-4 border-t border-gray-150 bg-gray-50 flex gap-3 shrink-0">
-                <button type="button" onclick="closeAskQuestionModal()" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-bold text-sm sm:text-base hover:bg-gray-300 active:scale-95 transition-all cursor-pointer">
+            <!-- Modal Footer (Sticky / Always Visible at Bottom) -->
+            <div class="p-3 sm:p-4 border-t border-gray-200 bg-gray-50 flex gap-2.5 sm:gap-3 flex-shrink-0" style="flex-shrink: 0;">
+                <button type="button" onclick="closeAskQuestionModal()" class="flex-1 bg-gray-200 text-gray-700 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm hover:bg-gray-300 active:scale-95 transition-all cursor-pointer">
                     ยกเลิก / ปิด
                 </button>
-                <button type="button" id="btnSubmitQuestion" onclick="submitQuestion()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold text-sm sm:text-base hover:bg-blue-700 active:scale-95 transition-all shadow-md cursor-pointer">
-                    ส่งคำถาม
+                <button type="button" id="btnSubmitQuestion" onclick="submitQuestion()" class="flex-1 bg-blue-600 text-white py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm hover:bg-blue-700 active:scale-95 transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5">
+                    <span>📨</span>
+                    <span id="btnSubmitQuestionText">ส่งคำถาม</span>
                 </button>
             </div>
         </div>
     </div>
 
     <!-- ==================== โมดอลเขียนคำตอบ Q&A (Answer Modal) ==================== -->
-    <div id="answerModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto z-[999999]" style="backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);" onclick="if(event.target === this) closeAnswerModal()">
-        <div class="bg-white rounded-3xl max-w-lg w-full border-2 border-blue-400 shadow-2xl my-auto flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden" onclick="event.stopPropagation()">
+    <div id="answerModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-2 sm:p-4 hidden overflow-hidden z-50" style="z-index: 999999; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);" onclick="if(event.target === this) closeAnswerModal()">
+        <div class="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full border-2 border-blue-400 shadow-2xl overflow-hidden flex flex-col" style="max-height: calc(100vh - 20px); max-height: calc(100dvh - 20px); display: flex; flex-direction: column;" onclick="event.stopPropagation()">
             <!-- Header -->
-            <div class="p-4 sm:p-5 border-b border-gray-150 flex items-center justify-between shrink-0 bg-gradient-to-r from-blue-50/70 to-indigo-50/70">
-                <div class="flex items-center gap-2">
-                    <span class="text-2xl">💡</span>
-                    <h3 class="text-lg sm:text-xl font-extrabold text-blue-950">ตอบคำถามพนักงาน</h3>
+            <div class="p-3.5 sm:p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0" style="flex-shrink: 0;">
+                <div class="flex items-center gap-2 min-w-0 pr-2">
+                    <span class="text-xl sm:text-2xl flex-shrink-0">💡</span>
+                    <h3 class="text-base sm:text-lg font-extrabold text-blue-950 truncate">ตอบคำถามพนักงาน</h3>
                 </div>
-                <button type="button" onclick="closeAnswerModal()" class="w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 flex items-center justify-center font-bold text-lg transition-all active:scale-95 cursor-pointer shrink-0" title="ปิดหน้าต่าง">
+                <button type="button" onclick="closeAnswerModal()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 flex items-center justify-center font-bold text-base sm:text-lg transition-all active:scale-95 cursor-pointer flex-shrink-0" title="ปิดหน้าต่าง">
                     ✕
                 </button>
             </div>
 
             <!-- Body -->
-            <div class="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4">
+            <div class="p-3.5 sm:p-5 space-y-3 sm:space-y-4 overflow-y-auto" style="flex: 1 1 auto; min-height: 0; overflow-y: auto;">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">คำถามจากพนักงาน</label>
-                    <p class="text-gray-800 text-sm sm:text-base font-semibold bg-blue-50/50 p-3.5 rounded-xl border border-blue-150 leading-relaxed" id="targetQuestionText"></p>
+                    <p class="text-gray-800 text-xs sm:text-sm font-semibold bg-blue-50 p-3 rounded-xl border border-blue-200 leading-relaxed" id="targetQuestionText"></p>
                 </div>
                 <input type="hidden" id="targetQuestionId">
                 
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">เขียนคำตอบของคุณที่นี่</label>
-                    <textarea id="qaAnswerInput" rows="5" placeholder="พิมพ์คำอธิบายคำตอบที่นี่..." class="w-full p-3 border-2 rounded-xl text-sm sm:text-base bg-gray-50 focus:border-blue-600 outline-none"></textarea>
+                    <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1">เขียนคำตอบของคุณที่นี่</label>
+                    <textarea id="qaAnswerInput" rows="4" placeholder="พิมพ์คำอธิบายคำตอบที่นี่..." class="w-full p-2.5 sm:p-3 border-2 border-gray-200 rounded-xl text-xs sm:text-sm bg-gray-50 focus:border-blue-600 outline-none"></textarea>
                 </div>
             </div>
 
             <!-- Footer -->
-            <div class="p-4 border-t border-gray-150 bg-gray-50 flex gap-3 shrink-0">
-                <button type="button" onclick="closeAnswerModal()" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-bold text-sm sm:text-base hover:bg-gray-300 active:scale-95 transition-all cursor-pointer">
+            <div class="p-3 sm:p-4 border-t border-gray-200 bg-gray-50 flex gap-2.5 sm:gap-3 flex-shrink-0" style="flex-shrink: 0;">
+                <button type="button" onclick="closeAnswerModal()" class="flex-1 bg-gray-200 text-gray-700 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm hover:bg-gray-300 active:scale-95 transition-all cursor-pointer">
                     ยกเลิก
                 </button>
-                <button type="button" id="btnSubmitAnswer" onclick="submitAnswer()" class="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold text-sm sm:text-base hover:bg-green-700 active:scale-95 transition-all shadow-md cursor-pointer">
-                    บันทึกและส่งคำตอบ
+                <button type="button" id="btnSubmitAnswer" onclick="submitAnswer()" class="flex-1 bg-green-600 text-white py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm hover:bg-green-700 active:scale-95 transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5">
+                    <span>💾</span>
+                    <span>บันทึกและส่งคำตอบ</span>
                 </button>
             </div>
         </div>
@@ -14852,16 +15022,17 @@ function cancelKnowledgeEdit() {
                     <span class="font-extrabold text-xs text-indigo-950">จัดการคลังความรู้</span>
                     <span class="text-[10px] text-gray-500 font-semibold">อัปโหลด/แก้ไขเอกสาร</span>
                 </button>
-                <button type="button" id="mSheetBtnManagePermissions" onclick="selectMobileManageTab('manage_permissions')" class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-150 text-left hover:bg-emerald-100/70 transition-all flex flex-col gap-1.5 active:scale-95">
-                    <span class="text-2xl">👥</span>
-                    <span id="mSheetPermissionsTitle" class="font-extrabold text-xs text-emerald-950">จัดการสิทธิ์</span>
-                    <span class="text-[10px] text-gray-500 font-semibold">อนุมัติและตั้งค่าสมาชิก</span>
+                <button type="button" id="mSheetBtnManageSettings" onclick="selectMobileManageTab('manage_settings')" class="p-3.5 rounded-2xl bg-gradient-to-r from-blue-900 to-indigo-900 border border-blue-950 text-left hover:brightness-110 transition-all flex flex-col gap-1 active:scale-95 col-span-2 text-white shadow-md cursor-pointer">
+                    <div class="flex items-center justify-between w-full">
+                        <span class="text-2xl">⚙️</span>
+                        <span id="mSheetSettingsBadge" class="hidden bg-amber-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-xs">0 คำขอ</span>
+                    </div>
+                    <span class="font-extrabold text-sm text-white">ตั้งค่าระบบ (Settings Hub)</span>
+                    <span class="text-[10px] text-blue-200 font-semibold">จัดการสิทธิ์สมาชิก • แจ้งเตือน Push • ตั้งค่าระบบหลัก & เครื่องมือ</span>
                 </button>
-                <button type="button" id="mSheetBtnManageNotifications" onclick="selectMobileManageTab('manage_notifications')" class="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-150 text-left hover:bg-amber-100/70 transition-all flex flex-col gap-1.5 active:scale-95">
-                    <span class="text-2xl">🔔</span>
-                    <span class="font-extrabold text-xs text-amber-950">ระบบแจ้งเตือน</span>
-                    <span class="text-[10px] text-gray-500 font-semibold">ส่ง Push Notification</span>
-                </button>
+                <!-- Hidden proxies for legacy handlers -->
+                <button type="button" id="mSheetBtnManagePermissions" onclick="selectMobileManageTab('manage_permissions')" class="hidden" style="display:none !important;"><span id="mSheetPermissionsTitle">จัดการสิทธิ์</span></button>
+                <button type="button" id="mSheetBtnManageNotifications" onclick="selectMobileManageTab('manage_notifications')" class="hidden" style="display:none !important;"></button>
             </div>
         </div>
     </div>
