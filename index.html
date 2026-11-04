@@ -4225,18 +4225,19 @@
         }
 
         // ดึงข้อมูลหลักจาก Firestore / Apps Script พร้อมระบบแคชและอัปเดตทันใจ
-        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v5';
+        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v6';
 
         function loadData(onComplete) {
             recommendStatsData = null;
             
-            // ล้างแคชเวอร์ชันเก่าที่มีอักขระเสีย
+            // ล้างแคชเวอร์ชันเก่าที่มีอักขระเสียหรือสถานะเดิม
             try {
                 localStorage.removeItem('sprinkle_cached_app_data');
                 localStorage.removeItem('sprinkle_cached_app_data_v1');
                 localStorage.removeItem('sprinkle_cached_app_data_v2');
                 localStorage.removeItem('sprinkle_cached_app_data_v3');
                 localStorage.removeItem('sprinkle_cached_app_data_v4');
+                localStorage.removeItem('sprinkle_cached_app_data_v5');
             } catch(eClean) {}
 
             // 1. ดึงจากแคชในเครื่องเวอร์ชันใหม่มาแสดงผลทันที (0 ms ไม่ต้องรอโหลด)
@@ -10458,10 +10459,12 @@ function openAudienceFolder(aud) {
             showLoading(autoAnswerObj ? "กำลังวิเคราะห์และจัดทำคำตอบอัตโนมัติ..." : "กำลังส่งคำถามไปยังหัวหน้างาน...");
 
             var qPayload = {
+                id: "qa_" + Date.now(),
                 category: cat,
                 question: question,
                 askedBy: (currentUser && currentUser.name) ? currentUser.name : "พนักงาน",
-                askedFileUrl: fileUrl || ""
+                askedFileUrl: fileUrl || "",
+                askedTime: new Date().toISOString()
             };
 
             if (autoAnswerObj) {
@@ -10479,6 +10482,9 @@ function openAudienceFolder(aud) {
                 hideLoading();
                 closeAskQuestionModal();
                 if (autoAnswerObj) {
+                    if (typeof allQAData !== 'undefined' && Array.isArray(allQAData)) {
+                        allQAData.unshift(qPayload);
+                    }
                     alert("🤖 ระบบได้ตอบคำถามของคุณโดยอัตโนมัติทันทีเรียบร้อยแล้ว!\n\n💡 พบข้อมูลคู่มือที่ตรงกับคำถามของคุณ:\n\"" + autoAnswerObj.title + "\"\n\nสามารถดูรายละเอียดคำตอบได้ที่แท็บ 'ตอบแล้ว' ทันทีครับ");
                     filterQA('answered');
                 } else {

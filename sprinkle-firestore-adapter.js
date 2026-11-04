@@ -180,7 +180,7 @@
                 var config = (configDoc && configDoc.exists) ? configDoc.data() : {
                     system_status: 'เปิดใช้งาน',
                     notebooklm_url: '',
-                    auto_answer_status: 'ปิดใช้งาน',
+                    auto_answer_status: 'เปิดใช้งาน',
                     main_folder_order: '[]',
                     category_order: '{}'
                 };
