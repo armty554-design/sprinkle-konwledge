@@ -4405,7 +4405,7 @@
         }
 
         // ดึงข้อมูลหลักจาก Firestore / Apps Script พร้อมระบบแคชและอัปเดตทันใจ
-        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v9';
+        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v10';
 
         function loadData(onComplete) {
             recommendStatsData = null;
@@ -4421,6 +4421,7 @@
                 localStorage.removeItem('sprinkle_cached_app_data_v6');
                 localStorage.removeItem('sprinkle_cached_app_data_v7');
                 localStorage.removeItem('sprinkle_cached_app_data_v8');
+                localStorage.removeItem('sprinkle_cached_app_data_v9');
             } catch(eClean) {}
 
             // 1. ดึงจากแคชในเครื่องเวอร์ชันใหม่มาแสดงผลทันที (0 ms ไม่ต้องรอโหลด)
@@ -13482,6 +13483,16 @@ function openTopicHistoryModal(topicId, title, category, totalViews, audienceFil
     updateTopicHistModalTabButtons();
     updateTopicHistAudiencePillButtons();
 
+    // แสดงแถบสลับกลุ่มเฉพาะเมื่อเปิดจากแท็ปรวม ('all') เท่านั้น หากเปิดจากพนักงานหรือพี่สปริงเคิลให้ซ่อนและล็อกเฉพาะกลุ่มนั้น
+    var pillsContainer = document.getElementById('topicHistFilterPillsContainer');
+    if (pillsContainer) {
+        if (currentTopicHistAudienceFilter === 'all') {
+            pillsContainer.classList.remove('hidden');
+        } else {
+            pillsContainer.classList.add('hidden');
+        }
+    }
+
     var modal = document.getElementById('topicViewHistoryModal');
     if (modal) modal.classList.remove('hidden');
 
@@ -15123,7 +15134,7 @@ function cancelKnowledgeEdit() {
             </div>
 
             <!-- Filter Pills by Member Type (ทั้งหมด / พนักงาน / พี่สปริงเคิล) -->
-            <div class="py-1.5 px-3 bg-slate-100 border-b border-gray-200 flex items-center justify-between gap-1.5 shrink-0 text-xs">
+            <div id="topicHistFilterPillsContainer" class="py-1.5 px-3 bg-slate-100 border-b border-gray-200 flex items-center justify-between gap-1.5 shrink-0 text-xs">
                 <span class="text-[10px] sm:text-[11px] font-bold text-gray-600 flex items-center gap-1 shrink-0">
                     <span>🎯</span> <span>กรองสถิติ:</span>
                 </span>
