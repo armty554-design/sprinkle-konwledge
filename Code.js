@@ -2045,12 +2045,13 @@ function getEmployeeDetailedHistory(empId) {
   }
 }
 
-// 24.9 ดึงประวัติการเข้าศึกษาของหัวข้อคู่มือ (View Logs & Breakdown for a Topic)
-function getTopicDetailedHistory(topicId) {
+// 24.9 ดึงประวัติการเข้าศึกษาของหัวข้อคู่มือ (View Logs & Breakdown for a Topic with Audience Filter)
+function getTopicDetailedHistory(topicId, audienceFilter) {
   try {
+    audienceFilter = audienceFilter || 'all';
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var logSheet = ss.getSheetByName("ViewLogs");
-    if (!logSheet) return { history: [], summaryByUser: [], summaryByBranch: [], totalViews: 0, uniqueUsersCount: 0 };
+    if (!logSheet) return { history: [], summaryByUser: [], summaryByBranch: [], totalViews: 0, uniqueUsersCount: 0, audienceFilter: audienceFilter };
 
     // ดึงข้อมูล Employees เพื่อ lookup บทบาท/เบอร์รถ/สาขาล่าสุด
     var empSheet = ss.getSheetByName("Employees");
@@ -2070,11 +2071,11 @@ function getTopicDetailedHistory(topicId) {
             eCar = colH || eBranch || eId;
           }
           var empObj = { name: eName, role: eRole, branch: eBranch, carNumber: eCar };
-        employeesMap[eId] = empObj;
-        employeesMap[eId.toLowerCase()] = empObj;
-        if (!isNaN(parseInt(eId, 10))) {
-          employeesMap[String(parseInt(eId, 10))] = empObj;
-        }
+          employeesMap[eId] = empObj;
+          employeesMap[eId.toLowerCase()] = empObj;
+          if (!isNaN(parseInt(eId, 10))) {
+            employeesMap[String(parseInt(eId, 10))] = empObj;
+          }
         }
       }
     }
@@ -2109,8 +2110,15 @@ function getTopicDetailedHistory(topicId) {
         var empInfo = employeesMap[empId] || employeesMap[empId.toLowerCase()] || (employeesMap[String(parseInt(empId, 10))] || {});
         var finalName = empInfo.name || empName || "ไม่ระบุชื่อ";
         var finalRole = empInfo.role || "พนักงาน";
-        var finalBranch = empInfo.branch || empBranch || "ไม่ระบุสาขา";
+        var normB = normalizeBranchName(empInfo.branch || empBranch || "");
+        var finalBranch = normB || "ไม่ระบุสาขา";
         var finalCar = empInfo.carNumber || "-";
+
+        var isOperator = (finalRole === "ผู้ประกอบการ" || finalRole === "พี่สปริงเคิล" || finalRole.indexOf("ผู้ประกอบการ") !== -1 || finalRole.indexOf("สปริงเคิล") !== -1 || finalRole.indexOf("ผปก") !== -1);
+
+        // ฟิวเตอร์ตามประเภทสมาชิกที่เลือก
+        if (audienceFilter === 'operator' && !isOperator) continue;
+        if (audienceFilter === 'employee' && isOperator) continue;
 
         history.push({
           timestamp: timeStr,
@@ -2142,11 +2150,17 @@ function getTopicDetailedHistory(topicId) {
         }
         userCountMap[userKey].views++;
 
-        // สรุปแยกตามสาขา
-        if (!branchCountMap[finalBranch]) {
-          branchCountMap[finalBranch] = { branch: finalBranch, views: 0 };
+        // สรุปแยกตามสาขา (ข้าม "ไม่ระบุสาขา" หากมีฟิวเตอร์ หรือบันทึกเฉพาะสาขาที่มีชื่อจริง)
+        if (normB) {
+          if (!branchCountMap[normB]) {
+            branchCountMap[normB] = { branch: normB, views: 0, uniqueUsers: 0, _userSet: {} };
+          }
+          branchCountMap[normB].views++;
+          if (!branchCountMap[normB]._userSet[userKey]) {
+            branchCountMap[normB]._userSet[userKey] = true;
+            branchCountMap[normB].uniqueUsers++;
+          }
         }
-        branchCountMap[finalBranch].views++;
       }
     }
 
@@ -2158,6 +2172,7 @@ function getTopicDetailedHistory(topicId) {
 
     var summaryByBranch = [];
     for (var bKey in branchCountMap) {
+      delete branchCountMap[bKey]._userSet;
       summaryByBranch.push(branchCountMap[bKey]);
     }
     summaryByBranch.sort(function(a, b) { return b.views - a.views; });
@@ -2170,11 +2185,12 @@ function getTopicDetailedHistory(topicId) {
       summaryByUser: summaryByUser,
       summaryByBranch: summaryByBranch,
       totalViews: history.length,
-      uniqueUsersCount: summaryByUser.length
+      uniqueUsersCount: summaryByUser.length,
+      audienceFilter: audienceFilter
     };
   } catch (error) {
     Logger.log("Error in getTopicDetailedHistory: " + error.toString());
-    return { topicId: topicId, history: [], summaryByUser: [], summaryByBranch: [], totalViews: 0, uniqueUsersCount: 0, error: error.toString() };
+    return { topicId: topicId, history: [], summaryByUser: [], summaryByBranch: [], totalViews: 0, uniqueUsersCount: 0, audienceFilter: audienceFilter || 'all', error: error.toString() };
   }
 }
 

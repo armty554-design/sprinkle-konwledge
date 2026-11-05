@@ -4405,7 +4405,7 @@
         }
 
         // ดึงข้อมูลหลักจาก Firestore / Apps Script พร้อมระบบแคชและอัปเดตทันใจ
-        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v8';
+        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v9';
 
         function loadData(onComplete) {
             recommendStatsData = null;
@@ -4418,6 +4418,9 @@
                 localStorage.removeItem('sprinkle_cached_app_data_v3');
                 localStorage.removeItem('sprinkle_cached_app_data_v4');
                 localStorage.removeItem('sprinkle_cached_app_data_v5');
+                localStorage.removeItem('sprinkle_cached_app_data_v6');
+                localStorage.removeItem('sprinkle_cached_app_data_v7');
+                localStorage.removeItem('sprinkle_cached_app_data_v8');
             } catch(eClean) {}
 
             // 1. ดึงจากแคชในเครื่องเวอร์ชันใหม่มาแสดงผลทันที (0 ms ไม่ต้องรอโหลด)
@@ -12675,12 +12678,39 @@ function renderRecommendPage() {
             }
         }
 
+        // ฟังก์ชันช่วยตรวจสอบว่าหัวข้อความรู้สอดคล้องกับประเภทสมาชิกที่กำลังเลือกหรือไม่
+        function checkTopicMatchesAudience(kItem, subTab) {
+            if (!kItem) return true;
+            if (subTab === 'all') return true;
+            var aud = String(kItem.targetAudience || 'ทั้งหมด').trim();
+            if (aud === 'ทั้งหมด' || aud === '' || aud === 'all') return true;
+            
+            var isStrictOp = (aud === 'operator' || aud === 'พี่สปริงเคิล' || aud === 'ผู้ประกอบการ' || aud.indexOf('ผปก') !== -1 || aud.indexOf('ผู้ประกอบการ') !== -1 || aud.indexOf('พี่สปริงเคิล') !== -1);
+            var isStrictEmp = (aud === 'employee' || aud === 'พนักงาน' || (aud.indexOf('พนักงาน') !== -1 && !isStrictOp));
+
+            if (subTab === 'operator') {
+                // สำหรับแท็บพี่สปริงเคิล: ซ่อนเฉพาะหัวข้อที่ระบุเป็นพนักงานเท่านั้น
+                return !isStrictEmp;
+            } else if (subTab === 'employee') {
+                // สำหรับแท็บพนักงาน: ซ่อนเฉพาะหัวข้อที่ระบุเป็นผู้ประกอบการ/พี่สปริงเคิลเท่านั้น
+                return !isStrictOp;
+            }
+            return true;
+        }
+
         // รวมหัวข้อทั้งหมด: นำ topicStats เป็นหลัก และเติมหัวข้อจาก allKnowledgeData ที่ยังไม่มีใน topicStats (ยอดดู = 0)
         var allTopicsMap = {};
         var mergedTopics = [];
 
         (topicStats || []).forEach(function(t) {
             if (t && t.id) {
+                var origK = null;
+                if (typeof allKnowledgeData !== 'undefined' && Array.isArray(allKnowledgeData)) {
+                    origK = allKnowledgeData.find(function(k) { return String(k.id) === String(t.id); });
+                }
+                if (origK && !checkTopicMatchesAudience(origK, currentRecommendSubTab)) {
+                    return; // ข้ามหัวข้อที่ไม่ตรงกับประเภทสมาชิกที่เลือก
+                }
                 allTopicsMap[t.id] = true;
                 mergedTopics.push(Object.assign({}, t));
             }
@@ -12689,11 +12719,9 @@ function renderRecommendPage() {
         if (typeof allKnowledgeData !== 'undefined' && Array.isArray(allKnowledgeData)) {
             allKnowledgeData.forEach(function(k) {
                 if (k && k.id && !allTopicsMap[k.id]) {
-                    var isItemOp = (k.targetAudience === 'operator' || k.targetAudience === 'พี่สปริงเคิล');
-                    var isItemEmp = (k.targetAudience === 'employee' || k.targetAudience === 'พนักงาน');
-                    
-                    if (currentRecommendSubTab === 'operator' && isItemEmp) return;
-                    if (currentRecommendSubTab === 'employee' && isItemOp) return;
+                    if (!checkTopicMatchesAudience(k, currentRecommendSubTab)) {
+                        return;
+                    }
 
                     allTopicsMap[k.id] = true;
                     mergedTopics.push({
@@ -12886,7 +12914,7 @@ function renderRecommendPage() {
                         '<td class="p-3 text-center">' +
                             '<div class="flex items-center justify-center gap-1.5">' +
                                 '<button onclick="openContentViewer(\'' + item.id + '\')" class="bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-2.5 py-1.5 rounded-xl text-xs shadow-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer" title="เปิดอ่านคู่มือทันที">📖 เปิด</button>' +
-                                '<button onclick="openTopicHistoryModal(\'' + item.id + '\', \'' + safeTitle + '\', \'' + safeCat + '\', ' + (item.views || 0) + ')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 font-extrabold px-2.5 py-1.5 rounded-xl text-xs shadow-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer" title="ดูประวัติการเข้าศึกษา">👁️ ประวัติ</button>' +
+                                '<button onclick="openTopicHistoryModal(\'' + item.id + '\', \'' + safeTitle + '\', \'' + safeCat + '\', ' + (item.views || 0) + ', \'' + currentRecommendSubTab + '\')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 font-extrabold px-2.5 py-1.5 rounded-xl text-xs shadow-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer" title="ดูประวัติการเข้าศึกษา">👁️ ประวัติ</button>' +
                             '</div>' +
                         '</td>' +
                     '</tr>';
@@ -12920,7 +12948,7 @@ function renderRecommendPage() {
                         '</div>' +
                         '<div class="flex items-center gap-1.5 shrink-0">' +
                             '<button onclick="openContentViewer(\'' + item.id + '\')" class="bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-2 py-1.5 rounded-xl text-xs shadow-xs active:scale-95 transition-all flex items-center gap-0.5 cursor-pointer" title="เปิดอ่านคู่มือ">📖 เปิด</button>' +
-                            '<button onclick="openTopicHistoryModal(\'' + item.id + '\', \'' + safeTitle + '\', \'' + safeCat + '\', ' + (item.views || 0) + ')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 font-extrabold px-2 py-1.5 rounded-xl text-xs shadow-xs active:scale-95 transition-all flex items-center gap-0.5 cursor-pointer" title="ดูประวัติ">👁️ ประวัติ</button>' +
+                            '<button onclick="openTopicHistoryModal(\'' + item.id + '\', \'' + safeTitle + '\', \'' + safeCat + '\', ' + (item.views || 0) + ', \'' + currentRecommendSubTab + '\')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 font-extrabold px-2 py-1.5 rounded-xl text-xs shadow-xs active:scale-95 transition-all flex items-center gap-0.5 cursor-pointer" title="ดูประวัติ">👁️ ประวัติ</button>' +
                         '</div>' +
                     '</div>';
                 }
@@ -13400,13 +13428,16 @@ function closeEmployeeViewHistoryModal() {
 var currentTopicHistData = null;
 var currentTopicHistDetailedResult = null;
 var currentTopicHistModalTab = "timeline";
+var currentTopicHistAudienceFilter = "all";
 
-function openTopicHistoryModal(topicId, title, category, totalViews) {
+function openTopicHistoryModal(topicId, title, category, totalViews, audienceFilter) {
+    currentTopicHistAudienceFilter = audienceFilter || (typeof currentRecommendSubTab !== 'undefined' ? currentRecommendSubTab : 'all');
     currentTopicHistData = {
         topicId: topicId,
         title: title,
         category: category,
-        totalViews: totalViews
+        totalViews: totalViews,
+        audienceFilter: currentTopicHistAudienceFilter
     };
     currentTopicHistDetailedResult = null;
     currentTopicHistModalTab = "timeline";
@@ -13415,6 +13446,7 @@ function openTopicHistoryModal(topicId, title, category, totalViews) {
     var catEl = document.getElementById('topicHistModalCategory');
     var metaEl = document.getElementById('topicHistModalMeta');
     var openBtn = document.getElementById('topicHistOpenViewerBtn');
+    var badgeEl = document.getElementById('topicHistModalAudienceBadge');
 
     if (titleEl) titleEl.innerText = title;
     if (catEl) catEl.innerText = category || "ทั่วไป";
@@ -13426,6 +13458,19 @@ function openTopicHistoryModal(topicId, title, category, totalViews) {
         };
     }
 
+    if (badgeEl) {
+        if (currentTopicHistAudienceFilter === 'operator') {
+            badgeEl.className = "bg-amber-400 text-amber-950 font-black text-[10px] px-2 py-0.5 rounded-md shadow-xs inline-flex items-center gap-1";
+            badgeEl.innerHTML = "🚛 สมาชิกพี่สปริงเคิล";
+        } else if (currentTopicHistAudienceFilter === 'employee') {
+            badgeEl.className = "bg-blue-400 text-blue-950 font-black text-[10px] px-2 py-0.5 rounded-md shadow-xs inline-flex items-center gap-1";
+            badgeEl.innerHTML = "👥 สมาชิกพนักงาน";
+        } else {
+            badgeEl.className = "bg-white/20 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-md shadow-xs inline-flex items-center gap-1";
+            badgeEl.innerHTML = "🌐 ทุกประเภทสมาชิก";
+        }
+    }
+
     var totalViewsEl = document.getElementById('topicHistModalTotalViews');
     var uniqueUsersEl = document.getElementById('topicHistModalUniqueUsers');
     var lastActiveEl = document.getElementById('topicHistModalLastActive');
@@ -13435,6 +13480,7 @@ function openTopicHistoryModal(topicId, title, category, totalViews) {
     if (lastActiveEl) lastActiveEl.innerText = '⏳ กำลังดึงข้อมูล...';
 
     updateTopicHistModalTabButtons();
+    updateTopicHistAudiencePillButtons();
 
     var modal = document.getElementById('topicViewHistoryModal');
     if (modal) modal.classList.remove('hidden');
@@ -13449,20 +13495,10 @@ function openTopicHistoryModal(topicId, title, category, totalViews) {
 
     google.script.run.withSuccessHandler(function(res) {
         currentTopicHistDetailedResult = res || { history: [], summaryByUser: [], summaryByBranch: [], totalViews: 0, uniqueUsersCount: 0 };
-
-        if (totalViewsEl) totalViewsEl.innerText = (currentTopicHistDetailedResult.totalViews || 0).toLocaleString() + ' ครั้ง';
-        if (uniqueUsersEl) uniqueUsersEl.innerText = (currentTopicHistDetailedResult.uniqueUsersCount || 0).toLocaleString() + ' คน';
-
-        if (lastActiveEl) {
-            if (currentTopicHistDetailedResult.history && currentTopicHistDetailedResult.history.length > 0) {
-                var latestTime = currentTopicHistDetailedResult.history[0].timestamp;
-                lastActiveEl.innerText = formatThaiDate(latestTime) || latestTime;
-            } else {
-                lastActiveEl.innerText = 'ยังไม่มีประวัติการเข้าชม';
-            }
+        if (currentTopicHistDetailedResult.history && !currentTopicHistDetailedResult._rawHistory) {
+            currentTopicHistDetailedResult._rawHistory = currentTopicHistDetailedResult.history.slice(0);
         }
-
-        renderTopicHistModalContent();
+        renderTopicHistContent();
     }).withFailureHandler(function(err) {
         var errStr = err ? err.toString() : "";
         if (lastActiveEl) lastActiveEl.innerText = '-';
@@ -13486,7 +13522,40 @@ function openTopicHistoryModal(topicId, title, category, totalViews) {
                 '</div>';
             }
         }
-    }).getTopicDetailedHistory(topicId);
+    }).getTopicDetailedHistory(topicId, currentTopicHistAudienceFilter);
+}
+
+function updateTopicHistAudiencePillButtons() {
+    var btnAll = document.getElementById('topicHistFilterBtnAll');
+    var btnEmp = document.getElementById('topicHistFilterBtnEmployee');
+    var btnOp = document.getElementById('topicHistFilterBtnOperator');
+    var activeBlue = "bg-blue-600 text-white shadow-xs font-black";
+    var activeAmber = "bg-amber-500 text-amber-950 shadow-xs font-black border border-amber-600";
+    var inactiveStyle = "bg-white text-gray-600 hover:bg-gray-100 border border-gray-250 font-bold";
+
+    if (btnAll) btnAll.className = "px-2.5 py-1 rounded-lg text-[10px] sm:text-xs transition-all cursor-pointer " + (currentTopicHistAudienceFilter === 'all' ? activeBlue : inactiveStyle);
+    if (btnEmp) btnEmp.className = "px-2.5 py-1 rounded-lg text-[10px] sm:text-xs transition-all cursor-pointer " + (currentTopicHistAudienceFilter === 'employee' ? activeBlue : inactiveStyle);
+    if (btnOp) btnOp.className = "px-2.5 py-1 rounded-lg text-[10px] sm:text-xs transition-all cursor-pointer " + (currentTopicHistAudienceFilter === 'operator' ? activeAmber : inactiveStyle);
+}
+
+function switchTopicHistAudienceFilter(filter) {
+    currentTopicHistAudienceFilter = filter;
+    updateTopicHistAudiencePillButtons();
+
+    var badgeEl = document.getElementById('topicHistModalAudienceBadge');
+    if (badgeEl) {
+        if (filter === 'operator') {
+            badgeEl.className = "bg-amber-400 text-amber-950 font-black text-[10px] px-2 py-0.5 rounded-md shadow-xs inline-flex items-center gap-1";
+            badgeEl.innerHTML = "🚛 สมาชิกพี่สปริงเคิล";
+        } else if (filter === 'employee') {
+            badgeEl.className = "bg-blue-400 text-blue-950 font-black text-[10px] px-2 py-0.5 rounded-md shadow-xs inline-flex items-center gap-1";
+            badgeEl.innerHTML = "👥 สมาชิกพนักงาน";
+        } else {
+            badgeEl.className = "bg-white/20 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-md shadow-xs inline-flex items-center gap-1";
+            badgeEl.innerHTML = "🌐 ทุกประเภทสมาชิก";
+        }
+    }
+    renderTopicHistContent();
 }
 
 function updateTopicHistModalTabButtons() {
@@ -13505,23 +13574,124 @@ function updateTopicHistModalTabButtons() {
 function switchTopicHistModalTab(tab) {
     currentTopicHistModalTab = tab;
     updateTopicHistModalTabButtons();
-    renderTopicHistModalContent();
+    renderTopicHistContent();
 }
 
-function renderTopicHistModalContent() {
+function renderTopicHistContent() {
     var container = document.getElementById('topicHistModalContentContainer');
     if (!container) return;
     if (!currentTopicHistDetailedResult) return;
 
-    var history = currentTopicHistDetailedResult.history || [];
-    var summaryByUser = currentTopicHistDetailedResult.summaryByUser || [];
-    var summaryByBranch = currentTopicHistDetailedResult.summaryByBranch || [];
+    var rawLogs = currentTopicHistDetailedResult._rawHistory || currentTopicHistDetailedResult.history || [];
+    var filterAud = currentTopicHistAudienceFilter || 'all';
 
-    if (history.length === 0) {
+    // คัดกรองและประมวลผล Dual-Filter สำหรับประวัติ, สรุปรายชื่อ, และสรุปรายสาขา
+    var filteredHistory = [];
+    var userMap = {};
+    var branchMap = {};
+
+    for (var h = 0; h < rawLogs.length; h++) {
+        var logItem = rawLogs[h];
+        var rawEmpId = logItem.empId || logItem.id || "";
+        
+        // ค้นหาข้อมูลพนักงานเพิ่มเติมจาก allEmployeesData
+        var matchedEmp = null;
+        if (rawEmpId && typeof allEmployeesData !== 'undefined' && Array.isArray(allEmployeesData)) {
+            matchedEmp = allEmployeesData.find(function(e) {
+                return String(e.empId).trim() === String(rawEmpId).trim();
+            });
+        }
+
+        var finalName = (matchedEmp && matchedEmp.name) ? matchedEmp.name : (logItem.name || logItem.empName || "ไม่ระบุชื่อ");
+        var finalRole = (matchedEmp && matchedEmp.role) ? matchedEmp.role : (logItem.role || logItem.empRole || "พนักงาน");
+        var rawB = (matchedEmp && matchedEmp.branch) ? matchedEmp.branch : (logItem.branch || logItem.empBranch || "");
+        var normB = normalizeBranchName(rawB);
+        var finalBranch = normB || "ไม่ระบุสาขา";
+        var finalCar = (matchedEmp && matchedEmp.carNumber && matchedEmp.carNumber !== "-") ? matchedEmp.carNumber : (logItem.carNumber && logItem.carNumber !== "-" ? logItem.carNumber : "");
+
+        var displayRole = (finalRole === 'ผู้ประกอบการ' || finalRole === 'สมาชิกพี่สปริงเคิล' || finalRole === 'ผปก.') ? 'พี่สปริงเคิล' : (finalRole || "พนักงาน");
+        var isOperator = (displayRole === 'พี่สปริงเคิล' || displayRole.indexOf('สปริงเคิล') !== -1 || displayRole.indexOf('ผู้ประกอบการ') !== -1 || displayRole.indexOf('ผปก') !== -1);
+
+        // ตรวจสอบตามประเภทสมาชิก
+        if (filterAud === 'operator' && !isOperator) continue;
+        if (filterAud === 'employee' && isOperator) continue;
+
+        var augmentedItem = {
+            timestamp: logItem.timestamp,
+            empId: rawEmpId,
+            name: finalName,
+            role: finalRole,
+            displayRole: displayRole,
+            branch: finalBranch,
+            carNumber: finalCar,
+            isOperator: isOperator
+        };
+        filteredHistory.push(augmentedItem);
+
+        // รวมยอดตามผู้เข้าศึกษา
+        var userKey = rawEmpId || finalName;
+        if (!userMap[userKey]) {
+            userMap[userKey] = {
+                empId: rawEmpId,
+                name: finalName,
+                role: finalRole,
+                displayRole: displayRole,
+                branch: finalBranch,
+                carNumber: finalCar,
+                isOperator: isOperator,
+                views: 0,
+                lastViewTime: logItem.timestamp
+            };
+        }
+        userMap[userKey].views++;
+
+        // รวมยอดตามสาขา (เฉพาะสาขาที่ถูกต้อง)
+        if (normB) {
+            if (!branchMap[normB]) {
+                branchMap[normB] = { branch: normB, views: 0, uniqueUsers: 0, _userSet: {} };
+            }
+            branchMap[normB].views++;
+            if (!branchMap[normB]._userSet[userKey]) {
+                branchMap[normB]._userSet[userKey] = true;
+                branchMap[normB].uniqueUsers++;
+            }
+        }
+    }
+
+    var summaryByUser = [];
+    for (var uKey in userMap) {
+        summaryByUser.push(userMap[uKey]);
+    }
+    summaryByUser.sort(function(a, b) { return b.views - a.views; });
+
+    var summaryByBranch = [];
+    for (var bKey in branchMap) {
+        delete branchMap[bKey]._userSet;
+        summaryByBranch.push(branchMap[bKey]);
+    }
+    summaryByBranch.sort(function(a, b) { return b.views - a.views; });
+
+    // อัปเดตสถิติสรุป 3 ช่องในโมดอล
+    var totalViewsEl = document.getElementById('topicHistModalTotalViews');
+    var uniqueUsersEl = document.getElementById('topicHistModalUniqueUsers');
+    var lastActiveEl = document.getElementById('topicHistModalLastActive');
+
+    if (totalViewsEl) totalViewsEl.innerText = filteredHistory.length.toLocaleString() + ' ครั้ง';
+    if (uniqueUsersEl) uniqueUsersEl.innerText = summaryByUser.length.toLocaleString() + ' คน';
+    if (lastActiveEl) {
+        if (filteredHistory.length > 0 && filteredHistory[0].timestamp) {
+            lastActiveEl.innerText = formatThaiDate(filteredHistory[0].timestamp) || filteredHistory[0].timestamp;
+        } else {
+            lastActiveEl.innerText = 'ยังไม่มีประวัติในกลุ่มนี้';
+        }
+    }
+
+    if (filteredHistory.length === 0) {
+        var groupLabel = (filterAud === 'operator') ? 'สมาชิกพี่สปริงเคิล' : ((filterAud === 'employee') ? 'สมาชิกพนักงาน' : 'บุคลากร');
         container.innerHTML = '<div class="p-8 text-center text-gray-500 font-semibold bg-gray-50 rounded-2xl border border-gray-150">' +
             '<span class="text-4xl block mb-2">📭</span>' +
-            '<p class="text-base font-extrabold text-gray-700">ยังไม่มีประวัติการเข้าชมในระบบ</p>' +
-            '<p class="text-xs text-gray-400 mt-1">ยังไม่มีผู้ใช้งานเปิดอ่านคู่มือเรื่องนี้</p>' +
+            '<p class="text-base font-extrabold text-gray-700">ยังไม่มีประวัติการเข้าศึกษาจาก' + groupLabel + '</p>' +
+            '<p class="text-xs text-gray-400 mt-1">ยังไม่มีผู้ใช้งานในกลุ่มนี้เปิดอ่านคู่มือเรื่องนี้</p>' +
         '</div>';
         return;
     }
@@ -13529,48 +13699,33 @@ function renderTopicHistModalContent() {
     if (currentTopicHistModalTab === 'timeline') {
         var html = '<div class="space-y-2">';
         html += '<p class="text-[11px] text-gray-500 font-bold mb-1.5 flex justify-between items-center">' +
-            '<span>📜 รายการประวัติการเปิดอ่าน (' + history.length + ' รายการ):</span>' +
+            '<span>📜 รายการประวัติการเปิดอ่าน (' + filteredHistory.length + ' รายการ):</span>' +
             '<span class="text-[10px] text-blue-600">เลื่อนลงเพื่อดูเพิ่มเติม ⬇️</span>' +
         '</p>';
 
-        for (var i = 0; i < history.length; i++) {
-            var item = history[i];
+        for (var i = 0; i < filteredHistory.length; i++) {
+            var item = filteredHistory[i];
             var displayTime = item.timestamp ? (formatThaiDate(item.timestamp) || item.timestamp) : "-";
-            var rawEmpId = item.empId || item.id || "";
-            
-            // ค้นหาข้อมูลพนักงานเพิ่มเติมจากฐานข้อมูลกลางในเครื่อง (allEmployeesData)
-            var matchedEmp = null;
-            if (rawEmpId && typeof allEmployeesData !== 'undefined' && Array.isArray(allEmployeesData)) {
-                matchedEmp = allEmployeesData.find(function(e) {
-                    return String(e.empId).trim() === String(rawEmpId).trim();
-                });
-            }
+            var rawEmpId = item.empId || "";
 
-            var finalName = (matchedEmp && matchedEmp.name) ? matchedEmp.name : (item.name || item.empName || "ไม่ระบุชื่อ");
-            var finalRole = (matchedEmp && matchedEmp.role) ? matchedEmp.role : (item.role || item.empRole || "พนักงาน");
-            var finalBranch = (matchedEmp && matchedEmp.branch) ? matchedEmp.branch : (item.branch || item.empBranch || "ไม่ระบุสาขา");
-            var finalCar = (matchedEmp && matchedEmp.carNumber && matchedEmp.carNumber !== "-") ? matchedEmp.carNumber : (item.carNumber && item.carNumber !== "-" ? item.carNumber : "");
-
-            var displayRole = (finalRole === 'ผู้ประกอบการ' || finalRole === 'สมาชิกพี่สปริงเคิล') ? 'พี่สปริงเคิล' : (finalRole || "พนักงาน");
-            var isOperator = (displayRole === 'พี่สปริงเคิล' || displayRole.indexOf('สปริงเคิล') !== -1 || displayRole.indexOf('ผู้ประกอบการ') !== -1);
-            var roleBadge = isOperator ?
+            var roleBadge = item.isOperator ?
                 '<span class="bg-amber-100 text-amber-950 border border-amber-300 font-extrabold px-2 py-0.5 rounded-lg text-xs inline-flex items-center gap-1">🚛 พี่สปริงเคิล</span>' :
-                '<span class="bg-blue-100 text-blue-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-blue-200">👔 ตำแหน่ง: ' + displayRole + '</span>';
+                '<span class="bg-blue-100 text-blue-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-blue-200">👔 ตำแหน่ง: ' + item.displayRole + '</span>';
 
-            var carBadge = finalCar ? '<span class="bg-amber-50 text-amber-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-amber-200">🚛 รถ: ' + finalCar + '</span>' : '';
+            var carBadge = item.carNumber && item.carNumber !== '-' ? '<span class="bg-amber-50 text-amber-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-amber-200">🚛 รถ: ' + item.carNumber + '</span>' : '';
 
             html += '<div class="bg-white hover:bg-blue-50/80 p-3 rounded-2xl border border-gray-200 transition-all flex flex-col gap-1.5 shadow-2xs">' +
                 '<div class="flex items-center justify-between gap-2 flex-wrap">' +
                     '<div class="flex items-center gap-1.5 flex-wrap">' +
                         '<span class="bg-blue-950 text-white font-mono text-xs font-black px-2 py-0.5 rounded-lg shadow-2xs">🆔 รหัส ' + (rawEmpId || "-") + '</span>' +
                         roleBadge +
-                        '<span class="bg-emerald-50 text-emerald-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-emerald-200">🏢 สาขา: ' + finalBranch + '</span>' +
+                        '<span class="bg-emerald-50 text-emerald-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-emerald-200">🏢 สาขา: ' + item.branch + '</span>' +
                         carBadge +
                     '</div>' +
                     '<span class="text-xs font-semibold text-gray-500 flex items-center gap-1">🕒 ' + displayTime + '</span>' +
                 '</div>' +
                 '<div class="text-sm sm:text-base font-extrabold text-blue-950 flex items-center gap-2 mt-0.5">' +
-                    '<span>👤</span> <span>ชื่อ-นามสกุล: <span class="text-blue-900 font-black">' + finalName + '</span></span>' +
+                    '<span>👤</span> <span>ชื่อ-นามสกุล: <span class="text-blue-900 font-black">' + item.name + '</span></span>' +
                 '</div>' +
             '</div>';
         }
@@ -13586,38 +13741,24 @@ function renderTopicHistModalContent() {
         for (var j = 0; j < summaryByUser.length; j++) {
             var u = summaryByUser[j];
             var lastTime = u.lastViewTime ? (formatThaiDate(u.lastViewTime) || u.lastViewTime) : "-";
-            var rawEmpId = u.empId || u.id || "";
-            
-            var matchedEmp = null;
-            if (rawEmpId && typeof allEmployeesData !== 'undefined' && Array.isArray(allEmployeesData)) {
-                matchedEmp = allEmployeesData.find(function(e) {
-                    return String(e.empId).trim() === String(rawEmpId).trim();
-                });
-            }
+            var rawEmpId = u.empId || "";
 
-            var finalName = (matchedEmp && matchedEmp.name) ? matchedEmp.name : (u.name || u.empName || "ไม่ระบุชื่อ");
-            var finalRole = (matchedEmp && matchedEmp.role) ? matchedEmp.role : (u.role || u.empRole || "พนักงาน");
-            var finalBranch = (matchedEmp && matchedEmp.branch) ? matchedEmp.branch : (u.branch || u.empBranch || "ไม่ระบุสาขา");
-            var finalCar = (matchedEmp && matchedEmp.carNumber && matchedEmp.carNumber !== "-") ? matchedEmp.carNumber : (u.carNumber && u.carNumber !== "-" ? u.carNumber : "");
-
-            var displayRole = (finalRole === 'ผู้ประกอบการ' || finalRole === 'สมาชิกพี่สปริงเคิล') ? 'พี่สปริงเคิล' : (finalRole || "พนักงาน");
-            var isOperator = (displayRole === 'พี่สปริงเคิล' || displayRole.indexOf('สปริงเคิล') !== -1 || displayRole.indexOf('ผู้ประกอบการ') !== -1);
-            var roleBadge = isOperator ?
+            var roleBadge = u.isOperator ?
                 '<span class="bg-amber-100 text-amber-950 border border-amber-300 font-extrabold px-2 py-0.5 rounded-lg text-xs inline-flex items-center gap-1">🚛 พี่สปริงเคิล</span>' :
-                '<span class="bg-indigo-100 text-indigo-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-indigo-200">👔 ตำแหน่ง: ' + displayRole + '</span>';
+                '<span class="bg-indigo-100 text-indigo-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-indigo-200">👔 ตำแหน่ง: ' + u.displayRole + '</span>';
 
             html += '<div class="bg-white hover:bg-indigo-50/80 p-3 rounded-2xl border border-gray-200 transition-all flex flex-col gap-1.5 shadow-2xs">' +
                 '<div class="flex items-center justify-between gap-2 flex-wrap">' +
                     '<div class="flex items-center gap-1.5 flex-wrap">' +
                         '<span class="bg-indigo-950 text-white font-mono text-xs font-black px-2 py-0.5 rounded-lg shadow-2xs">🆔 รหัส ' + (rawEmpId || "-") + '</span>' +
                         roleBadge +
-                        '<span class="bg-emerald-50 text-emerald-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-emerald-200">🏢 สาขา: ' + finalBranch + '</span>' +
+                        '<span class="bg-emerald-50 text-emerald-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-emerald-200">🏢 สาขา: ' + u.branch + '</span>' +
                     '</div>' +
                     '<span class="bg-purple-100 text-purple-900 text-xs font-black px-2.5 py-0.5 rounded-lg border border-purple-200">เข้าชม ' + u.views + ' ครั้ง</span>' +
                 '</div>' +
                 '<div class="flex items-center justify-between gap-2 flex-wrap mt-0.5">' +
                     '<div class="text-sm sm:text-base font-extrabold text-blue-950 flex items-center gap-2">' +
-                        '<span>👤</span> <span>ชื่อ-นามสกุล: <span class="text-indigo-900 font-black">' + finalName + '</span></span>' +
+                        '<span>👤</span> <span>ชื่อ-นามสกุล: <span class="text-indigo-900 font-black">' + u.name + '</span></span>' +
                     '</div>' +
                     '<span class="text-xs text-gray-400 font-medium">ล่าสุด: ' + lastTime + '</span>' +
                 '</div>' +
@@ -13642,7 +13783,7 @@ function renderTopicHistModalContent() {
                     '<div class="shrink-0 text-base font-bold">' + rankBadge + '</div>' +
                     '<div class="min-w-0">' +
                         '<h4 class="text-xs sm:text-sm font-bold text-blue-950 truncate">' + b.branch + '</h4>' +
-                        '<span class="text-[10px] text-gray-500 font-medium">ผู้เข้าชม ' + b.uniqueUsers + ' คน</span>' +
+                        '<span class="text-[10px] text-gray-500 font-medium">ผู้เข้าชม ' + (b.uniqueUsers || 1) + ' คน</span>' +
                     '</div>' +
                 '</div>' +
                 '<span class="bg-emerald-50 text-emerald-700 text-xs font-extrabold px-2 py-1 rounded-lg border border-emerald-100 shrink-0">' + b.views + ' ครั้ง</span>' +
@@ -14956,6 +15097,7 @@ function cancelKnowledgeEdit() {
                     <div class="flex items-center gap-2 flex-wrap mb-0.5">
                         <span id="topicHistModalCategory" class="bg-white/20 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md border border-white/30 truncate">หมวดหมู่</span>
                         <p id="topicHistModalMeta" class="text-[11px] text-blue-200 font-semibold">รหัสคู่มือ: -</p>
+                        <span id="topicHistModalAudienceBadge" class="bg-white/20 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md shadow-xs inline-flex items-center gap-1">🌐 ทุกประเภทสมาชิก</span>
                     </div>
                     <h3 id="topicHistModalTitle" class="text-sm sm:text-base font-extrabold truncate">ชื่อหัวข้อคู่มือ</h3>
                 </div>
@@ -14977,6 +15119,18 @@ function cancelKnowledgeEdit() {
                 <div class="bg-white p-1 sm:p-1.5 rounded-xl border border-emerald-100 shadow-2xs text-center">
                     <span class="text-[9px] text-gray-500 font-bold block">เข้าศึกษาล่าสุด</span>
                     <span id="topicHistModalLastActive" class="text-[9px] sm:text-[10px] font-bold text-gray-700 block truncate mt-0.5">-</span>
+                </div>
+            </div>
+
+            <!-- Filter Pills by Member Type (ทั้งหมด / พนักงาน / พี่สปริงเคิล) -->
+            <div class="py-1.5 px-3 bg-slate-100 border-b border-gray-200 flex items-center justify-between gap-1.5 shrink-0 text-xs">
+                <span class="text-[10px] sm:text-[11px] font-bold text-gray-600 flex items-center gap-1 shrink-0">
+                    <span>🎯</span> <span>กรองสถิติ:</span>
+                </span>
+                <div class="flex items-center gap-1 shrink-0">
+                    <button type="button" onclick="switchTopicHistAudienceFilter('all')" id="topicHistFilterBtnAll" class="px-2 py-1 rounded-lg font-bold text-[10px] sm:text-xs transition-all cursor-pointer">🌐 ทั้งหมด</button>
+                    <button type="button" onclick="switchTopicHistAudienceFilter('employee')" id="topicHistFilterBtnEmployee" class="px-2 py-1 rounded-lg font-bold text-[10px] sm:text-xs transition-all cursor-pointer">👥 พนักงาน</button>
+                    <button type="button" onclick="switchTopicHistAudienceFilter('operator')" id="topicHistFilterBtnOperator" class="px-2 py-1 rounded-lg font-bold text-[10px] sm:text-xs transition-all cursor-pointer">🚛 พี่สปริงเคิล</button>
                 </div>
             </div>
 
