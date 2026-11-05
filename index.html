@@ -4405,7 +4405,7 @@
         }
 
         // ดึงข้อมูลหลักจาก Firestore / Apps Script พร้อมระบบแคชและอัปเดตทันใจ
-        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v10';
+        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v11';
 
         function loadData(onComplete) {
             recommendStatsData = null;
@@ -4422,6 +4422,7 @@
                 localStorage.removeItem('sprinkle_cached_app_data_v7');
                 localStorage.removeItem('sprinkle_cached_app_data_v8');
                 localStorage.removeItem('sprinkle_cached_app_data_v9');
+                localStorage.removeItem('sprinkle_cached_app_data_v10');
             } catch(eClean) {}
 
             // 1. ดึงจากแคชในเครื่องเวอร์ชันใหม่มาแสดงผลทันที (0 ms ไม่ต้องรอโหลด)
@@ -13728,7 +13729,7 @@ function renderTopicHistContent() {
             html += '<div class="bg-white hover:bg-blue-50/80 p-3 rounded-2xl border border-gray-200 transition-all flex flex-col gap-1.5 shadow-2xs">' +
                 '<div class="flex items-center justify-between gap-2 flex-wrap">' +
                     '<div class="flex items-center gap-1.5 flex-wrap">' +
-                        '<span class="bg-blue-950 text-white font-mono text-xs font-black px-2 py-0.5 rounded-lg shadow-2xs">🆔 รหัส ' + (rawEmpId || "-") + '</span>' +
+                        '<span class="bg-slate-100 text-slate-900 border border-slate-300 font-mono text-xs font-black px-2 py-0.5 rounded-lg shadow-2xs">🆔 รหัส ' + (rawEmpId || "-") + '</span>' +
                         roleBadge +
                         '<span class="bg-emerald-50 text-emerald-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-emerald-200">🏢 สาขา: ' + item.branch + '</span>' +
                         carBadge +
@@ -13761,7 +13762,7 @@ function renderTopicHistContent() {
             html += '<div class="bg-white hover:bg-indigo-50/80 p-3 rounded-2xl border border-gray-200 transition-all flex flex-col gap-1.5 shadow-2xs">' +
                 '<div class="flex items-center justify-between gap-2 flex-wrap">' +
                     '<div class="flex items-center gap-1.5 flex-wrap">' +
-                        '<span class="bg-indigo-950 text-white font-mono text-xs font-black px-2 py-0.5 rounded-lg shadow-2xs">🆔 รหัส ' + (rawEmpId || "-") + '</span>' +
+                        '<span class="bg-slate-100 text-slate-900 border border-slate-300 font-mono text-xs font-black px-2 py-0.5 rounded-lg shadow-2xs">🆔 รหัส ' + (rawEmpId || "-") + '</span>' +
                         roleBadge +
                         '<span class="bg-emerald-50 text-emerald-900 text-xs font-extrabold px-2 py-0.5 rounded-lg border border-emerald-200">🏢 สาขา: ' + u.branch + '</span>' +
                     '</div>' +
