@@ -1683,7 +1683,29 @@ function getViewStatistics() {
   }
 }
 
-// 24.5 ดึงสถิติจัดอันดับหัวข้อคู่มือและจัดอันดับพนักงานแยกกลุ่ม
+// ฟังก์ชันมาตรฐานสำหรับแปลงชื่อสาขาให้ตรงกัน และตัด "ไม่ระบุสาขา" ออก
+function normalizeBranchName(rawBranch) {
+  if (!rawBranch) return "";
+  var b = String(rawBranch).trim();
+  if (b === "" || b === "-" || b === "ไม่ระบุสาขา" || b === "ไม่ระบุ" || b === "undefined" || b === "null") {
+    return "";
+  }
+  var cleaned = b.replace(/\s+/g, '');
+  if (cleaned === "พุทธมณฑลสาย1") {
+    return "พุทธมณฑล สาย 1";
+  }
+  if (cleaned === "สุขุมวิท50") {
+    return "สุขุมวิท 50";
+  }
+  if (cleaned === "พระราม2") {
+    return "พระราม 2";
+  }
+  if (cleaned === "พระราม3") {
+    return "พระราม 3";
+  }
+  return b;
+}
+
 // 24.5 ดึงสถิติจัดอันดับหัวข้อคู่มือและจัดอันดับพนักงานแยกกลุ่ม (พร้อมรายชื่อทั้งหมดและสรุปยอดเข้าชมรวม)
 function getRankingDataSeparated() {
   try {
@@ -1698,7 +1720,8 @@ function getRankingDataSeparated() {
         var empId = empRows[i][0] !== undefined && empRows[i][0] !== null ? empRows[i][0].toString().trim() : "";
         var name = empRows[i][1] ? empRows[i][1].toString().trim() : "";
         var role = empRows[i][2] ? empRows[i][2].toString().trim() : "พนักงาน";
-        var branch = (empRows[i].length > 6 && empRows[i][6] !== undefined && empRows[i][6] !== null) ? empRows[i][6].toString().trim() : "";
+        var rawBranch = (empRows[i].length > 6 && empRows[i][6] !== undefined && empRows[i][6] !== null) ? empRows[i][6].toString().trim() : "";
+        var branch = normalizeBranchName(rawBranch);
         // ดึงเบอร์รถจากคอลัมน์ I (index 8) ของชีต Employees
         var carNumber = (empRows[i].length > 8 && empRows[i][8] !== undefined && empRows[i][8] !== null) ? empRows[i][8].toString().trim() : "";
         if (!carNumber && (role === "ผู้ประกอบการ" || role === "พี่สปริงเคิล" || role.indexOf("ผู้ประกอบการ") !== -1 || role.indexOf("สปริงเคิล") !== -1)) {
@@ -1862,7 +1885,8 @@ function getRankingDataSeparated() {
       var bDict = {};
       for (var empKey in dict) {
         var emp = dict[empKey];
-        var b = (emp.branch && emp.branch.trim() !== "" && emp.branch !== "-") ? emp.branch.trim() : "ไม่ระบุสาขา";
+        var b = normalizeBranchName(emp.branch);
+        if (!b) continue; // ข้าม "ไม่ระบุสาขา" หรือค่าว่าง
         if (!bDict[b]) {
           bDict[b] = { branch: b, views: 0, logins: 0, totalEmployees: 0, activeEmployees: 0 };
         }
