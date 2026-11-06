@@ -2650,108 +2650,38 @@
 
                 <!-- ส่วนจัดการรายชื่อพนักงานและสมาชิก -->
                 <div id="adminManageEmployeesCard" class="space-y-6">
-                    <!-- การ์ดแบบฟอร์มเพิ่ม/อัปเดตข้อมูลพนักงาน -->
-                    <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-lg border border-gray-200">
-                        <div class="flex justify-between items-center gap-4 mb-6 border-b pb-4 flex-wrap">
-                            <div>
-                                <h3 class="text-xl sm:text-2xl font-extrabold text-blue-950 flex items-center gap-2">
-                                    <span>➕</span> <span>เพิ่มและอัปเดตข้อมูลพนักงาน / สมาชิก</span>
-                                </h3>
-                                <p class="text-xs sm:text-sm text-gray-500 font-semibold mt-1">กรอกข้อมูลเพื่อสร้างบัญชีพนักงานใหม่ หรือคลิกปุ่ม "แก้ไข" จากตารางด้านล่างเพื่ออัปเดตข้อมูล</p>
-                            </div>
-                            <button onclick="refreshData()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all active:scale-95 flex items-center gap-2 border border-blue-200 shadow-xs shrink-0 cursor-pointer">
-                                🔄 รีเฟรชข้อมูล
-                            </button>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                            <div>
-                                <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">รหัสพนักงาน <span class="text-red-500">*</span></label>
-                                <input type="text" id="empIdInput" oninput="onAdminEmpIdInput()" placeholder="เช่น 1005, user123" class="w-full p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-bold">
-                            </div>
-                            <div>
-                                <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">ชื่อ-นามสกุล <span class="text-red-500">*</span></label>
-                                <input type="text" id="empNameInput" placeholder="เช่น นายประหยัด สุขใจ" class="w-full p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-bold">
-                            </div>
-                            <div>
-                                <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">ตำแหน่ง / บทบาท</label>
-                                <select id="empRoleSelect" class="w-full p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-bold text-gray-800">
-                                    <option value="พนักงาน">พนักงาน</option>
-                                    <option value="ผู้จัดการ">ผู้จัดการ</option>
-                                    <option value="แอดมิน">แอดมิน</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">สิทธิ์ตอบ Q&A</label>
-                                <select id="empQASelect" class="w-full p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-bold text-gray-800">
-                                    <option value="default">ยึดตามหลักบทบาท</option>
-                                    <option value="true">เปิดใช้งาน</option>
-                                    <option value="false">ปิดใช้งาน</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">สถานะการอนุมัติใช้งาน</label>
-                                <select id="empApprovalStatusSelect" class="w-full p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-bold text-gray-800">
-                                    <option value="อนุมัติแล้ว">🟢 อนุมัติแล้ว (เข้าใช้งานได้)</option>
-                                    <option value="รออนุมัติ">⏳ รออนุมัติ (ยังเข้าใช้งานไม่ได้)</option>
-                                    <option value="ไม่อนุมัติ">🔴 ไม่อนุมัติ</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">รหัสผ่าน (ค่าเริ่มต้นคือ 1234)</label>
-                                <div class="flex gap-2">
-                                    <input type="text" id="empPasswordInput" placeholder="กรอกรหัสผ่านพนักงาน" class="flex-1 p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 font-bold">
-                                    <button type="button" onclick="resetPasswordByAdmin()" class="bg-red-50 hover:bg-red-100 text-red-700 px-3 py-2 border border-red-200 rounded-xl font-bold text-xs transition-all whitespace-nowrap cursor-pointer">
-                                        🔑 รีเซ็ต 1234
-                                    </button>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">สาขา</label>
-                                <input type="text" id="empBranchInput" placeholder="กรอกสาขาพนักงาน (เช่น พระราม 2, ปทุมธานี)" class="w-full p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 font-bold">
-                            </div>
-                            <div>
-                                <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">เบอร์รถ (สำหรับพี่สปริงเคิล)</label>
-                                <input type="text" id="empCarNumberInput" placeholder="กรอกเบอร์รถ เช่น 101, B04 หรือใส่ -" class="w-full p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 font-bold">
-                            </div>
-                            <div>
-                                <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">รูปโปรไฟล์พนักงาน</label>
-                                <input type="text" id="empProfilePicUrl" placeholder="ลิงก์รูป หรืออัปโหลดด้านล่าง..." class="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 text-xs outline-none text-gray-600" readonly>
-                            </div>
-                        </div>
-
-                        <!-- อัปโหลดรูปโปรไฟล์และปุ่มบันทึก -->
-                        <div class="mt-5 pt-4 border-t border-gray-150 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-                            <div class="flex items-center gap-3">
-                                <span class="text-xs font-bold text-gray-600">📷 อัปโหลดรูป:</span>
-                                <div class="flex items-center gap-2" id="empFileWrapper">
-                                    <input type="file" id="empFileInput" onchange="uploadEmployeeProfilePic()" class="text-xs bg-white p-1.5 border border-gray-300 rounded-xl max-w-xs" accept="image/*">
-                                </div>
-                                <div id="empFileUploadedContainer" class="hidden flex items-center gap-2 p-1.5 px-3 bg-green-50 border border-green-200 rounded-xl">
-                                    <span class="text-green-800 font-bold text-xs">✅ อัปโหลดแล้ว!</span>
-                                    <button type="button" onclick="changeEmpFile()" class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold text-[10px]">เปลี่ยน</button>
-                                    <button type="button" onclick="clearEmpFile()" class="bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold text-[10px]">ลบ</button>
-                                </div>
-                                <span id="empUploadProgress" class="text-xs font-bold text-blue-600 hidden">⏳ กำลังอัปโหลด...</span>
-                            </div>
-                            <button onclick="saveEmployeeData()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-extrabold text-sm transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer">
-                                <span>💾</span> <span>บันทึกข้อมูลพนักงาน</span>
-                            </button>
-                        </div>
-                    </div>
-
                     <!-- การ์ดตารางรายชื่อพนักงานและสมาชิก (Full-width เต็มความกว้าง) -->
-                    <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-lg border border-gray-200 space-y-4">
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                            <div class="flex items-center gap-2.5 flex-wrap">
-                                <h4 class="text-xl font-extrabold text-gray-900 flex items-center gap-2">
-                                    <span>📋</span> <span>รายชื่อพนักงานและสมาชิกในระบบ</span>
-                                </h4>
-                                <span id="adminEmpTotalFilteredBadge" class="bg-blue-100 text-blue-900 text-xs font-black px-3 py-1 rounded-full border border-blue-200 shadow-2xs">0 คน</span>
+                    <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-lg border border-gray-200 space-y-5">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-150 pb-4">
+                            <div>
+                                <div class="flex items-center gap-2.5 flex-wrap">
+                                    <h4 class="text-xl sm:text-2xl font-extrabold text-blue-950 flex items-center gap-2">
+                                        <span>📋</span> <span>รายชื่อพนักงานและสมาชิกในระบบ</span>
+                                    </h4>
+                                    <span id="adminEmpTotalFilteredBadge" class="bg-blue-100 text-blue-900 text-xs font-black px-3 py-1 rounded-full border border-blue-200 shadow-2xs">0 คน</span>
+                                </div>
+                                <p class="text-xs sm:text-sm text-gray-500 font-semibold mt-1">
+                                    จัดการข้อมูลสมาชิก ค้นหา กรองสถานะ และคลิกปุ่ม "แก้ไข" เพื่อเปิดหน้าต่างปรับปรุงข้อมูล User
+                                </p>
                             </div>
+                            <div class="flex items-center gap-2.5 flex-wrap shrink-0">
+                                <button type="button" onclick="openAddEmployeeModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm transition-all active:scale-95 shadow-md flex items-center gap-2 cursor-pointer">
+                                    <span>➕</span> <span>เพิ่มสมาชิกใหม่</span>
+                                </button>
+                                <button onclick="refreshData()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all active:scale-95 flex items-center gap-2 border border-blue-200 shadow-xs cursor-pointer">
+                                    🔄 รีเฟรชข้อมูล
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- แถบค้นหาและฟิวเตอร์ 3 มิติ -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                             <div class="relative w-full sm:w-80">
                                 <input type="text" id="adminEmpSearchInput" oninput="filterEmployeeTable()" placeholder="🔍 ค้นหาชื่อ, รหัส, สาขา, เบอร์รถ..." class="w-full pl-3.5 pr-8 py-2.5 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 shadow-2xs font-semibold">
                                 <button type="button" onclick="document.getElementById('adminEmpSearchInput').value=''; filterEmployeeTable();" class="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600 text-xs font-bold cursor-pointer" title="ล้างคำค้นหา">✕</button>
+                            </div>
+                            <div class="text-xs text-gray-500 font-medium hidden sm:block">
+                                💡 คลิกปุ่ม <span class="text-blue-600 font-bold">"แก้ไข"</span> ในตารางเพื่อเปิดหน้าต่างแก้ไขข้อมูลสมาชิก
                             </div>
                         </div>
                         
@@ -2779,7 +2709,6 @@
                             </div>
                         </div>
 
-                        <!-- ตารางแสดงผลรายชื่อพนักงานกว้างเต็มจอ -->
                         <div class="overflow-x-auto rounded-2xl border border-gray-200 shadow-2xs">
                             <table class="w-full text-left border-collapse text-sm">
                                 <thead>
@@ -4492,7 +4421,7 @@
         }
 
         // ดึงข้อมูลหลักจาก Firestore / Apps Script พร้อมระบบแคชและอัปเดตทันใจ
-        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v14';
+        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v15';
 
         function loadData(onComplete) {
             recommendStatsData = null;
@@ -4513,6 +4442,7 @@
                 localStorage.removeItem('sprinkle_cached_app_data_v11');
                 localStorage.removeItem('sprinkle_cached_app_data_v12');
                 localStorage.removeItem('sprinkle_cached_app_data_v13');
+                localStorage.removeItem('sprinkle_cached_app_data_v14');
             } catch(eClean) {}
 
             // 1. ดึงจากแคชในเครื่องเวอร์ชันใหม่มาแสดงผลทันที (0 ms ไม่ต้องรอโหลด)
@@ -12356,27 +12286,102 @@ function onAdminEmpIdInput() {
     }
 }
 
+function openAddEmployeeModal() {
+    openEditEmployeeModal('', '', 'พนักงาน', false, '1234', '', '', '', 'อนุมัติแล้ว');
+}
+
+function openEditEmployeeModal(empId, name, role, canAnswerQA, password, profilePic, branch, carNumber, approvalStatus) {
+    var modal = document.getElementById('adminEmployeeModal');
+    if (!modal) return;
+    
+    var modalTitle = document.getElementById('adminEmpModalTitle');
+    if (modalTitle) {
+        if (empId) {
+            modalTitle.innerHTML = '<span>✏️ แก้ไขข้อมูลสมาชิก / พนักงาน</span> <span class="text-xs font-mono bg-blue-100 text-blue-900 border border-blue-200 px-2 py-0.5 rounded-lg ml-2">ID: ' + empId + '</span>';
+        } else {
+            modalTitle.innerHTML = '<span>➕ เพิ่มพนักงาน / สมาชิกใหม่</span>';
+        }
+    }
+
+    var idEl = document.getElementById('empIdInput');
+    if (idEl) {
+        idEl.value = empId || "";
+        // หากเป็นการแก้ไขล็อกไม่ให้แก้รหัสพนักงาน เพื่อป้องกันความผิดพลาดของคีย์หลัก
+        idEl.readOnly = !!empId;
+        idEl.className = empId 
+            ? "w-full p-3 border border-gray-300 rounded-xl bg-gray-100 text-sm font-mono font-bold text-gray-700 shadow-2xs cursor-not-allowed"
+            : "w-full p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-mono font-bold text-gray-900 shadow-2xs";
+    }
+
+    var nameEl = document.getElementById('empNameInput');
+    if (nameEl) nameEl.value = name || "";
+    var roleEl = document.getElementById('empRoleSelect');
+    if (roleEl) roleEl.value = role || "พนักงาน";
+    var qaEl = document.getElementById('empQASelect');
+    if (qaEl) qaEl.value = (canAnswerQA !== undefined) ? canAnswerQA.toString() : "default";
+    var appEl = document.getElementById('empApprovalStatusSelect');
+    if (appEl) appEl.value = approvalStatus || "อนุมัติแล้ว";
+    var passEl = document.getElementById('empPasswordInput');
+    if (passEl) passEl.value = password || "1234";
+    var picEl = document.getElementById('empProfilePicUrl');
+    if (picEl) picEl.value = profilePic || "";
+    var branchEl = document.getElementById('empBranchInput');
+    if (branchEl) branchEl.value = branch || "";
+    var carEl = document.getElementById('empCarNumberInput');
+    if (carEl) carEl.value = (carNumber && carNumber !== '-') ? carNumber : "";
+
+    var prevImg = document.getElementById('empModalProfilePicPreview');
+    var wrap = document.getElementById('empFileWrapper');
+    var uploadedWrap = document.getElementById('empFileUploadedContainer');
+
+    if (profilePic) {
+        if (prevImg) {
+            prevImg.src = profilePic;
+            prevImg.classList.remove('hidden');
+        }
+        if (wrap) wrap.classList.add('hidden');
+        if (uploadedWrap) uploadedWrap.classList.remove('hidden');
+    } else {
+        clearEmpFile();
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEmployeeModal() {
+    var modal = document.getElementById('adminEmployeeModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+    document.body.style.overflow = '';
+}
+
 function fillEmployeeForm(empId, name, role, canAnswerQA, password, profilePic, branch, carNumber, approvalStatus) {
-    document.getElementById('empIdInput').value = empId;
-    document.getElementById('empNameInput').value = name;
-    document.getElementById('empRoleSelect').value = role;
-    document.getElementById('empQASelect').value = canAnswerQA.toString();
-    document.getElementById('empApprovalStatusSelect').value = approvalStatus || "อนุมัติแล้ว";
-    document.getElementById('empPasswordInput').value = password || "1234";
-    document.getElementById('empProfilePicUrl').value = profilePic || "";
-    document.getElementById('empBranchInput').value = branch || "";
-    document.getElementById('empCarNumberInput').value = carNumber || "";
+    openEditEmployeeModal(empId, name, role, canAnswerQA, password, profilePic, branch, carNumber, approvalStatus);
 }
 
 function changeEmpFile() {
     document.getElementById('empFileInput').click();
 }
 function clearEmpFile() {
-    document.getElementById('empFileInput').value = "";
-    document.getElementById('empProfilePicUrl').value = "";
-    document.getElementById('empFileWrapper').classList.remove('hidden');
-    document.getElementById('empFileUploadedContainer').classList.add('hidden');
-    document.getElementById('empUploadProgress').classList.add('hidden');
+    var fileIn = document.getElementById('empFileInput');
+    if (fileIn) fileIn.value = "";
+    var picUrl = document.getElementById('empProfilePicUrl');
+    if (picUrl) picUrl.value = "";
+    var prevImg = document.getElementById('empModalProfilePicPreview');
+    if (prevImg) {
+        prevImg.src = "";
+        prevImg.classList.add('hidden');
+    }
+    var wrap = document.getElementById('empFileWrapper');
+    if (wrap) wrap.classList.remove('hidden');
+    var uploadedWrap = document.getElementById('empFileUploadedContainer');
+    if (uploadedWrap) uploadedWrap.classList.add('hidden');
+    var prog = document.getElementById('empUploadProgress');
+    if (prog) prog.classList.add('hidden');
 }
 
 function uploadEmployeeProfilePic() {
@@ -12395,7 +12400,11 @@ function uploadEmployeeProfilePic() {
             progressEl.classList.add('hidden');
             if (result.success) {
                 document.getElementById('empProfilePicUrl').value = result.url;
-                
+                var prevImg = document.getElementById('empModalProfilePicPreview');
+                if (prevImg) {
+                    prevImg.src = result.url;
+                    prevImg.classList.remove('hidden');
+                }
                 // อัปเดต UI แสดงไฟล์ที่อัปโหลดแล้ว
                 document.getElementById('empFileWrapper').classList.add('hidden');
                 document.getElementById('empFileUploadedContainer').classList.remove('hidden');
@@ -12430,14 +12439,7 @@ function saveEmployeeData() {
     google.script.run.withSuccessHandler(function(msg) {
         hideLoading();
         alert(msg);
-        document.getElementById('empIdInput').value = "";
-        document.getElementById('empNameInput').value = "";
-        document.getElementById('empRoleSelect').value = "พนักงาน";
-        document.getElementById('empQASelect').value = "default";
-        document.getElementById('empApprovalStatusSelect').value = "อนุมัติแล้ว";
-        document.getElementById('empPasswordInput').value = "";
-        document.getElementById('empBranchInput').value = "";
-        document.getElementById('empCarNumberInput').value = "";
+        closeEmployeeModal();
         clearEmpFile();
         loadData();
     }).updateEmployee(empId, name, role, canAnswerQA, password, profilePic, branch, carNumber, approvalStatus);
@@ -15638,5 +15640,130 @@ function cancelKnowledgeEdit() {
             }
         })();
     </script>
+
+    <!-- ==================== โมดอลป๊อปอัปแก้ไข/เพิ่มข้อมูลสมาชิกและพนักงาน ==================== -->
+    <div id="adminEmployeeModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-5" onclick="if(event.target===this) closeEmployeeModal()">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full border border-gray-200 overflow-hidden flex flex-col max-h-[92vh] animate-scale-up" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-5 sm:p-6 border-b border-gray-150 bg-gradient-to-r from-blue-50/80 via-white to-indigo-50/80">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl sm:text-3xl p-2 bg-blue-100 text-blue-800 rounded-2xl shadow-2xs">👤</span>
+                    <div>
+                        <h3 id="adminEmpModalTitle" class="text-lg sm:text-xl font-extrabold text-blue-950 flex items-center gap-2 flex-wrap">
+                            <span>✏️ แก้ไขข้อมูลสมาชิก / พนักงาน</span>
+                        </h3>
+                        <p class="text-xs text-gray-500 font-semibold mt-0.5">กรอกและปรับปรุงข้อมูลบัญชีผู้ใช้งานในระบบ</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeEmployeeModal()" class="w-9 h-9 rounded-full bg-gray-150 hover:bg-gray-200 text-gray-600 font-bold flex items-center justify-center transition-all cursor-pointer active:scale-95" title="ปิดหน้าต่าง">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Modal Body (Scrollable Form) -->
+            <div class="p-5 sm:p-7 overflow-y-auto space-y-5 flex-1">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- รหัสพนักงาน -->
+                    <div>
+                        <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">รหัสพนักงาน / สมาชิก <span class="text-red-500">*</span></label>
+                        <input type="text" id="empIdInput" oninput="onAdminEmpIdInput()" placeholder="เช่น 1005, 170501" class="w-full p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-mono font-bold text-gray-900 shadow-2xs">
+                    </div>
+
+                    <!-- ชื่อ-นามสกุล -->
+                    <div>
+                        <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">ชื่อ-นามสกุล <span class="text-red-500">*</span></label>
+                        <input type="text" id="empNameInput" placeholder="เช่น นายประหยัด สุขใจ" class="w-full p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-bold text-gray-900 shadow-2xs">
+                    </div>
+
+                    <!-- ตำแหน่ง / บทบาท -->
+                    <div>
+                        <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">ตำแหน่ง / บทบาท</label>
+                        <select id="empRoleSelect" class="w-full p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-bold text-gray-800 shadow-2xs">
+                            <option value="พนักงาน">พนักงาน</option>
+                            <option value="ผู้จัดการ">ผู้จัดการ</option>
+                            <option value="แอดมิน">แอดมิน</option>
+                            <option value="พี่สปริงเคิล">พี่สปริงเคิล</option>
+                        </select>
+                    </div>
+
+                    <!-- สิทธิ์ตอบ Q&A -->
+                    <div>
+                        <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">สิทธิ์ตอบ Q&A</label>
+                        <select id="empQASelect" class="w-full p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-bold text-gray-800 shadow-2xs">
+                            <option value="default">ยึดตามหลักบทบาท</option>
+                            <option value="true">เปิดใช้งาน</option>
+                            <option value="false">ปิดใช้งาน</option>
+                        </select>
+                    </div>
+
+                    <!-- สถานะการอนุมัติใช้งาน -->
+                    <div>
+                        <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">สถานะการอนุมัติใช้งาน</label>
+                        <select id="empApprovalStatusSelect" class="w-full p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-bold text-gray-800 shadow-2xs">
+                            <option value="อนุมัติแล้ว">🟢 อนุมัติแล้ว (เข้าใช้งานได้)</option>
+                            <option value="รออนุมัติ">⏳ รออนุมัติ (ยังเข้าใช้งานไม่ได้)</option>
+                            <option value="ไม่อนุมัติ">🔴 ไม่อนุมัติ</option>
+                        </select>
+                    </div>
+
+                    <!-- รหัสผ่าน + ปุ่มรีเซ็ต -->
+                    <div>
+                        <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">รหัสผ่าน (ค่าเริ่มต้น 1234)</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="empPasswordInput" placeholder="รหัสผ่าน" class="flex-1 p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 font-mono font-bold shadow-2xs">
+                            <button type="button" onclick="resetPasswordByAdmin()" class="bg-red-50 hover:bg-red-100 text-red-700 px-3 py-2 border border-red-200 rounded-xl font-bold text-xs transition-all whitespace-nowrap cursor-pointer active:scale-95" title="รีเซ็ตรหัสผ่านกลับเป็น 1234">
+                                🔑 รีเซ็ต 1234
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- สาขา -->
+                    <div>
+                        <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">สาขา</label>
+                        <input type="text" id="empBranchInput" placeholder="เช่น พระราม 2, ปทุมธานี" class="w-full p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-bold text-gray-900 shadow-2xs">
+                    </div>
+
+                    <!-- เบอร์รถ (สำหรับพี่สปริงเคิล) -->
+                    <div>
+                        <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">เบอร์รถ (สำหรับพี่สปริงเคิล)</label>
+                        <input type="text" id="empCarNumberInput" placeholder="เช่น 101, B04 หรือใส่ -" class="w-full p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-bold text-gray-900 shadow-2xs">
+                    </div>
+                </div>
+
+                <!-- รูปโปรไฟล์และการอัปโหลด -->
+                <div class="p-4 bg-gray-50 border border-gray-200 rounded-2xl space-y-3">
+                    <label class="block text-xs sm:text-sm font-bold text-gray-700">📷 รูปโปรไฟล์ผู้ใช้งาน</label>
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        <img id="empModalProfilePicPreview" src="" alt="Profile" class="w-14 h-14 rounded-2xl object-cover border-2 border-gray-300 shadow-xs hidden bg-white">
+                        <div class="flex-1 w-full space-y-2">
+                            <input type="text" id="empProfilePicUrl" placeholder="URL รูปโปรไฟล์ หรืออัปโหลดจากเครื่อง..." class="w-full p-2.5 border border-gray-300 rounded-xl bg-white text-xs outline-none text-gray-600 shadow-2xs" readonly>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <div id="empFileWrapper" class="flex items-center gap-2">
+                                    <input type="file" id="empFileInput" onchange="uploadEmployeeProfilePic()" class="text-xs bg-white p-1 border border-gray-300 rounded-xl" accept="image/*">
+                                </div>
+                                <div id="empFileUploadedContainer" class="hidden flex items-center gap-2 p-1.5 px-3 bg-green-50 border border-green-200 rounded-xl">
+                                    <span class="text-green-800 font-bold text-xs">✅ อัปโหลดแล้ว</span>
+                                    <button type="button" onclick="changeEmpFile()" class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold text-[10px]">เปลี่ยน</button>
+                                    <button type="button" onclick="clearEmpFile()" class="bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold text-[10px]">ลบ</button>
+                                </div>
+                                <span id="empUploadProgress" class="text-xs font-bold text-blue-600 hidden">⏳ กำลังอัปโหลด...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 sm:p-5 border-t border-gray-150 bg-gray-50 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeEmployeeModal()" class="px-5 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs sm:text-sm transition-all cursor-pointer active:scale-95">
+                    ยกเลิก
+                </button>
+                <button type="button" onclick="saveEmployeeData()" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs sm:text-sm shadow-md transition-all cursor-pointer active:scale-95 flex items-center gap-2">
+                    <span>💾</span> <span>บันทึกข้อมูลพนักงาน</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
