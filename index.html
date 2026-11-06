@@ -1655,7 +1655,7 @@
             <div class="flex gap-2 bg-gray-100 bg-opacity-80 p-1.5 rounded-2xl border border-gray-200 shadow-inner">
                 <button onclick="setRecommendSubTab('all', true)" id="recommendTabAll" 
                         class="flex-1 py-3 px-3 sm:px-4 rounded-xl text-sm sm:text-base font-extrabold text-center transition-all bg-blue-600 text-white shadow-md transform scale-[1.01] cursor-pointer">
-                    <span>📊</span> <span>ประเภทสมาชิก (ทั้งหมด)</span>
+                    <span>📊</span> <span>ประเภทสมาชิก</span>
                 </button>
                 <button onclick="setRecommendSubTab('employee', true)" id="recommendTabEmployee" 
                         class="flex-1 py-3 px-3 sm:px-4 rounded-xl text-sm sm:text-base font-extrabold text-center transition-all bg-transparent text-gray-500 hover:text-blue-600 hover:bg-white hover:bg-opacity-60">
@@ -1669,7 +1669,7 @@
 
             <!-- สรุปยอดผู้เข้าชมและภาพรวมการเรียนรู้ทั้งหมด (Total System Overview Stats) -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5" id="recommendOverviewStatsBar">
-                <div class="bg-white p-4 rounded-2xl border border-amber-100 shadow-xs flex items-center gap-3">
+                <div id="recommendStatCardTotalEmps" class="bg-white p-4 rounded-2xl border border-amber-100 shadow-xs flex items-center gap-3">
                     <span class="text-3xl p-2.5 bg-amber-50 text-amber-600 rounded-xl" id="statIconEmployees">👥</span>
                     <div class="min-w-0">
                         <span id="statLabelEmployees" class="text-xs text-gray-500 font-bold block truncate">สมาชิก พนักงาน</span>
@@ -2735,16 +2735,42 @@
                         </div>
 
                         <!-- ตารางพนักงาน -->
-                        <div class="overflow-x-auto">
-                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
-                                <h4 class="text-lg font-bold text-gray-800">📋 รายชื่อพนักงานในระบบ</h4>
-                                <div class="flex items-center gap-2 w-full sm:w-auto">
-                                    <label class="text-sm font-bold text-gray-600 shrink-0">กรองตำแหน่ง:</label>
-                                    <select id="empRoleFilter" onchange="filterEmployeeTable()" class="p-2 border rounded-xl bg-white text-sm outline-none focus:border-blue-650 w-full sm:w-48">
+                        <div class="overflow-x-auto space-y-3">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h4 class="text-lg font-bold text-gray-800">📋 รายชื่อพนักงานในระบบ</h4>
+                                    <span id="adminEmpTotalFilteredBadge" class="bg-blue-100 text-blue-900 text-xs font-black px-2.5 py-0.5 rounded-full">0 คน</span>
+                                </div>
+                                <div class="relative w-full sm:w-64">
+                                    <input type="text" id="adminEmpSearchInput" oninput="filterEmployeeTable()" placeholder="🔍 ค้นหาชื่อ, รหัส, สาขา, เบอร์รถ..." class="w-full pl-3 pr-8 py-2 border rounded-xl bg-white text-sm outline-none focus:border-blue-600 shadow-2xs">
+                                    <button type="button" onclick="document.getElementById('adminEmpSearchInput').value=''; filterEmployeeTable();" class="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600 text-xs font-bold cursor-pointer" title="ล้างคำค้นหา">✕</button>
+                                </div>
+                            </div>
+                            
+                            <!-- แถบฟิวเตอร์: ตำแหน่ง / สาขา / สถานะลงทะเบียน -->
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-gray-50 p-2.5 rounded-2xl border border-gray-200 text-xs">
+                                <div class="flex items-center gap-1.5">
+                                    <label class="font-bold text-gray-600 shrink-0">👔 ตำแหน่ง:</label>
+                                    <select id="empRoleFilter" onchange="filterEmployeeTable()" class="p-1.5 border rounded-lg bg-white text-xs outline-none focus:border-blue-600 w-full truncate">
+                                        <option value="">-- ทุกตำแหน่ง --</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <label class="font-bold text-gray-600 shrink-0">🏢 สาขา:</label>
+                                    <select id="adminEmpBranchFilter" onchange="filterEmployeeTable()" class="p-1.5 border rounded-lg bg-white text-xs outline-none focus:border-blue-600 w-full truncate">
+                                        <option value="">-- ทุกสาขา --</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <label class="font-bold text-gray-600 shrink-0">📝 ลงทะเบียน:</label>
+                                    <select id="adminEmpRegisterFilter" onchange="filterEmployeeTable()" class="p-1.5 border rounded-lg bg-white text-xs outline-none focus:border-blue-600 w-full truncate font-bold text-gray-700">
                                         <option value="">-- ทั้งหมด --</option>
+                                        <option value="unregistered" class="text-amber-700 font-bold">❌ ยังไม่ลงทะเบียน</option>
+                                        <option value="registered" class="text-emerald-700 font-bold">✅ ลงทะเบียนแล้ว</option>
                                     </select>
                                 </div>
                             </div>
+
                             <table class="w-full text-left border-collapse text-sm">
                                 <thead>
                                     <tr class="bg-gray-100 text-gray-700">
@@ -2753,6 +2779,7 @@
                                         <th class="p-3 border-b font-bold">บทบาท</th>
                                         <th class="p-3 border-b font-bold">สาขา</th>
                                         <th class="p-3 border-b font-bold">เบอร์รถ</th>
+                                        <th class="p-3 border-b font-bold text-center">การลงทะเบียน</th>
                                         <th class="p-3 border-b font-bold text-center">สถานะ</th>
                                         <th class="p-3 border-b font-bold text-center">สิทธิ์ Q&A</th>
                                         <th class="p-3 border-b font-bold text-center">จัดการ</th>
@@ -4405,7 +4432,7 @@
         }
 
         // ดึงข้อมูลหลักจาก Firestore / Apps Script พร้อมระบบแคชและอัปเดตทันใจ
-        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v11';
+        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v12';
 
         function loadData(onComplete) {
             recommendStatsData = null;
@@ -4423,6 +4450,7 @@
                 localStorage.removeItem('sprinkle_cached_app_data_v8');
                 localStorage.removeItem('sprinkle_cached_app_data_v9');
                 localStorage.removeItem('sprinkle_cached_app_data_v10');
+                localStorage.removeItem('sprinkle_cached_app_data_v11');
             } catch(eClean) {}
 
             // 1. ดึงจากแคชในเครื่องเวอร์ชันใหม่มาแสดงผลทันที (0 ms ไม่ต้องรอโหลด)
@@ -11912,6 +11940,7 @@ function openNotebookLMPopup() {
 function renderAdminEmployeesList() {
     populateEmployeeRoleSelect();
     populateEmployeeRoleFilter();
+    populateEmployeeBranchFilter();
     renderPendingApprovalsTable();
     filterEmployeeTable();
 }
@@ -12647,17 +12676,25 @@ function renderRecommendPage() {
         branchStats = calculatedBranchStats;
 
         // --- 0. คำนวณและอัปเดตสถิติสรุปตามแท็บที่เลือก (Tab-specific Overview Summary) ---
-        // คำนวณจำนวนสมาชิกพนักงาน vs สมาชิกพี่สปริงเคิล ทั้งหมดในระบบ
+        // คำนวณจำนวนสมาชิกพนักงาน vs สมาชิกพี่สปริงเคิล (ทั้งหมด และที่ลงทะเบียนแล้ว)
         var allEmps = (typeof allEmployeesData !== 'undefined' && Array.isArray(allEmployeesData)) ? allEmployeesData : [];
         var totalEmployeeCount = 0;
         var totalOperatorCount = 0;
+        var registeredEmployeeCount = 0;
+        var registeredOperatorCount = 0;
 
         if (allEmps.length > 0) {
             allEmps.forEach(function(e) {
                 var r = (e.role || "").toLowerCase();
                 var isOp = (r === 'ผู้ประกอบการ' || r === 'พี่สปริงเคิล' || r.indexOf('ผู้ประกอบการ') !== -1 || r.indexOf('พี่สปริงเคิล') !== -1 || r.indexOf('ผปก') !== -1);
-                if (isOp) totalOperatorCount++;
-                else totalEmployeeCount++;
+                var isReg = (e.password && String(e.password).trim() !== "" && String(e.password).trim() !== "1234");
+                if (isOp) {
+                    totalOperatorCount++;
+                    if (isReg) registeredOperatorCount++;
+                } else {
+                    totalEmployeeCount++;
+                    if (isReg) registeredEmployeeCount++;
+                }
             });
         } else if (recommendStatsData && recommendStatsData.employeeStats) {
             totalEmployeeCount = (recommendStatsData.employeeStats.employee || []).length;
@@ -12757,15 +12794,21 @@ function renderRecommendPage() {
         var elIconEmployees = document.getElementById('statIconEmployees');
         var elIconActiveUsers = document.getElementById('statIconActiveUsers');
 
-        // ปรับเปลี่ยนข้อความสถิติ 4 ช่อง ตามที่ผู้ใช้กำหนด (เฉพาะหน้านี้)
+        // ปรับเปลี่ยนข้อความสถิติ ตามที่ผู้ใช้กำหนด (เฉพาะหน้านี้)
+        var card1El = document.getElementById('recommendStatCardTotalEmps');
+        var overviewStatsBar = document.getElementById('recommendOverviewStatsBar');
+
         if (currentRecommendSubTab === 'all') {
+            if (card1El) card1El.classList.remove('hidden');
+            if (overviewStatsBar) overviewStatsBar.className = "grid grid-cols-2 sm:grid-cols-4 gap-3.5";
+
             if (elIconEmployees) elIconEmployees.innerText = '👥';
-            if (elLabelEmployees) elLabelEmployees.innerText = 'สมาชิก พนักงาน';
-            if (elTotalEmployees) elTotalEmployees.innerText = totalEmployeeCount.toLocaleString() + ' คน';
+            if (elLabelEmployees) elLabelEmployees.innerText = 'สมาชิก พนักงาน (ลงทะเบียนแล้ว)';
+            if (elTotalEmployees) elTotalEmployees.innerText = registeredEmployeeCount.toLocaleString() + ' คน';
 
             if (elIconActiveUsers) elIconActiveUsers.innerText = '🚛';
-            if (elLabelActiveUsers) elLabelActiveUsers.innerText = 'สมาชิกพี่สปริงเคิล';
-            if (elActiveUsers) elActiveUsers.innerText = totalOperatorCount.toLocaleString() + ' คน';
+            if (elLabelActiveUsers) elLabelActiveUsers.innerText = 'สมาชิกพี่สปริงเคิล (ลงทะเบียนแล้ว)';
+            if (elActiveUsers) elActiveUsers.innerText = registeredOperatorCount.toLocaleString() + ' คน';
 
             if (elLabelTopics) elLabelTopics.innerText = 'หัวข้อที่มีการศึกษา';
             if (elTopicsViewed) elTopicsViewed.innerText = mergedTopics.length.toLocaleString() + ' เรื่อง';
@@ -12773,9 +12816,9 @@ function renderRecommendPage() {
             if (elLabelViews) elLabelViews.innerText = 'ยอดเปิดอ่านทั้งหมด';
             if (elTotalViews) elTotalViews.innerText = (curTotalViews || 0).toLocaleString() + ' ครั้ง';
         } else if (currentRecommendSubTab === 'employee') {
-            if (elIconEmployees) elIconEmployees.innerText = '👥';
-            if (elLabelEmployees) elLabelEmployees.innerText = 'สมาชิกพนักงานทั้งหมด';
-            if (elTotalEmployees) elTotalEmployees.innerText = totalEmployeeCount.toLocaleString() + ' คน';
+            // ลบ/ซ่อนการ์ด 'สมาชิกพนักงานทั้งหมด' ออก ตามที่ผู้ใช้กำหนด ปรับเหลือ 3 การ์ด
+            if (card1El) card1El.classList.add('hidden');
+            if (overviewStatsBar) overviewStatsBar.className = "grid grid-cols-1 sm:grid-cols-3 gap-3.5";
 
             if (elIconActiveUsers) elIconActiveUsers.innerText = '✅';
             if (elLabelActiveUsers) elLabelActiveUsers.innerText = 'พนักงานเข้าศึกษาแล้ว';
@@ -12787,9 +12830,9 @@ function renderRecommendPage() {
             if (elLabelViews) elLabelViews.innerText = 'ยอดเปิดอ่าน (พนักงาน)';
             if (elTotalViews) elTotalViews.innerText = (curTotalViews || 0).toLocaleString() + ' ครั้ง';
         } else if (currentRecommendSubTab === 'operator') {
-            if (elIconEmployees) elIconEmployees.innerText = '🚛';
-            if (elLabelEmployees) elLabelEmployees.innerText = 'สมาชิกพี่สปริงเคิลทั้งหมด';
-            if (elTotalEmployees) elTotalEmployees.innerText = totalOperatorCount.toLocaleString() + ' คน';
+            // ลบ/ซ่อนการ์ด 'สมาชิกพี่สปริงเคิลทั้งหมด' ออก ตามที่ผู้ใช้กำหนด ปรับเหลือ 3 การ์ด
+            if (card1El) card1El.classList.add('hidden');
+            if (overviewStatsBar) overviewStatsBar.className = "grid grid-cols-1 sm:grid-cols-3 gap-3.5";
 
             if (elIconActiveUsers) elIconActiveUsers.innerText = '✅';
             if (elLabelActiveUsers) elLabelActiveUsers.innerText = 'พี่สปริงเคิลเข้าศึกษาแล้ว';
