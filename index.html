@@ -4432,7 +4432,7 @@
         }
 
         // ดึงข้อมูลหลักจาก Firestore / Apps Script พร้อมระบบแคชและอัปเดตทันใจ
-        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v12';
+        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v13';
 
         function loadData(onComplete) {
             recommendStatsData = null;
@@ -4451,6 +4451,7 @@
                 localStorage.removeItem('sprinkle_cached_app_data_v9');
                 localStorage.removeItem('sprinkle_cached_app_data_v10');
                 localStorage.removeItem('sprinkle_cached_app_data_v11');
+                localStorage.removeItem('sprinkle_cached_app_data_v12');
             } catch(eClean) {}
 
             // 1. ดึงจากแคชในเครื่องเวอร์ชันใหม่มาแสดงผลทันที (0 ms ไม่ต้องรอโหลด)
@@ -12093,7 +12094,7 @@ function populateEmployeeRoleFilter() {
     if (!filter) return;
     
     var selectedVal = filter.value;
-    filter.innerHTML = '<option value="">-- ทั้งหมด --</option>';
+    filter.innerHTML = '<option value="">-- ทุกตำแหน่ง --</option>';
     
     var roles = [];
     for (var i = 0; i < allEmployeesData.length; i++) {
@@ -12111,56 +12112,165 @@ function populateEmployeeRoleFilter() {
     }
 }
 
+function populateEmployeeBranchFilter() {
+    var filter = document.getElementById('adminEmpBranchFilter');
+    if (!filter) return;
+    
+    var selectedVal = filter.value;
+    filter.innerHTML = '<option value="">-- ทุกสาขา --</option>';
+    
+    var branches = [];
+    for (var i = 0; i < allEmployeesData.length; i++) {
+        var branch = (allEmployeesData[i].branch || "").trim();
+        if (branch && branch !== "-" && branches.indexOf(branch) === -1) {
+            branches.push(branch);
+        }
+    }
+    branches.sort(function(a, b) {
+        return a.localeCompare(b, 'th');
+    });
+    
+    for (var i = 0; i < branches.length; i++) {
+        var b = branches[i];
+        var selected = (b === selectedVal) ? 'selected' : '';
+        filter.innerHTML += '<option value="' + b + '" ' + selected + '>' + b + '</option>';
+    }
+}
+
+function isEmployeeRegistered(emp) {
+    if (!emp) return false;
+    var pwd = (emp.password || "").toString().trim();
+    return pwd !== "" && pwd !== "1234";
+}
+
 function filterEmployeeTable() {
-    var roleFilterVal = document.getElementById('empRoleFilter').value;
+    var searchInput = document.getElementById('adminEmpSearchInput');
+    var searchQuery = searchInput ? searchInput.value.trim().toLowerCase() : "";
+    var roleFilterEl = document.getElementById('empRoleFilter');
+    var roleFilterVal = roleFilterEl ? roleFilterEl.value : "";
+    var branchFilterEl = document.getElementById('adminEmpBranchFilter');
+    var branchFilterVal = branchFilterEl ? branchFilterEl.value : "";
+    var registerFilterEl = document.getElementById('adminEmpRegisterFilter');
+    var registerFilterVal = registerFilterEl ? registerFilterEl.value : "";
+
     var tbody = document.getElementById('adminEmployeesTableBody');
+    var badge = document.getElementById('adminEmpTotalFilteredBadge');
+    var pagEl = document.getElementById('adminEmployeesPagination');
     if (!tbody) return;
     tbody.innerHTML = "";
-    
-    var filteredData = allEmployeesData;
-    if (roleFilterVal) {
-        filteredData = allEmployeesData.filter(function(emp) {
-            return emp.role === roleFilterVal;
-        });
+
+    var filteredData = (allEmployeesData || []).filter(function(emp) {
+        if (!emp) return false;
+
+        // 1. กรองตามตำแหน่ง
+        if (roleFilterVal && emp.role !== roleFilterVal) {
+            return false;
+        }
+
+        // 2. กรองตามสาขา
+        if (branchFilterVal && (emp.branch || "").trim() !== branchFilterVal) {
+            return false;
+        }
+
+        // 3. กรองตามสถานะการลงทะเบียน
+        var isReg = isEmployeeRegistered(emp);
+        if (registerFilterVal === 'registered' && !isReg) {
+            return false;
+        }
+        if (registerFilterVal === 'unregistered' && isReg) {
+            return false;
+        }
+
+        // 4. กรองตามคำค้นหา (ชื่อ, รหัส, สาขา, เบอร์รถ, บทบาท)
+        if (searchQuery) {
+            var empIdStr = (emp.empId || "").toString().toLowerCase();
+            var nameStr = (emp.name || "").toString().toLowerCase();
+            var branchStr = (emp.branch || "").toString().toLowerCase();
+            var carStr = (emp.carNumber || "").toString().toLowerCase();
+            var roleStr = (emp.role || "").toString().toLowerCase();
+
+            if (empIdStr.indexOf(searchQuery) === -1 &&
+                nameStr.indexOf(searchQuery) === -1 &&
+                branchStr.indexOf(searchQuery) === -1 &&
+                carStr.indexOf(searchQuery) === -1 &&
+                roleStr.indexOf(searchQuery) === -1) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+
+    if (badge) {
+        badge.innerText = filteredData.length.toLocaleString() + ' คน';
     }
-    
+
     if (filteredData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-gray-500">ไม่มีข้อมูลพนักงานในตำแหน่งนี้</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="p-6 text-center text-gray-500 font-bold">ไม่พบข้อมูลพนักงานที่ตรงกับเงื่อนไขการค้นหา</td></tr>';
+        if (pagEl) pagEl.innerHTML = "";
         return;
     }
-    
+
     if (arguments[0] !== false) {
         adminEmployeesPage = 1;
     }
-    var startIndex = (adminEmployeesPage - 1) * itemsPerPage;
-    var endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
+
+    var pSize = (typeof itemsPerPage !== 'undefined') ? itemsPerPage : 20;
+    var totalPages = Math.ceil(filteredData.length / pSize) || 1;
+    if (adminEmployeesPage > totalPages) adminEmployeesPage = totalPages;
+    if (adminEmployeesPage < 1) adminEmployeesPage = 1;
+
+    var startIndex = (adminEmployeesPage - 1) * pSize;
+    var endIndex = Math.min(startIndex + pSize, filteredData.length);
+
+    var rowsHtml = "";
     for (var i = startIndex; i < endIndex; i++) {
         var emp = filteredData[i];
-        var qBadge = emp.canAnswerQA ? '<span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded font-bold">เปิดใช้งาน</span>' : '<span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">ปิดใช้งาน</span>';
+        var isReg = isEmployeeRegistered(emp);
+        var regBadge = isReg 
+            ? '<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs px-2.5 py-0.5 rounded-full font-bold">✅ ลงทะเบียนแล้ว</span>'
+            : '<span class="bg-amber-100 text-amber-800 border border-amber-300 text-xs px-2.5 py-0.5 rounded-full font-bold">⏳ ยังไม่ลงทะเบียน</span>';
+
+        var qBadge = emp.canAnswerQA 
+            ? '<span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded font-bold">เปิดใช้งาน</span>' 
+            : '<span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">ปิดใช้งาน</span>';
+            
         var statusBadge = (emp.approvalStatus === 'รออนุมัติ') 
             ? '<span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-bold border border-amber-300">⏳ รออนุมัติ</span>'
             : (emp.approvalStatus === 'ไม่อนุมัติ')
             ? '<span class="bg-red-100 text-red-800 text-xs px-2.5 py-0.5 rounded-full font-bold border border-red-300">🔴 ไม่อนุมัติ</span>'
             : '<span class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded-full font-bold border border-green-300">🟢 อนุมัติแล้ว</span>';
-        var escapedName = emp.name.replace(/'/g, "\\'").replace(/"/g, '\\"');
-        var escapedBranch = (emp.branch || "").replace(/'/g, "\\'").replace(/"/g, '\\"');
-        var escapedCarNo = (emp.carNumber || "-").replace(/'/g, "\\'").replace(/"/g, '\\"');
-        var escapedApproval = (emp.approvalStatus || "อนุมัติแล้ว").replace(/'/g, "\\'").replace(/"/g, '\\"');
-        
-        tbody.innerHTML += '<tr class="border-b hover:bg-gray-50">' +
-            '<td class="p-3 font-mono font-bold">' + emp.empId + '</td>' +
-            '<td class="p-3 font-semibold">' + emp.name + '</td>' +
-            '<td class="p-3 font-bold text-blue-900">' + emp.role + '</td>' +
+
+        var escapedName = (emp.name || "").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        var escapedBranch = (emp.branch || "").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        var escapedCarNo = (emp.carNumber || "-").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        var escapedApproval = (emp.approvalStatus || "อนุมัติแล้ว").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        var escapedPassword = (emp.password || "1234").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        var escapedPic = (emp.profilePic || "").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+        rowsHtml += '<tr class="border-b hover:bg-gray-50 transition-colors">' +
+            '<td class="p-3 font-mono font-bold text-gray-800">' + (emp.empId || "-") + '</td>' +
+            '<td class="p-3 font-semibold text-gray-800">' + (emp.name || "-") + '</td>' +
+            '<td class="p-3 font-bold text-blue-900">' + (emp.role || "-") + '</td>' +
             '<td class="p-3 text-gray-600">' + (emp.branch || "-") + '</td>' +
             '<td class="p-3 font-mono font-bold text-gray-700">' + (emp.carNumber || "-") + '</td>' +
+            '<td class="p-3 text-center">' + regBadge + '</td>' +
             '<td class="p-3 text-center">' + statusBadge + '</td>' +
             '<td class="p-3 text-center">' + qBadge + '</td>' +
-            '<td class="p-3 text-center flex justify-center gap-2">' +
-                '<button onclick="fillEmployeeForm(\'' + emp.empId + '\', \'' + escapedName + '\', \'' + emp.role + '\', ' + emp.canAnswerQA + ', \'' + (emp.password || "1234") + '\', \'' + (emp.profilePic || "") + '\', \'' + escapedBranch + '\', \'' + escapedCarNo + '\', \'' + escapedApproval + '\')" class="text-blue-600 hover:underline text-xs font-bold">แก้ไข</button>' +
-                ' | ' +
-                '<button onclick="deleteEmpData(\'' + emp.empId + '\')" class="text-red-600 hover:underline text-xs font-bold">ลบ</button>' +
+            '<td class="p-3 text-center">' +
+                '<div class="flex items-center justify-center gap-2">' +
+                    '<button onclick="fillEmployeeForm(\'' + emp.empId + '\', \'' + escapedName + '\', \'' + emp.role + '\', ' + emp.canAnswerQA + ', \'' + escapedPassword + '\', \'' + escapedPic + '\', \'' + escapedBranch + '\', \'' + escapedCarNo + '\', \'' + escapedApproval + '\')" class="text-blue-600 hover:text-blue-800 hover:underline text-xs font-bold cursor-pointer">แก้ไข</button>' +
+                    '<span class="text-gray-300">|</span>' +
+                    '<button onclick="deleteEmpData(\'' + emp.empId + '\')" class="text-red-600 hover:text-red-800 hover:underline text-xs font-bold cursor-pointer">ลบ</button>' +
+                '</div>' +
             '</td>' +
         '</tr>';
+    }
+
+    tbody.innerHTML = rowsHtml;
+
+    if (pagEl && typeof renderPagination === 'function') {
+        pagEl.innerHTML = renderPagination(filteredData.length, adminEmployeesPage, pSize, 'changeAdminEmployeesPage');
     }
 }
 
