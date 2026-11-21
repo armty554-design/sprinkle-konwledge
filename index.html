@@ -3895,6 +3895,9 @@
                 if (panelMembers) panelMembers.classList.remove('hidden');
                 if (btnMembers) btnMembers.className = activeBtnClass;
 
+                if (typeof ensureEmployeesLoaded === 'function') {
+                    ensureEmployeesLoaded(false);
+                }
                 renderPendingApprovalsTable();
                 var manageEmpCard = document.getElementById('adminManageEmployeesCard');
                 if (currentUser && currentUser.role === 'แอดมิน') {
@@ -3914,6 +3917,9 @@
                 if (panelNotif) panelNotif.classList.remove('hidden');
                 if (btnNotif) btnNotif.className = activeBtnClass;
 
+                if (typeof ensureEmployeesLoaded === 'function') {
+                    ensureEmployeesLoaded(false);
+                }
                 loadNotificationSubscribersData();
                 loadNotificationHistoryData();
                 updateAudienceEstimatePreview();
@@ -4122,11 +4128,6 @@
                 setFontSize('normal');
             }
             
-            // โหลดตำแหน่งงานสำหรับฟอร์มลงทะเบียนสมาชิกล่วงหน้า
-            if (typeof loadRegistrationRoles === 'function') {
-                loadRegistrationRoles();
-            }
-            
             // ตรวจสอบเซสชันผู้ใช้เดิมที่เคยเข้าสู่ระบบไว้ (Auto-Login)
             var savedUser = localStorage.getItem('sprinkleUser');
             if (savedUser) {
@@ -4146,6 +4147,11 @@
                 } catch (e) {
                     localStorage.removeItem('sprinkleUser');
                 }
+            }
+            
+            // โหลดตำแหน่งงานสำหรับฟอร์มลงทะเบียนสมาชิกเฉพาะเมื่อยังไม่เข้าสู่ระบบ (ลด Firestore Reads ที่ไม่จำเป็น)
+            if (typeof loadRegistrationRoles === 'function') {
+                loadRegistrationRoles();
             }
         };
 
@@ -4310,48 +4316,54 @@
                 sortAnnouncementsLatestFirst(allAnnouncementsData);
             }
             
-            // 4. ข้อมูลพนักงาน
+            // 4. ข้อมูลพนักงาน (รองรับทั้งโหมดเต็มสำหรับแอดมิน และโหมด 1-Doc currentUserRecord สำหรับผู้ใช้ทั่วไปเพื่อลด Firestore Reads)
+            var latestUser = null;
             if (res.employees && Array.isArray(res.employees)) {
                 allEmployeesData = res.employees.map(function(emp) {
                     if (emp && (emp.role === "ผู้ประกอบการ" || emp.role === "ผปก.")) {
                         emp.role = "พี่สปริงเคิล";
                     }
+                    if (emp && emp.branch && typeof normalizeBranchName === 'function') {
+                        emp.branch = normalizeBranchName(emp.branch) || emp.branch;
+                    }
                     return emp;
                 });
                 if (currentUser && currentUser.id) {
-                    var latestUser = allEmployeesData.find(function(emp) {
+                    latestUser = allEmployeesData.find(function(emp) {
                         return emp.empId.toString().trim() === currentUser.id.toString().trim();
                     });
-                    if (latestUser) {
-                        currentUser.name = latestUser.name;
-                        currentUser.role = (latestUser.role === "ผู้ประกอบการ" || latestUser.role === "ผปก.") ? "พี่สปริงเคิล" : latestUser.role;
-                        currentUser.profilePic = latestUser.profilePic || "";
-                        currentUser.branch = latestUser.branch || "";
-                        currentUser.password = latestUser.password || "1234";
-                        
-                        try {
-                            localStorage.setItem('sprinkleUser', JSON.stringify(currentUser));
-                        } catch(eUser) {}
-                        
-                        var welcomeEl = document.getElementById('welcomeText');
-                        if (welcomeEl) welcomeEl.innerText = "สวัสดีครับ คุณ " + currentUser.name;
-                        var roleBadgeEl = document.getElementById('roleBadge');
-                        if (roleBadgeEl) roleBadgeEl.innerText = "ตำแหน่ง: " + currentUser.role;
-                        
-                        if (currentUser.profilePic) {
-                            var pl = document.getElementById('userAvatarPlaceholder');
-                            if (pl) pl.classList.add('hidden');
-                            var av = document.getElementById('userAvatarImg');
-                            if (av) {
-                                av.src = getGoogleDriveImageUrl(currentUser.profilePic);
-                                av.classList.remove('hidden');
-                            }
-                        }
-                        
-                        if (typeof checkForcePassword === 'function') checkForcePassword();
-                        updateTabVisibility();
+                }
+            } else if (res.currentUserRecord && currentUser && currentUser.id) {
+                latestUser = res.currentUserRecord;
+            }
+            if (latestUser && currentUser && currentUser.id) {
+                currentUser.name = latestUser.name || currentUser.name;
+                currentUser.role = (latestUser.role === "ผู้ประกอบการ" || latestUser.role === "ผปก.") ? "พี่สปริงเคิล" : (latestUser.role || currentUser.role);
+                currentUser.profilePic = latestUser.profilePic || "";
+                currentUser.branch = (typeof normalizeBranchName === 'function' ? (normalizeBranchName(latestUser.branch) || latestUser.branch) : latestUser.branch) || "";
+                currentUser.password = latestUser.password || currentUser.password || "1234";
+                
+                try {
+                    localStorage.setItem('sprinkleUser', JSON.stringify(currentUser));
+                } catch(eUser) {}
+                
+                var welcomeEl = document.getElementById('welcomeText');
+                if (welcomeEl) welcomeEl.innerText = "สวัสดีครับ คุณ " + currentUser.name;
+                var roleBadgeEl = document.getElementById('roleBadge');
+                if (roleBadgeEl) roleBadgeEl.innerText = "ตำแหน่ง: " + currentUser.role;
+                
+                if (currentUser.profilePic) {
+                    var pl = document.getElementById('userAvatarPlaceholder');
+                    if (pl) pl.classList.add('hidden');
+                    var av = document.getElementById('userAvatarImg');
+                    if (av) {
+                        av.src = getGoogleDriveImageUrl(currentUser.profilePic);
+                        av.classList.remove('hidden');
                     }
                 }
+                
+                if (typeof checkForcePassword === 'function') checkForcePassword();
+                updateTabVisibility();
             }
             
             // 5. ข้อมูลสิทธิ์ตามตำแหน่ง
@@ -4427,57 +4439,218 @@
             }
         }
 
-        // ดึงข้อมูลหลักจาก Firestore / Apps Script พร้อมระบบแคชและอัปเดตทันใจ
-        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v16';
+        // ดึงข้อมูลหลักจาก Firestore / Apps Script พร้อมระบบ Version-Check Cache (ลด Reads จาก 1,008 -> 1 Read)
+        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v17';
+        var EMPLOYEES_CACHE_KEY = 'sprinkle_cached_employees_v1';
+        var DATA_CACHE_TTL_MS = 12 * 60 * 60 * 1000; // อายุแคชสูงสุด 12 ชั่วโมงก่อนบังคับตรวจสอบใหม่
+        var _isLoadingAppData = false;
+        var _isLoadingEmployees = false;
+        var _latestRemoteEmployeesVersion = null;
 
-        function loadData(onComplete) {
+        function readCachedAppData() {
+            try {
+                var raw = localStorage.getItem(DATA_CACHE_KEY);
+                if (!raw) return null;
+                var parsed = JSON.parse(raw);
+                return (parsed && typeof parsed === 'object') ? parsed : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function saveCachedAppData(payload) {
+            try {
+                // แยกเก็บเฉพาะข้อมูลเนื้อหา (ไม่เก็บ employees 513 รายการลงแคชหลัก)
+                var toStore = {
+                    success: true,
+                    knowledge: payload.knowledge || allDatabaseData || [],
+                    announcements: payload.announcements || allAnnouncementsData || [],
+                    qa: payload.qa || allQAData || [],
+                    permissions: payload.permissions || allRolePermissionsData || [],
+                    config: payload.config || systemConfigData || {},
+                    dataVersion: payload.dataVersion || (payload.config && payload.config.dataVersion) || 'v17_content_init',
+                    cachedAt: Date.now()
+                };
+                localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(toStore));
+            } catch (eSave) {}
+        }
+
+        function readCachedEmployeesData() {
+            try {
+                var raw = localStorage.getItem(EMPLOYEES_CACHE_KEY);
+                if (!raw) return null;
+                var parsed = JSON.parse(raw);
+                return (parsed && Array.isArray(parsed.employees)) ? parsed : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function saveCachedEmployeesData(employees, employeesVersion) {
+            try {
+                localStorage.setItem(EMPLOYEES_CACHE_KEY, JSON.stringify({
+                    employees: employees || [],
+                    employeesVersion: employeesVersion || _latestRemoteEmployeesVersion || 'v17_emp_init',
+                    cachedAt: Date.now()
+                }));
+            } catch (eSave) {}
+        }
+
+        // โหลดรายชื่อพนักงานแบบ Lazy-Load เฉพาะแอดมิน/ผู้จัดการ หรือเมื่อเปิดแท็บที่จำเป็นเท่านั้น (พร้อมเช็ก employeesVersion)
+        function ensureEmployeesLoaded(forceRefresh, onDone) {
+            var cachedEmp = readCachedEmployeesData();
+            if (cachedEmp && cachedEmp.employees && cachedEmp.employees.length > 0 && allEmployeesData.length === 0) {
+                allEmployeesData = cachedEmp.employees;
+                renderPendingApprovalsTable();
+                if (activeTab === 'manage_settings' && activeSettingsSubTab === 'members' && currentUser && currentUser.role === 'แอดมิน') {
+                    renderAdminEmployeesList();
+                }
+            }
+
+            if (_isLoadingEmployees && !forceRefresh) {
+                if (typeof onDone === 'function') onDone(true);
+                return;
+            }
+
+            var hasValidEmpCache = !!(cachedEmp && cachedEmp.employees && cachedEmp.employees.length > 0 && cachedEmp.cachedAt && (Date.now() - cachedEmp.cachedAt) < DATA_CACHE_TTL_MS);
+
+            // หากมีแคชพนักงานที่ยังไม่หมดอายุและตรงกับ remote employeesVersion แล้ว ไม่ต้องยิง Firestore เลย (0 Reads!)
+            if (!forceRefresh && hasValidEmpCache && _latestRemoteEmployeesVersion && cachedEmp.employeesVersion === _latestRemoteEmployeesVersion) {
+                if (typeof onDone === 'function') onDone(true);
+                return;
+            }
+
+            _isLoadingEmployees = true;
+            var applyFreshEmployees = function(empList, empVersion) {
+                _isLoadingEmployees = false;
+                if (Array.isArray(empList)) {
+                    allEmployeesData = empList.map(function(emp) {
+                        if (emp && (emp.role === "ผู้ประกอบการ" || emp.role === "ผปก.")) emp.role = "พี่สปริงเคิล";
+                        if (emp && emp.branch && typeof normalizeBranchName === 'function') {
+                            emp.branch = normalizeBranchName(emp.branch) || emp.branch;
+                        }
+                        return emp;
+                    });
+                    saveCachedEmployeesData(allEmployeesData, empVersion || _latestRemoteEmployeesVersion);
+                    renderPendingApprovalsTable();
+                    if (activeTab === 'manage_settings' && activeSettingsSubTab === 'members' && currentUser && currentUser.role === 'แอดมิน') {
+                        renderAdminEmployeesList();
+                    } else if (activeTab === 'recommend') {
+                        renderRecommendPage();
+                    }
+                }
+                if (typeof onDone === 'function') onDone(true);
+            };
+
+            if (window.SprinkleFirestore && window.SprinkleFirestore.isAvailable() && typeof window.SprinkleFirestore.getEmployeesIfChanged === 'function') {
+                window.SprinkleFirestore.getEmployeesIfChanged({
+                    cachedEmployeesVersion: cachedEmp ? cachedEmp.employeesVersion : null,
+                    hasCachedEmployees: hasValidEmpCache,
+                    forceRefresh: !!forceRefresh,
+                    knownRemoteVersion: forceRefresh ? null : _latestRemoteEmployeesVersion
+                }).then(function(res) {
+                    if (res && res.employeesVersion) {
+                        _latestRemoteEmployeesVersion = res.employeesVersion;
+                    }
+                    if (res && res.notModified) {
+                        _isLoadingEmployees = false;
+                        if (cachedEmp) saveCachedEmployeesData(cachedEmp.employees, res.employeesVersion);
+                        if (typeof onDone === 'function') onDone(true);
+                        return;
+                    }
+                    applyFreshEmployees(res && res.employees ? res.employees : [], res ? res.employeesVersion : null);
+                }).catch(function(err) {
+                    console.warn("⚠️ [Firestore Employees Fallback] Switching to GAS getAllEmployees:", err);
+                    google.script.run
+                        .withSuccessHandler(function(list) { applyFreshEmployees(list || [], _latestRemoteEmployeesVersion); })
+                        .withFailureHandler(function() { _isLoadingEmployees = false; if (typeof onDone === 'function') onDone(false); })
+                        .getAllEmployees();
+                });
+            } else {
+                google.script.run
+                    .withSuccessHandler(function(list) { applyFreshEmployees(list || [], _latestRemoteEmployeesVersion); })
+                    .withFailureHandler(function() { _isLoadingEmployees = false; if (typeof onDone === 'function') onDone(false); })
+                    .getAllEmployees();
+            }
+        }
+
+        function loadData(onComplete, forceRefresh) {
             recommendStatsData = null;
             
             // ล้างแคชเวอร์ชันเก่าที่มีอักขระเสียหรือสถานะเดิม
             try {
-                localStorage.removeItem('sprinkle_cached_app_data');
-                localStorage.removeItem('sprinkle_cached_app_data_v1');
-                localStorage.removeItem('sprinkle_cached_app_data_v2');
-                localStorage.removeItem('sprinkle_cached_app_data_v3');
-                localStorage.removeItem('sprinkle_cached_app_data_v4');
-                localStorage.removeItem('sprinkle_cached_app_data_v5');
-                localStorage.removeItem('sprinkle_cached_app_data_v6');
-                localStorage.removeItem('sprinkle_cached_app_data_v7');
-                localStorage.removeItem('sprinkle_cached_app_data_v8');
-                localStorage.removeItem('sprinkle_cached_app_data_v9');
-                localStorage.removeItem('sprinkle_cached_app_data_v10');
-                localStorage.removeItem('sprinkle_cached_app_data_v11');
-                localStorage.removeItem('sprinkle_cached_app_data_v12');
-                localStorage.removeItem('sprinkle_cached_app_data_v13');
-                localStorage.removeItem('sprinkle_cached_app_data_v14');
-                localStorage.removeItem('sprinkle_cached_app_data_v15');
+                for (var v = 0; v <= 16; v++) {
+                    localStorage.removeItem(v === 0 ? 'sprinkle_cached_app_data' : ('sprinkle_cached_app_data_v' + v));
+                }
             } catch(eClean) {}
 
             // 1. ดึงจากแคชในเครื่องเวอร์ชันใหม่มาแสดงผลทันที (0 ms ไม่ต้องรอโหลด)
-            try {
-                var cached = localStorage.getItem(DATA_CACHE_KEY);
-                if (cached && allDatabaseData.length === 0) {
-                    var cachedData = JSON.parse(cached);
-                    if (cachedData) applyInitialData(cachedData);
-                }
-            } catch(eCache) {}
+            var cachedData = readCachedAppData();
+            var hasCachedContent = !!(cachedData && Array.isArray(cachedData.knowledge) && cachedData.knowledge.length > 0 && cachedData.cachedAt && (Date.now() - cachedData.cachedAt) < DATA_CACHE_TTL_MS);
+            if (cachedData && allDatabaseData.length === 0) {
+                applyInitialData(cachedData);
+            }
+
+            if (_isLoadingAppData && !forceRefresh) {
+                if (typeof onComplete === 'function') onComplete(true);
+                return;
+            }
+            _isLoadingAppData = true;
             
-            // 2. ส่งคำขอดึงข้อมูลสดใหม่จากเซิร์ฟเวอร์
+            // 2. ส่งคำขอตรวจสอบเวอร์ชัน (1 Read) หรือดึงข้อมูลเนื้อหาใหม่เฉพาะเมื่อมีการเปลี่ยนแปลง
+            var fetchOpts = {
+                cachedDataVersion: cachedData ? cachedData.dataVersion : null,
+                hasCachedContent: hasCachedContent,
+                forceRefresh: !!forceRefresh,
+                currentUserId: (currentUser && currentUser.id) ? String(currentUser.id).trim() : ""
+            };
+
             google.script.run
                 .withSuccessHandler(function(res) {
+                    _isLoadingAppData = false;
                     if (res) {
-                        try {
-                            localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(res));
-                        } catch(eSave) {}
-                        applyInitialData(res);
+                        if (res.employeesVersion) {
+                            _latestRemoteEmployeesVersion = res.employeesVersion;
+                        }
+                        if (res.notModified) {
+                            // เวอร์ชันข้อมูลตรงกับแคชในเครื่องแล้ว -> อัปเดตเฉพาะ config และต่ออายุแคช (ประหยัด ~1,007 Reads!)
+                            if (res.config) {
+                                systemConfigData = res.config;
+                            }
+                            if (cachedData) {
+                                cachedData.config = res.config || cachedData.config;
+                                cachedData.dataVersion = res.dataVersion || cachedData.dataVersion;
+                                cachedData.cachedAt = Date.now();
+                                saveCachedAppData(cachedData);
+                                if (allDatabaseData.length === 0) {
+                                    applyInitialData(cachedData);
+                                }
+                            }
+                        } else {
+                            // หาก GAS fallback ส่ง employees มาด้วย ให้แยกเก็บลง EMPLOYEES_CACHE_KEY
+                            if (res.employees && Array.isArray(res.employees)) {
+                                saveCachedEmployeesData(res.employees, res.employeesVersion || _latestRemoteEmployeesVersion);
+                            }
+                            saveCachedAppData(res);
+                            applyInitialData(res);
+                        }
+
+                        // สำหรับแอดมิน/ผู้จัดการ เช็กโหลดพนักงานแบบ Lazy-Load เฉพาะเมื่อเวอร์ชันเปลี่ยนหรือกำลังเปิดแท็บจัดการสมาชิก
+                        if (typeof isUserManagerOrAdmin === 'function' && isUserManagerOrAdmin()) {
+                            var onMembersTab = (activeTab === 'manage_settings' && activeSettingsSubTab === 'members');
+                            if (onMembersTab || allEmployeesData.length === 0) {
+                                ensureEmployeesLoaded(!!forceRefresh && onMembersTab);
+                            }
+                        }
                     }
                     if (typeof onComplete === 'function') onComplete(true);
                 })
                 .withFailureHandler(function(err) {
+                    _isLoadingAppData = false;
                     console.error("getInitialAppData failure:", err);
                     if (typeof onComplete === 'function') onComplete(false, err);
                 })
-                .getInitialAppData();
+                .getInitialAppData(fetchOpts);
         }
 
         function populateCategoryDropdowns() {
@@ -4991,7 +5164,9 @@
                 }
             }
             if (localRoles.length > 0) {
+                window._cachedRegistrationRoles = localRoles;
                 populateRegRoleDropdown(localRoles);
+                return;
             }
 
             if (window._isLoadingRegistrationRoles) return;
@@ -6532,6 +6707,9 @@
             } else if (tab === 'recommend') {
                 document.getElementById('sectionRecommend').classList.remove('hidden');
                 document.getElementById('tabBtnRecommend').className = "flex-1 min-w-[160px] py-4 px-4 rounded-xl text-lg font-extrabold text-center transition-all flex items-center justify-center gap-2 bg-blue-600 text-white shadow-md transform scale-[1.01]";
+                if (typeof isUserManagerOrAdmin === 'function' && isUserManagerOrAdmin() && typeof ensureEmployeesLoaded === 'function') {
+                    ensureEmployeesLoaded(false);
+                }
                 renderRecommendPage();
             } else if (tab === 'manage_home') {
                 document.getElementById('sectionManageHome').classList.remove('hidden');
@@ -12023,7 +12201,7 @@ function approveNewEmployee(empId) {
         hideLoading();
         if (res.success) {
             alert(res.message);
-            loadData();
+            ensureEmployeesLoaded(true);
         } else {
             alert("❌ " + res.message);
         }
@@ -12040,7 +12218,7 @@ function rejectNewEmployee(empId) {
         hideLoading();
         if (res.success) {
             alert(res.message);
-            loadData();
+            ensureEmployeesLoaded(true);
         } else {
             alert("❌ " + res.message);
         }
@@ -12449,7 +12627,7 @@ function saveEmployeeData() {
         alert(msg);
         closeEmployeeModal();
         clearEmpFile();
-        loadData();
+        ensureEmployeesLoaded(true);
     }).updateEmployee(empId, name, role, canAnswerQA, password, profilePic, branch, carNumber, approvalStatus);
 }
 
@@ -12459,7 +12637,7 @@ function deleteEmpData(empId) {
         google.script.run.withSuccessHandler(function(msg) {
             hideLoading();
             alert(msg);
-            loadData();
+            ensureEmployeesLoaded(true);
         }).deleteEmployee(empId);
     }
 }
@@ -14513,22 +14691,22 @@ function removeAnnLinkRow(rowId) {
     if (row) row.remove();
 }
 
-// ฟังก์ชันรีเฟรชข้อมูลทุกหน้าหลัก (รอรับข้อมูลจริงก่อนปิดการโหลด)
+// ฟังก์ชันรีเฟรชข้อมูลทุกหน้าหลัก (รอรับข้อมูลจริงก่อนปิดการโหลด — บังคับดึงข้อมูลสดใหม่)
 function refreshData() {
     showLoading("กำลังดึงข้อมูลล่าสุดจากเซิร์ฟเวอร์...");
     try {
-        localStorage.removeItem('sprinkle_cached_app_data');
-        localStorage.removeItem('sprinkle_cached_app_data_v1');
-        localStorage.removeItem('sprinkle_cached_app_data_v2');
-        localStorage.removeItem('sprinkle_cached_app_data_v3');
-        localStorage.removeItem('sprinkle_cached_app_data_v4');
+        localStorage.removeItem(DATA_CACHE_KEY);
+        localStorage.removeItem(EMPLOYEES_CACHE_KEY);
     } catch(e) {}
     loadData(function(success, err) {
+        if (typeof isUserManagerOrAdmin === 'function' && isUserManagerOrAdmin()) {
+            ensureEmployeesLoaded(true);
+        }
         hideLoading();
         if (!success && err) {
             alert("⚠️ ไม่สามารถดึงข้อมูลใหม่ได้: " + err.toString() + "\nระบบจะแสดงข้อมูลเดิมที่มีอยู่ในเครื่องครับ");
         }
-    });
+    }, true);
 }
 
 // ==================== จัดการการแก้ไขประกาศ (Manage Announcement Edit Controls) ====================

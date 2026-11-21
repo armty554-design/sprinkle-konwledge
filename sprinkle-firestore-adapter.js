@@ -140,6 +140,55 @@
         return items;
     }
 
+    // Helper: Normalize employee role & branch consistently
+    function normalizeEmployeeObj(emp, fallbackId) {
+        if (!emp || typeof emp !== 'object') return emp;
+        if ((emp.empId === undefined || emp.empId === null || emp.empId === "") && fallbackId) {
+            emp.empId = fallbackId;
+        }
+        if (emp.role === "ผู้ประกอบการ" || emp.role === "ผปก.") {
+            emp.role = "พี่สปริงเคิล";
+        }
+        if (emp.branch) {
+            emp.branch = normalizeBranch(emp.branch);
+        }
+        return emp;
+    }
+
+    // Local dirty flags to eliminate 50ms race conditions right after an admin writes data
+    var _localContentDirty = false;
+    var _localEmployeesDirty = false;
+    var _pendingDataVersion = null;
+    var _pendingEmployeesVersion = null;
+
+    // Helper: Bump lightweight version token in config/main (enables 1-read cache validation)
+    function bumpDataVersion(kind) {
+        if (!db) return;
+        try {
+            var ver = String(Date.now());
+            var patch = {};
+            if (kind === 'employees') {
+                _localEmployeesDirty = true;
+                _pendingEmployeesVersion = ver;
+                patch.employeesVersion = ver;
+            } else if (kind === 'all') {
+                _localContentDirty = true;
+                _localEmployeesDirty = true;
+                _pendingDataVersion = ver;
+                _pendingEmployeesVersion = ver;
+                patch.dataVersion = ver;
+                patch.employeesVersion = ver;
+            } else {
+                _localContentDirty = true;
+                _pendingDataVersion = ver;
+                patch.dataVersion = ver;
+            }
+            db.collection('config').doc('main').set(patch, { merge: true }).catch(function(err) {
+                console.warn("[Firestore] bumpDataVersion warning:", err && err.message ? err.message : err);
+            });
+        } catch (e) {}
+    }
+
     var SprinkleFirestore = {
         isAvailable: function() {
             return db !== null;
@@ -154,50 +203,14 @@
             console.log("📊 [Dual-Sync] Status changed to:", isDualSyncEnabled);
         },
 
-        // 1. Initial Data Batch Load (⚡ Sub-250ms replacement for GAS getInitialAppData)
-        getInitialAppData: function() {
+        // 1. Smart Initial Data Load (Option 2.1: 1-Read dataVersion check + Option 2.2: Skip 513-doc employees collection)
+        getInitialAppData: function(options) {
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
+            var opts = (options && typeof options === 'object') ? options : {};
             var t0 = performance.now();
 
-            return Promise.all([
-                db.collection('knowledge').get(),
-                db.collection('announcements').get(),
-                db.collection('qa').get(),
-                db.collection('employees').get(),
-                db.collection('permissions').get(),
-                db.collection('config').doc('main').get()
-            ]).then(function(results) {
-                var knowledgeSnap = results[0];
-                var annSnap = results[1];
-                var qaSnap = results[2];
-                var empSnap = results[3];
-                var permSnap = results[4];
-                var configDoc = results[5];
-
-                var knowledge = snapshotToArray(knowledgeSnap);
-                var announcements = snapshotToArray(annSnap);
-                var qa = snapshotToArray(qaSnap);
-                var rawEmployees = snapshotToArray(empSnap);
-                var employees = rawEmployees.map(function(emp) {
-                    if (emp && (emp.role === "ผู้ประกอบการ" || emp.role === "ผปก.")) {
-                        emp.role = "พี่สปริงเคิล";
-                    }
-                    if (emp && emp.branch) {
-                        emp.branch = normalizeBranch(emp.branch);
-                    }
-                    return emp;
-                });
-                var rawPerms = snapshotToArray(permSnap);
-                var permissions = [];
-                var seenRoles = {};
-                for (var p = 0; p < rawPerms.length; p++) {
-                    var item = rawPerms[p];
-                    if (item.role === "ผู้ประกอบการ") item.role = "พี่สปริงเคิล";
-                    if (!seenRoles[item.role]) {
-                        seenRoles[item.role] = true;
-                        permissions.push(item);
-                    }
-                }
+            // Step 1: Read ONLY config/main first (1 single Firestore Read!)
+            return db.collection('config').doc('main').get().then(function(configDoc) {
                 var config = (configDoc && configDoc.exists) ? configDoc.data() : {
                     system_status: 'เปิดใช้งาน',
                     notebooklm_url: '',
@@ -206,18 +219,135 @@
                     category_order: '{}'
                 };
 
-                var elapsed = Math.round(performance.now() - t0);
-                console.log("⚡ [Firestore] getInitialAppData loaded in " + elapsed + " ms! (Knowledge: " + knowledge.length + ", Announcements: " + announcements.length + ", Employees: " + employees.length + ")");
+                var remoteDataVersion = String(_pendingDataVersion || config.dataVersion || 'v17_content_init');
+                var remoteEmployeesVersion = String(_pendingEmployeesVersion || config.employeesVersion || 'v17_emp_init');
+                var isDirty = _localContentDirty;
+                _localContentDirty = false;
+                _pendingDataVersion = null;
 
-                return {
-                    success: true,
-                    knowledge: knowledge,
-                    announcements: announcements,
-                    qa: qa,
-                    employees: employees,
-                    permissions: permissions,
-                    config: config
-                };
+                // Cache Hit Check: If client already has valid content cache matching remote dataVersion -> 1 Read total!
+                if (!opts.forceRefresh && !isDirty && opts.hasCachedContent && opts.cachedDataVersion && String(opts.cachedDataVersion) === remoteDataVersion) {
+                    var hitElapsed = Math.round(performance.now() - t0);
+                    console.log("⚡ [Firestore Cache-Hit] Verified dataVersion=" + remoteDataVersion + " in " + hitElapsed + " ms (1 Read only — saved ~1,007 Reads!)");
+                    return {
+                        success: true,
+                        notModified: true,
+                        config: config,
+                        dataVersion: remoteDataVersion,
+                        employeesVersion: remoteEmployeesVersion
+                    };
+                }
+
+                // Step 2 (Cache Miss): Load ONLY content collections (NO full 513-doc employees scan!)
+                var fetches = [
+                    db.collection('knowledge').get(),
+                    db.collection('announcements').get(),
+                    db.collection('qa').get(),
+                    db.collection('permissions').get()
+                ];
+
+                // Optionally refresh ONLY the logged-in user's own 1 document (1 Read instead of 513!)
+                var hasSingleUser = !!(opts.currentUserId && String(opts.currentUserId).trim() !== "" && String(opts.currentUserId).trim() !== "admin999");
+                if (hasSingleUser) {
+                    fetches.push(
+                        db.collection('employees').doc(String(opts.currentUserId).trim()).get().catch(function() { return null; })
+                    );
+                }
+
+                return Promise.all(fetches).then(function(results) {
+                    var knowledge = snapshotToArray(results[0]);
+                    var announcements = snapshotToArray(results[1]);
+                    var qa = snapshotToArray(results[2]);
+                    var rawPerms = snapshotToArray(results[3]);
+                    var userDoc = hasSingleUser ? results[4] : null;
+
+                    var permissions = [];
+                    var seenRoles = {};
+                    for (var p = 0; p < rawPerms.length; p++) {
+                        var item = rawPerms[p];
+                        if (item.role === "ผู้ประกอบการ") item.role = "พี่สปริงเคิล";
+                        if (!seenRoles[item.role]) {
+                            seenRoles[item.role] = true;
+                            permissions.push(item);
+                        }
+                    }
+
+                    var currentUserRecord = null;
+                    if (userDoc && userDoc.exists) {
+                        currentUserRecord = normalizeEmployeeObj(Object.assign({}, userDoc.data()), userDoc.id);
+                    }
+
+                    var elapsed = Math.round(performance.now() - t0);
+                    console.log("⚡ [Firestore] Content loaded in " + elapsed + " ms (Knowledge: " + knowledge.length + ", Announcements: " + announcements.length + ", QA: " + qa.length + ", Skipped full employees scan!)");
+
+                    return {
+                        success: true,
+                        notModified: false,
+                        knowledge: knowledge,
+                        announcements: announcements,
+                        qa: qa,
+                        permissions: permissions,
+                        config: config,
+                        currentUserRecord: currentUserRecord,
+                        dataVersion: remoteDataVersion,
+                        employeesVersion: remoteEmployeesVersion
+                    };
+                });
+            });
+        },
+
+        // 1.1 On-demand Lazy-Load for Employees (Admin/Manager tabs only, version-checked!)
+        getEmployeesIfChanged: function(options) {
+            if (!db) return Promise.reject(new Error("Firestore is not initialized"));
+            var opts = (options && typeof options === 'object') ? options : {};
+            var t0 = performance.now();
+
+            var versionPromise = opts.knownRemoteVersion
+                ? Promise.resolve(String(opts.knownRemoteVersion))
+                : db.collection('config').doc('main').get().then(function(doc) {
+                    var cfg = (doc && doc.exists) ? doc.data() : {};
+                    return String(cfg.employeesVersion || 'v17_emp_init');
+                });
+
+            return versionPromise.then(function(remoteEmpVer) {
+                var effectiveEmpVer = String(_pendingEmployeesVersion || remoteEmpVer);
+                var isEmpDirty = _localEmployeesDirty;
+                _localEmployeesDirty = false;
+                _pendingEmployeesVersion = null;
+
+                if (!opts.forceRefresh && !isEmpDirty && opts.hasCachedEmployees && opts.cachedEmployeesVersion && String(opts.cachedEmployeesVersion) === effectiveEmpVer) {
+                    console.log("⚡ [Firestore Employees Cache-Hit] employeesVersion=" + effectiveEmpVer + " (0 extra Reads!)");
+                    return {
+                        success: true,
+                        notModified: true,
+                        employeesVersion: effectiveEmpVer
+                    };
+                }
+
+                return db.collection('employees').get().then(function(snap) {
+                    var employees = snapshotToArray(snap).map(function(emp) {
+                        return normalizeEmployeeObj(emp, emp.id);
+                    });
+                    var elapsed = Math.round(performance.now() - t0);
+                    console.log("⚡ [Firestore] Lazy-loaded " + employees.length + " employees in " + elapsed + " ms");
+                    return {
+                        success: true,
+                        notModified: false,
+                        employees: employees,
+                        employeesVersion: effectiveEmpVer
+                    };
+                });
+            });
+        },
+
+        // 1.2 Single Employee Profile Refresh (1 Read only)
+        getSingleEmployee: function(empId) {
+            if (!db) return Promise.reject(new Error("Firestore is not initialized"));
+            var targetId = String(empId || "").trim();
+            if (!targetId || targetId === "admin999") return Promise.resolve(null);
+            return db.collection('employees').doc(targetId).get().then(function(doc) {
+                if (!doc.exists) return null;
+                return normalizeEmployeeObj(Object.assign({}, doc.data()), doc.id);
             });
         },
 
@@ -413,6 +543,7 @@
             }
 
             return db.collection('announcements').doc(docId).set(annObj).then(function() {
+                bumpDataVersion('content');
                 // Dual-Sync to Google Sheets with positional arguments as expected by Code.js
                 syncToGoogleSheets('addAnnouncement', [
                     annObj.title,
@@ -458,6 +589,7 @@
             if (!docId) return Promise.reject(new Error("Missing announcement id"));
 
             return db.collection('announcements').doc(docId).set(annObj, { merge: true }).then(function() {
+                bumpDataVersion('content');
                 syncToGoogleSheets('updateAnnouncement', [
                     docId,
                     annObj.title,
@@ -478,6 +610,7 @@
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var docId = String(id || "");
             return db.collection('announcements').doc(docId).delete().then(function() {
+                bumpDataVersion('content');
                 syncToGoogleSheets('deleteAnnouncement', [docId]);
                 return "ลบประกาศเรียบร้อยแล้ว!";
             });
@@ -491,6 +624,7 @@
                 if (!doc.exists) throw new Error("ไม่พบประกาศนี้");
                 var nextPin = (explicitPin !== undefined && explicitPin !== null) ? !!explicitPin : !doc.data().isPinned;
                 return ref.update({ isPinned: nextPin }).then(function() {
+                    bumpDataVersion('content');
                     syncToGoogleSheets('toggleAnnouncementPin', [docId, nextPin]);
                     return { success: true, isPinned: nextPin };
                 });
@@ -506,6 +640,7 @@
                 var current = doc.data().status || "เปิดใช้งาน";
                 var next = explicitStatus || ((current === "เปิดใช้งาน") ? "ปิดใช้งาน" : "เปิดใช้งาน");
                 return ref.update({ status: next }).then(function() {
+                    bumpDataVersion('content');
                     syncToGoogleSheets('toggleAnnouncementStatus', [docId, next]);
                     return { success: true, status: next };
                 });
@@ -519,6 +654,7 @@
             return db.collection('announcements').doc(docId).update({
                 displayOrder: orderNum
             }).then(function() {
+                bumpDataVersion('content');
                 syncToGoogleSheets('updateAnnouncementOrder', [docId, orderNum]);
                 return { success: true };
             });
@@ -547,6 +683,7 @@
                 }
             }
             return batch.commit().then(function() {
+                bumpDataVersion('content');
                 syncToGoogleSheets('reorderAnnouncements', [reorderList]);
                 return "บันทึกลำดับประกาศเรียบร้อยแล้ว!";
             });
@@ -562,6 +699,7 @@
             data.status = data.status || "เปิดใช้งาน";
 
             return db.collection('knowledge').doc(docId).set(data).then(function() {
+                bumpDataVersion('content');
                 syncToGoogleSheets('addKnowledge', [data]);
                 return { success: true, id: docId, message: "บันทึกเนื้อหาความรู้เรียบร้อยแล้ว" };
             });
@@ -573,6 +711,7 @@
             if (!docId) return Promise.reject(new Error("Missing knowledge id"));
 
             return db.collection('knowledge').doc(docId).set(data, { merge: true }).then(function() {
+                bumpDataVersion('content');
                 syncToGoogleSheets('updateKnowledge', [data]);
                 return { success: true, message: "แก้ไขข้อมูลเรียบร้อยแล้ว" };
             });
@@ -582,6 +721,7 @@
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var docId = String(id || "");
             return db.collection('knowledge').doc(docId).delete().then(function() {
+                bumpDataVersion('content');
                 syncToGoogleSheets('deleteKnowledge', [docId]);
                 return { success: true, message: "ลบข้อมูลเรียบร้อยแล้ว" };
             });
@@ -595,6 +735,7 @@
                 if (!doc.exists) throw new Error("ไม่พบเนื้อหาความรู้นี้");
                 var current = !!doc.data().isPinned;
                 return ref.update({ isPinned: !current }).then(function() {
+                    bumpDataVersion('content');
                     syncToGoogleSheets('toggleKnowledgePin', [docId]);
                     return { success: true, isPinned: !current };
                 });
@@ -605,7 +746,8 @@
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var orderJson = Array.isArray(folderOrderArray) ? JSON.stringify(folderOrderArray) : String(folderOrderArray || "[]");
             return db.collection('config').doc('main').set({
-                main_folder_order: orderJson
+                main_folder_order: orderJson,
+                dataVersion: String(Date.now())
             }, { merge: true }).then(function() {
                 syncToGoogleSheets('saveKnowledgeFolderOrder', [folderOrderArray]);
                 return { success: true, message: "บันทึกลำดับโฟลเดอร์เรียบร้อยแล้ว" };
@@ -627,6 +769,7 @@
                 }
             }
             return batch.commit().then(function() {
+                bumpDataVersion('content');
                 syncToGoogleSheets('updateKnowledgeOrdersBulk', [ordersList]);
                 return { success: true };
             });
@@ -638,6 +781,7 @@
             return db.collection('knowledge').doc(docId).update({
                 displayOrder: Number(newOrder)
             }).then(function() {
+                bumpDataVersion('content');
                 syncToGoogleSheets('updateKnowledgeOrderDirect', [docId, Number(newOrder)]);
                 return { success: true };
             });
@@ -663,6 +807,7 @@
             qObj.askedTime = qObj.askedTime || new Date().toISOString();
 
             return db.collection('qa').doc(docId).set(qObj).then(function() {
+                bumpDataVersion('content');
                 if (qObj.status === "ตอบแล้ว" && qObj.answer) {
                     syncToGoogleSheets('addAndAnswerQuestion', [docId, qObj.category, qObj.question, qObj.askedBy, qObj.answer, qObj.answeredBy || "ระบบตอบอัตโนมัติ (AI Bot)", qObj.askedFileUrl || ""]);
                 } else {
@@ -681,6 +826,7 @@
                 answeredTime: new Date().toISOString(),
                 status: "ตอบแล้ว"
             }).then(function() {
+                bumpDataVersion('content');
                 syncToGoogleSheets('answerQuestion', [docId, String(answer || ""), String(answeredBy || "")]);
                 return { success: true, message: "บันทึกคำตอบเรียบร้อยแล้ว" };
             });
@@ -754,9 +900,69 @@
                     password: newPwd,
                     passwordUpdatedAt: new Date().toISOString()
                 }).then(function() {
+                    bumpDataVersion('employees');
                     syncToGoogleSheets('changeUserPassword', [targetId, newPwd]);
                     return { success: true, message: "ตั้งรหัสผ่านใหม่สำเร็จเรียบร้อยแล้ว!" };
                 });
+            });
+        },
+
+        resetEmployeePassword: function(empId) {
+            if (!db) return Promise.reject(new Error("Firestore is not initialized"));
+            var targetId = String(empId || "").trim();
+            if (!targetId) return Promise.resolve({ success: false, message: "กรุณาระบุรหัสพนักงาน" });
+            return db.collection('employees').doc(targetId).update({
+                password: "1234",
+                passwordUpdatedAt: new Date().toISOString()
+            }).then(function() {
+                bumpDataVersion('employees');
+                syncToGoogleSheets('resetEmployeePassword', [targetId]);
+                return { success: true, message: "รีเซ็ตรหัสผ่านของพนักงานรหัส " + targetId + " เป็น 1234 เรียบร้อยแล้ว!" };
+            });
+        },
+
+        updateEmployeeProfilePicOnly: function(empId, profilePicUrl) {
+            if (!db) return Promise.reject(new Error("Firestore is not initialized"));
+            var targetId = String(empId || "").trim();
+            var pPic = String(profilePicUrl || "").trim();
+            if (!targetId) return Promise.resolve({ success: false, message: "ไม่พบรหัสพนักงาน" });
+            return db.collection('employees').doc(targetId).set({
+                profilePic: pPic
+            }, { merge: true }).then(function() {
+                bumpDataVersion('employees');
+                syncToGoogleSheets('updateEmployeeProfilePicOnly', [targetId, pPic]);
+                return { success: true, message: "อัปเดตรูปประจำตัวสำเร็จแล้ว!" };
+            });
+        },
+
+        updateEmployee: function(empId, name, role, canAnswerQA, password, profilePic, branch, carNumber, approvalStatus) {
+            if (!db) return Promise.reject(new Error("Firestore is not initialized"));
+            var targetId = String(empId || "").trim();
+            if (!targetId) return Promise.reject(new Error("Missing employee id"));
+            var finalRole = String(role || "พนักงาน").trim();
+            if (finalRole === "ผู้ประกอบการ" || finalRole === "ผปก.") finalRole = "พี่สปริงเคิล";
+            var normalizedBranch = normalizeBranch(branch || "");
+            var pwd = (password !== undefined && password !== null && String(password).trim() !== "") ? String(password).trim() : "1234";
+            var pPic = (profilePic !== undefined && profilePic !== null) ? String(profilePic).trim() : "";
+            var carNo = (carNumber !== undefined && carNumber !== null && String(carNumber).trim() !== "") ? String(carNumber).trim() : "-";
+            var appStatus = (approvalStatus !== undefined && approvalStatus !== null && String(approvalStatus).trim() !== "") ? String(approvalStatus).trim() : "อนุมัติแล้ว";
+
+            var empDoc = {
+                empId: targetId,
+                name: String(name || "").trim(),
+                role: finalRole,
+                canAnswerQA: !!canAnswerQA,
+                password: pwd,
+                profilePic: pPic,
+                branch: normalizedBranch,
+                carNumber: carNo,
+                approvalStatus: appStatus
+            };
+
+            return db.collection('employees').doc(targetId).set(empDoc, { merge: true }).then(function() {
+                bumpDataVersion('employees');
+                syncToGoogleSheets('updateEmployee', [targetId, empDoc.name, finalRole, !!canAnswerQA, pwd, pPic, normalizedBranch, carNo, appStatus]);
+                return "บันทึกข้อมูลพนักงานเรียบร้อยแล้ว!";
             });
         },
 
@@ -774,6 +980,7 @@
                 approvalStatus: "อนุมัติแล้ว",
                 registeredDate: new Date().toISOString()
             }, { merge: true }).then(function() {
+                bumpDataVersion('employees');
                 syncToGoogleSheets('registerEmployee', [targetId, password, profilePic, normalizedBranch, carNumber]);
                 return { success: true, message: "ลงทะเบียนและเปิดใช้งานบัญชีสำเร็จ" };
             });
@@ -803,6 +1010,7 @@
             empData.registeredDate = empData.registeredDate || new Date().toISOString();
 
             return db.collection('employees').doc(docId).set(empData).then(function() {
+                bumpDataVersion('employees');
                 syncToGoogleSheets('registerNewMember', [empData]);
                 return { success: true, message: "เพิ่มข้อมูลสมาชิกเรียบร้อยแล้ว" };
             });
@@ -814,6 +1022,7 @@
             return db.collection('employees').doc(docId).update({
                 approvalStatus: String(status || "อนุมัติแล้ว")
             }).then(function() {
+                bumpDataVersion('employees');
                 if (status === "อนุมัติแล้ว") {
                     syncToGoogleSheets('approveEmployee', [docId]);
                 } else if (status === "ไม่อนุมัติ") {
@@ -831,6 +1040,7 @@
             return db.collection('employees').doc(docId).update({
                 role: finalRole
             }).then(function() {
+                bumpDataVersion('employees');
                 syncToGoogleSheets('updateEmployee', [{ empId: docId, role: finalRole }]);
                 return { success: true, message: "อัปเดตตำแหน่งงานเรียบร้อยแล้ว" };
             });
@@ -840,6 +1050,7 @@
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var docId = String(empId || "").trim();
             return db.collection('employees').doc(docId).delete().then(function() {
+                bumpDataVersion('employees');
                 syncToGoogleSheets('deleteEmployee', [docId]);
                 return { success: true, message: "ลบสมาชิกเรียบร้อยแล้ว" };
             });
@@ -850,12 +1061,13 @@
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var configObj = {};
             if (typeof systemStatus === 'object' && systemStatus !== null) {
-                configObj = systemStatus;
+                configObj = Object.assign({}, systemStatus);
             } else {
                 if (systemStatus !== undefined) configObj.system_status = systemStatus;
                 if (notebooklmUrl !== undefined) configObj.notebooklm_url = notebooklmUrl;
                 if (autoAnswerStatus !== undefined) configObj.auto_answer_status = autoAnswerStatus;
             }
+            configObj.dataVersion = String(Date.now());
             return db.collection('config').doc('main').set(configObj, { merge: true }).then(function() {
                 syncToGoogleSheets('saveSystemConfig', [systemStatus, notebooklmUrl, autoAnswerStatus]);
                 return "บันทึกการตั้งค่าระบบหลักเรียบร้อยแล้ว";
@@ -875,6 +1087,7 @@
                     }
                 }
                 return batch.commit().then(function() {
+                    bumpDataVersion('content');
                     syncToGoogleSheets('saveRolePermissions', [role]);
                     return "บันทึกสิทธิ์ตำแหน่งงานเรียบร้อยแล้ว";
                 });
@@ -888,6 +1101,7 @@
                 canEdit: !!canEdit,
                 canToggle: !!canToggle
             }, { merge: true }).then(function() {
+                bumpDataVersion('content');
                 syncToGoogleSheets('saveRolePermissions', [roleStr, !!canEdit, !!canToggle]);
                 return "บันทึกสิทธิ์ตำแหน่งงานเรียบร้อยแล้ว";
             });
