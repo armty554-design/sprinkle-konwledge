@@ -2170,13 +2170,13 @@
                                         <option value="บางบัวทอง">บางบัวทอง</option>
                                         <option value="ประชาชื่น">ประชาชื่น</option>
                                         <option value="พระราม 2">พระราม 2</option>
-                                        <option value="ปทุมธานี">ปทุมธานี</option>
+                                        <option value="ปทุมธานี 1">ปทุมธานี 1</option>
                                         <option value="บุคคโล">บุคคโล</option>
                                         <option value="พระราม 3">พระราม 3</option>
                                         <option value="ปากเกร็ด">ปากเกร็ด</option>
                                         <option value="พุทธมณฑล สาย 1">พุทธมณฑล สาย 1</option>
                                         <option value="ประเวศ">ประเวศ</option>
-                                        <option value="ดอนเมือง">ดอนเมือง</option>
+                                        <option value="ปทุมธานี 2">ปทุมธานี 2</option>
                                         <option value="สำนักงาน">สำนักงาน</option>
                                     </select>
                                 </div>
@@ -2437,13 +2437,13 @@
                                         <option value="บางบัวทอง">บางบัวทอง</option>
                                         <option value="ประชาชื่น">ประชาชื่น</option>
                                         <option value="พระราม 2">พระราม 2</option>
-                                        <option value="ปทุมธานี">ปทุมธานี</option>
+                                        <option value="ปทุมธานี 1">ปทุมธานี 1</option>
                                         <option value="บุคคโล">บุคคโล</option>
                                         <option value="พระราม 3">พระราม 3</option>
                                         <option value="ปากเกร็ด">ปากเกร็ด</option>
                                         <option value="พุทธมณฑล สาย 1">พุทธมณฑล สาย 1</option>
                                         <option value="ประเวศ">ประเวศ</option>
-                                        <option value="ดอนเมือง">ดอนเมือง</option>
+                                        <option value="ปทุมธานี 2">ปทุมธานี 2</option>
                                         <option value="สำนักงาน">สำนักงาน</option>
                                     </select>
                                 </div>
@@ -2924,13 +2924,13 @@
                                     <option value="บางบัวทอง">📍 บางบัวทอง</option>
                                     <option value="ประชาชื่น">📍 ประชาชื่น</option>
                                     <option value="พระราม 2">📍 พระราม 2</option>
-                                    <option value="ปทุมธานี">📍 ปทุมธานี</option>
+                                    <option value="ปทุมธานี 1">📍 ปทุมธานี 1</option>
                                     <option value="บุคคโล">📍 บุคคโล</option>
                                     <option value="พระราม 3">📍 พระราม 3</option>
                                     <option value="ปากเกร็ด">📍 ปากเกร็ด</option>
                                     <option value="พุทธมณฑล สาย 1">📍 พุทธมณฑล สาย 1</option>
                                     <option value="ประเวศ">📍 ประเวศ</option>
-                                    <option value="ดอนเมือง">📍 ดอนเมือง</option>
+                                    <option value="ปทุมธานี 2">📍 ปทุมธานี 2</option>
                                     <option value="สำนักงาน">📍 สำนักงาน</option>
                                 </select>
                             </div>
@@ -3136,13 +3136,13 @@
                                 <option value="บางบัวทอง">บางบัวทอง</option>
                                 <option value="ประชาชื่น">ประชาชื่น</option>
                                 <option value="พระราม 2">พระราม 2</option>
-                                <option value="ปทุมธานี">ปทุมธานี</option>
+                                <option value="ปทุมธานี 1">ปทุมธานี 1</option>
                                 <option value="บุคคโล">บุคคโล</option>
                                 <option value="พระราม 3">พระราม 3</option>
                                 <option value="ปากเกร็ด">ปากเกร็ด</option>
                                 <option value="พุทธมณฑล สาย 1">พุทธมณฑล สาย 1</option>
                                 <option value="ประเวศ">ประเวศ</option>
-                                <option value="ดอนเมือง">ดอนเมือง</option>
+                                <option value="ปทุมธานี 2">ปทุมธานี 2</option>
                                 <option value="สำนักงาน">สำนักงาน</option>
                             </select>
                             <select id="historyFilterStatus" onchange="loadNotificationHistoryData()" class="p-2.5 border rounded-xl bg-white text-xs font-bold text-gray-700 outline-none">
@@ -4133,6 +4133,13 @@
                 try {
                     var parsedUser = JSON.parse(savedUser);
                     if (parsedUser && parsedUser.name) {
+                        if (parsedUser.branch && typeof normalizeBranchName === 'function') {
+                            var normalizedBranch = normalizeBranchName(parsedUser.branch);
+                            if (normalizedBranch && normalizedBranch !== parsedUser.branch) {
+                                parsedUser.branch = normalizedBranch;
+                                localStorage.setItem('sprinkleUser', JSON.stringify(parsedUser));
+                            }
+                        }
                         applyLoginState(parsedUser);
                         return;
                     }
@@ -4421,7 +4428,7 @@
         }
 
         // ดึงข้อมูลหลักจาก Firestore / Apps Script พร้อมระบบแคชและอัปเดตทันใจ
-        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v15';
+        var DATA_CACHE_KEY = 'sprinkle_cached_app_data_v16';
 
         function loadData(onComplete) {
             recommendStatsData = null;
@@ -4443,6 +4450,7 @@
                 localStorage.removeItem('sprinkle_cached_app_data_v12');
                 localStorage.removeItem('sprinkle_cached_app_data_v13');
                 localStorage.removeItem('sprinkle_cached_app_data_v14');
+                localStorage.removeItem('sprinkle_cached_app_data_v15');
             } catch(eClean) {}
 
             // 1. ดึงจากแคชในเครื่องเวอร์ชันใหม่มาแสดงผลทันที (0 ms ไม่ต้องรอโหลด)
@@ -5463,8 +5471,8 @@
 
         var STANDARD_BRANCHES = [
             "บางพลี", "สุขุมวิท 50", "วังน้อย", "รามอินทรา", "ราษฎร์บูรณะ", "กิ่งแก้ว",
-            "สำโรง", "กรุงเทพกรีฑา", "บางบัวทอง", "ประชาชื่น", "พระราม 2", "ปทุมธานี",
-            "บุคคโล", "พระราม 3", "ปากเกร็ด", "พุทธมณฑล สาย 1", "ประเวศ", "ดอนเมือง", "สำนักงาน"
+            "สำโรง", "กรุงเทพกรีฑา", "บางบัวทอง", "ประชาชื่น", "พระราม 2", "ปทุมธานี 1",
+            "บุคคโล", "พระราม 3", "ปากเกร็ด", "พุทธมณฑล สาย 1", "ประเวศ", "ปทุมธานี 2", "สำนักงาน"
         ];
 
         function escapeHtml(str) {
@@ -12605,8 +12613,17 @@ function normalizeBranchName(rawBranch) {
     if (b === "" || b === "-" || b === "ไม่ระบุสาขา" || b === "ไม่ระบุ" || b === "undefined" || b === "null") {
         return "";
     }
-    // รวม "พุทธมณฑลสาย 1" และ "พุทธมณฑล สาย 1" เข้าด้วยกัน
+    // รวมชื่อสาขาที่มีการปรับชื่อใหม่และจัดรูปแบบช่องว่างให้ตรงกัน
     var cleaned = b.replace(/\s+/g, '');
+    if (cleaned === "ดอนเมือง") {
+        return "ปทุมธานี 2";
+    }
+    if (cleaned === "ปทุมธานี" || cleaned === "ปทุมธานี1") {
+        return "ปทุมธานี 1";
+    }
+    if (cleaned === "ปทุมธานี2") {
+        return "ปทุมธานี 2";
+    }
     if (cleaned === "พุทธมณฑลสาย1") {
         return "พุทธมณฑล สาย 1";
     }
@@ -15720,7 +15737,7 @@ function cancelKnowledgeEdit() {
                     <!-- สาขา -->
                     <div>
                         <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">สาขา</label>
-                        <input type="text" id="empBranchInput" placeholder="เช่น พระราม 2, ปทุมธานี" class="w-full p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-bold text-gray-900 shadow-2xs">
+                        <input type="text" id="empBranchInput" placeholder="เช่น พระราม 2, ปทุมธานี 1" class="w-full p-3 border border-gray-300 rounded-xl bg-white text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-bold text-gray-900 shadow-2xs">
                     </div>
 
                     <!-- เบอร์รถ (สำหรับพี่สปริงเคิล) -->

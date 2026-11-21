@@ -159,7 +159,8 @@ function logLogin(empId, empName, role, branch) {
     }
     
     var formattedDate = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd HH:mm:ss");
-    sheet.appendRow([formattedDate, empId, empName, role, branch || ""]);
+    var normalizedBranch = branch ? (normalizeBranchName(branch) || String(branch).trim()) : "";
+    sheet.appendRow([formattedDate, empId, empName, role, normalizedBranch]);
     return true;
   } catch (error) {
     Logger.log("Error in logLogin: " + error.toString());
@@ -1145,7 +1146,8 @@ function updateEmployee(empId, name, role, canAnswerQA, password, profilePic, br
     var targetId = empId.toString().trim();
     var pwd = password !== undefined ? password.toString().trim() : "1234";
     var pPic = profilePic !== undefined ? profilePic.toString().trim() : "";
-    var br = branch !== undefined ? branch.toString().trim() : "";
+    var brRaw = branch !== undefined ? branch.toString().trim() : "";
+    var br = brRaw ? (normalizeBranchName(brRaw) || brRaw) : "";
     var carNo = carNumber !== undefined && carNumber.toString().trim() !== "" ? carNumber.toString().trim() : "-";
     var appStatus = approvalStatus !== undefined && approvalStatus.toString().trim() !== "" ? approvalStatus.toString().trim() : "อนุมัติแล้ว";
     
@@ -1201,7 +1203,8 @@ function registerNewMember(data) {
     var targetId = data.empId ? data.empId.toString().trim() : "";
     var name = data.name ? data.name.toString().trim() : "";
     var role = data.role ? data.role.toString().trim() : "พนักงาน";
-    var branch = data.branch ? data.branch.toString().trim() : "";
+    var rawBranch = data.branch ? data.branch.toString().trim() : "";
+    var branch = rawBranch ? (normalizeBranchName(rawBranch) || rawBranch) : "";
     var carNumber = data.carNumber ? data.carNumber.toString().trim() : "-";
     if (!carNumber || carNumber === "") carNumber = "-";
     var password = data.password ? data.password.toString().trim() : "";
@@ -1387,7 +1390,8 @@ function registerEmployee(empId, password, profilePicUrl, branch, carNumber) {
       return { success: false, message: "กรุณากำหนดรหัสผ่านใหม่ (ไม่สามารถใช้ 1234 ได้ครับ)" };
     }
     var pPic = profilePicUrl ? profilePicUrl.toString().trim() : "";
-    var br = (branch !== undefined && branch !== null) ? branch.toString().trim() : "";
+    var brRaw = (branch !== undefined && branch !== null) ? branch.toString().trim() : "";
+    var br = brRaw ? (normalizeBranchName(brRaw) || brRaw) : "";
     var car = (carNumber !== undefined && carNumber !== null) ? carNumber.toString().trim() : "";
     
     for (var i = 1; i < rows.length; i++) {
@@ -1592,7 +1596,7 @@ function logTopicView(topicId, topicTitle, category, empId, empName, branch) {
     }
     
     // ดึงสาขาของพนักงาน
-    var userBranch = branch ? String(branch).trim() : "";
+    var userBranch = branch ? (normalizeBranchName(branch) || String(branch).trim()) : "";
     var empIdStr = empId ? String(empId).trim() : "";
     if (userBranch === "" && empIdStr !== "" && empIdStr !== "anonymous") {
       var empSheet = ss.getSheetByName("Employees");
@@ -1602,7 +1606,8 @@ function logTopicView(topicId, topicTitle, category, empId, empName, branch) {
           if (empRows[i] && empRows[i][0] !== undefined && empRows[i][0] !== null) {
             var cellVal = String(empRows[i][0]).trim();
             if (cellVal !== "" && cellVal === empIdStr) {
-              userBranch = (empRows[i].length > 6 && empRows[i][6]) ? String(empRows[i][6]).trim() : "";
+              var empRawBr = (empRows[i].length > 6 && empRows[i][6]) ? String(empRows[i][6]).trim() : "";
+              userBranch = empRawBr ? (normalizeBranchName(empRawBr) || empRawBr) : "";
               break;
             }
           }
@@ -1691,6 +1696,15 @@ function normalizeBranchName(rawBranch) {
     return "";
   }
   var cleaned = b.replace(/\s+/g, '');
+  if (cleaned === "ดอนเมือง") {
+    return "ปทุมธานี 2";
+  }
+  if (cleaned === "ปทุมธานี" || cleaned === "ปทุมธานี1") {
+    return "ปทุมธานี 1";
+  }
+  if (cleaned === "ปทุมธานี2") {
+    return "ปทุมธานี 2";
+  }
   if (cleaned === "พุทธมณฑลสาย1") {
     return "พุทธมณฑล สาย 1";
   }
@@ -2799,6 +2813,7 @@ function registerPushToken(empId, token, deviceInfo, name, role, branch) {
     var formattedDate = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd HH:mm:ss");
     var cleanToken = token.toString().trim();
     var cleanEmpId = (empId || "anonymous").toString().trim();
+    var cleanBranch = branch ? (normalizeBranchName(branch) || String(branch).trim()) : "";
     
     // ค้นหาว่ามี Token นี้ในระบบแล้วหรือไม่
     var foundIndex = -1;
@@ -2814,7 +2829,7 @@ function registerPushToken(empId, token, deviceInfo, name, role, branch) {
       sheet.getRange(foundIndex, 1).setValue(cleanEmpId);
       if (name) sheet.getRange(foundIndex, 2).setValue(name);
       if (role) sheet.getRange(foundIndex, 3).setValue(role);
-      if (branch) sheet.getRange(foundIndex, 4).setValue(branch);
+      if (cleanBranch) sheet.getRange(foundIndex, 4).setValue(cleanBranch);
       if (deviceInfo) sheet.getRange(foundIndex, 6).setValue(deviceInfo);
       sheet.getRange(foundIndex, 7).setValue(formattedDate);
       sheet.getRange(foundIndex, 8).setValue("เปิดใช้งาน");
@@ -2824,7 +2839,7 @@ function registerPushToken(empId, token, deviceInfo, name, role, branch) {
         cleanEmpId,
         name || "",
         role || "",
-        branch || "",
+        cleanBranch,
         cleanToken,
         deviceInfo || "",
         formattedDate,
@@ -4297,6 +4312,171 @@ function migrateEmployeesRoleToSpringle() {
   }
 }
 
+// ฟังก์ชันช่วยแปลงชื่อสาขาในเซลล์ (รองรับทั้งค่าเดี่ยวและค่าคั่นด้วยเครื่องหมายจุลภาค)
+function mapRenamedBranchCellValue(rawVal) {
+  if (rawVal === null || rawVal === undefined) {
+    return { value: rawVal, changed: false, rule: null };
+  }
+  var original = String(rawVal);
+  var trimmed = original.trim();
+  if (!trimmed || trimmed === "-" || trimmed === "ทุกสาขา" || trimmed === "ทั้งหมด" || trimmed === "ไม่ระบุสาขา" || trimmed === "ไม่ระบุ") {
+    return { value: rawVal, changed: false, rule: null };
+  }
+
+  function mapSingle(token) {
+    var t = String(token || "").trim();
+    var cleaned = t.replace(/\s+/g, '');
+    if (cleaned === "ดอนเมือง") return { val: "ปทุมธานี 2", rule: "donmuang_to_pathum2" };
+    if (cleaned === "ปทุมธานี") return { val: "ปทุมธานี 1", rule: "pathum_to_pathum1" };
+    if (cleaned === "ปทุมธานี1" && t !== "ปทุมธานี 1") return { val: "ปทุมธานี 1", rule: "spacing_pathum1" };
+    if (cleaned === "ปทุมธานี2" && t !== "ปทุมธานี 2") return { val: "ปทุมธานี 2", rule: "spacing_pathum2" };
+    return { val: t, rule: null };
+  }
+
+  if (trimmed.indexOf(",") !== -1) {
+    var parts = trimmed.split(",");
+    var anyChanged = false;
+    var firstRule = null;
+    var mappedParts = [];
+    for (var i = 0; i < parts.length; i++) {
+      var res = mapSingle(parts[i]);
+      if (res.rule) {
+        anyChanged = true;
+        if (!firstRule) firstRule = res.rule;
+      }
+      mappedParts.push(res.val);
+    }
+    if (!anyChanged) return { value: rawVal, changed: false, rule: null };
+    return { value: mappedParts.join(", "), changed: true, rule: firstRule };
+  }
+
+  var singleRes = mapSingle(trimmed);
+  if (!singleRes.rule && singleRes.val === original) {
+    return { value: rawVal, changed: false, rule: null };
+  }
+  if (!singleRes.rule) {
+    return { value: rawVal, changed: false, rule: null };
+  }
+  return { value: singleRes.val, changed: true, rule: singleRes.rule };
+}
+
+// ฟังก์ชัน Migrate ชื่อสาขาทั้งฐานข้อมูล Google Sheets:
+// "ดอนเมือง" -> "ปทุมธานี 2" และ "ปทุมธานี" -> "ปทุมธานี 1" (แบบ Batch Idempotent)
+function migrateBranchNamesPathum1And2(options) {
+  try {
+    var opts = (options && typeof options === "object") ? options : {};
+    var dryRun = !!opts.dryRun;
+    var ss = getMainSpreadsheet();
+    if (!ss) return { success: false, error: "Cannot open main spreadsheet" };
+
+    var sheetConfigs = [
+      { name: "Employees", defaultCol: 7, headerKeywords: ["สาขา", "branch"] },
+      { name: "ViewLogs", defaultCol: 7, headerKeywords: ["สาขา", "branch"] },
+      { name: "LoginLogs", defaultCol: 5, headerKeywords: ["สาขา", "branch"] },
+      { name: "PushTokens", defaultCol: 4, headerKeywords: ["สาขา", "branch"] },
+      { name: "NotificationHistory", defaultCol: 8, headerKeywords: ["targetbranch", "สาขา"] },
+      { name: "ScheduledNotifications", defaultCol: 8, headerKeywords: ["targetbranch", "สาขา"] }
+    ];
+
+    var report = {
+      success: true,
+      dryRun: dryRun,
+      executedAt: Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd HH:mm:ss"),
+      totalUpdated: 0,
+      totalsByRule: {
+        donmuang_to_pathum2: 0,
+        pathum_to_pathum1: 0,
+        spacing_pathum1: 0,
+        spacing_pathum2: 0
+      },
+      sheets: {}
+    };
+
+    for (var s = 0; s < sheetConfigs.length; s++) {
+      var cfg = sheetConfigs[s];
+      var sheet = ss.getSheetByName(cfg.name);
+      if (!sheet) {
+        report.sheets[cfg.name] = { found: false, rowsScanned: 0, updated: 0 };
+        continue;
+      }
+
+      var lastRow = sheet.getLastRow();
+      var lastCol = sheet.getLastColumn();
+      if (lastRow <= 1 || lastCol < 1) {
+        report.sheets[cfg.name] = { found: true, rowsScanned: 0, updated: 0 };
+        continue;
+      }
+
+      // ตรวจหาคอลัมน์สาขาจากหัวตารางก่อน หากไม่พบใช้ defaultCol
+      var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+      var targetCol = cfg.defaultCol;
+      for (var c = 0; c < headers.length; c++) {
+        var hLower = String(headers[c] || "").trim().toLowerCase();
+        var matched = false;
+        for (var k = 0; k < cfg.headerKeywords.length; k++) {
+          if (hLower.indexOf(cfg.headerKeywords[k]) !== -1) {
+            matched = true;
+            break;
+          }
+        }
+        if (matched) {
+          targetCol = c + 1;
+          break;
+        }
+      }
+
+      if (targetCol > lastCol) {
+        report.sheets[cfg.name] = { found: true, col: targetCol, rowsScanned: 0, updated: 0, skipped: "column_out_of_range" };
+        continue;
+      }
+
+      var numDataRows = lastRow - 1;
+      var range = sheet.getRange(2, targetCol, numDataRows, 1);
+      var values = range.getValues();
+      var sheetUpdated = 0;
+      var sheetRules = {
+        donmuang_to_pathum2: 0,
+        pathum_to_pathum1: 0,
+        spacing_pathum1: 0,
+        spacing_pathum2: 0
+      };
+
+      for (var r = 0; r < values.length; r++) {
+        var mapped = mapRenamedBranchCellValue(values[r][0]);
+        if (mapped.changed) {
+          values[r][0] = mapped.value;
+          sheetUpdated++;
+          if (mapped.rule && sheetRules.hasOwnProperty(mapped.rule)) {
+            sheetRules[mapped.rule]++;
+            report.totalsByRule[mapped.rule]++;
+          }
+        }
+      }
+
+      if (!dryRun && sheetUpdated > 0) {
+        range.setValues(values);
+      }
+
+      report.totalUpdated += sheetUpdated;
+      report.sheets[cfg.name] = {
+        found: true,
+        col: targetCol,
+        header: String(headers[targetCol - 1] || ""),
+        rowsScanned: numDataRows,
+        updated: sheetUpdated,
+        byRule: sheetRules
+      };
+    }
+
+    if (!dryRun) {
+      SpreadsheetApp.flush();
+    }
+    return report;
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) {
@@ -4357,6 +4537,7 @@ function doPost(e) {
       "getEmployeeInfoForRegistration": getEmployeeInfoForRegistration,
       "resetEmployeePassword": resetEmployeePassword,
       "migrateEmployeesRoleToSpringle": migrateEmployeesRoleToSpringle,
+      "migrateBranchNamesPathum1And2": migrateBranchNamesPathum1And2,
       "getRegisteredPushTokens": getRegisteredPushTokens,
       "addAndAnswerQuestion": addAndAnswerQuestion
     };
@@ -4442,6 +4623,9 @@ if (typeof module !== 'undefined' && module.exports) {
     updateKnowledgeOrdersBulk: updateKnowledgeOrdersBulk,
     toggleKnowledgePin: toggleKnowledgePin,
     updateKnowledgeOrderDirect: updateKnowledgeOrderDirect,
+    normalizeBranchName: normalizeBranchName,
+    mapRenamedBranchCellValue: mapRenamedBranchCellValue,
+    migrateBranchNamesPathum1And2: migrateBranchNamesPathum1And2,
     doPost: doPost
   };
 }

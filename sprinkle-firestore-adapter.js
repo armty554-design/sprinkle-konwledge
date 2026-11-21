@@ -79,6 +79,24 @@
         }
     }
 
+    // Helper: Standardize branch names (including ดอนเมือง -> ปทุมธานี 2, ปทุมธานี -> ปทุมธานี 1)
+    function normalizeBranch(rawBranch) {
+        if (rawBranch === null || rawBranch === undefined) return "";
+        var b = String(rawBranch).trim();
+        if (!b || b === "-" || b === "ไม่ระบุสาขา" || b === "ไม่ระบุ" || b === "undefined" || b === "null") {
+            return b;
+        }
+        var cleaned = b.replace(/\s+/g, '');
+        if (cleaned === "ดอนเมือง") return "ปทุมธานี 2";
+        if (cleaned === "ปทุมธานี" || cleaned === "ปทุมธานี1") return "ปทุมธานี 1";
+        if (cleaned === "ปทุมธานี2") return "ปทุมธานี 2";
+        if (cleaned === "พุทธมณฑลสาย1") return "พุทธมณฑล สาย 1";
+        if (cleaned === "สุขุมวิท50") return "สุขุมวิท 50";
+        if (cleaned === "พระราม2") return "พระราม 2";
+        if (cleaned === "พระราม3") return "พระราม 3";
+        return b;
+    }
+
     // Helper: Safely convert snapshot to array of plain objects with auto-healing for Thai encoding
     function snapshotToArray(snapshot) {
         var items = [];
@@ -164,6 +182,9 @@
                     if (emp && (emp.role === "ผู้ประกอบการ" || emp.role === "ผปก.")) {
                         emp.role = "พี่สปริงเคิล";
                     }
+                    if (emp && emp.branch) {
+                        emp.branch = normalizeBranch(emp.branch);
+                    }
                     return emp;
                 });
                 var rawPerms = snapshotToArray(permSnap);
@@ -222,6 +243,9 @@
                 return snapshotToArray(snap).map(function(emp) {
                     if (emp && (emp.role === "ผู้ประกอบการ" || emp.role === "ผปก.")) {
                         emp.role = "พี่สปริงเคิล";
+                    }
+                    if (emp && emp.branch) {
+                        emp.branch = normalizeBranch(emp.branch);
                     }
                     return emp;
                 });
@@ -291,7 +315,7 @@
                 var empName = emp.name || "คุณพนักงาน";
                 var empRole = emp.role || "พนักงาน";
                 if (empRole === "ผู้ประกอบการ" || empRole === "ผปก.") empRole = "พี่สปริงเคิล";
-                var empBranch = emp.branch || "";
+                var empBranch = normalizeBranch(emp.branch || "");
                 var canAnswerQA = emp.canAnswerQA;
 
                 // Lookup Role Permissions
@@ -326,7 +350,7 @@
                     empId: String(empId || ""),
                     name: String(empName || ""),
                     role: String(role || ""),
-                    branch: String(branch || ""),
+                    branch: normalizeBranch(branch || ""),
                     timestamp: new Date().toISOString()
                 }).catch(function(err) {
                     console.warn("logLogin warning:", err);
@@ -675,7 +699,7 @@
                         empId: emp.empId || doc.id,
                         name: emp.name || "",
                         role: emp.role || "",
-                        branch: emp.branch || ""
+                        branch: normalizeBranch(emp.branch || "")
                     };
                 }
                 return { success: true, found: false };
@@ -693,7 +717,7 @@
                     var name = emp.name || "คุณพนักงาน";
                     var role = emp.role || "พนักงาน";
                     if (role === "ผู้ประกอบการ" || role === "ผปก.") role = "พี่สปริงเคิล";
-                    var branch = emp.branch || "";
+                    var branch = normalizeBranch(emp.branch || "");
                     var carNumber = emp.carNumber || "-";
                     var approvalStatus = emp.approvalStatus || "อนุมัติแล้ว";
                     var currentPwd = String(emp.password !== undefined && emp.password !== null ? emp.password : "").trim();
@@ -739,17 +763,18 @@
         registerEmployee: function(empId, password, profilePic, branch, carNumber) {
             if (!db) return Promise.reject(new Error("Firestore is not initialized"));
             var targetId = String(empId || "").trim();
+            var normalizedBranch = normalizeBranch(branch || "");
             var ref = db.collection('employees').doc(targetId);
 
             return ref.set({
                 password: String(password || "").trim(),
                 profilePic: String(profilePic || ""),
-                branch: String(branch || ""),
+                branch: normalizedBranch,
                 carNumber: String(carNumber || "-"),
                 approvalStatus: "อนุมัติแล้ว",
                 registeredDate: new Date().toISOString()
             }, { merge: true }).then(function() {
-                syncToGoogleSheets('registerEmployee', [targetId, password, profilePic, branch, carNumber]);
+                syncToGoogleSheets('registerEmployee', [targetId, password, profilePic, normalizedBranch, carNumber]);
                 return { success: true, message: "ลงทะเบียนและเปิดใช้งานบัญชีสำเร็จ" };
             });
         },
@@ -773,6 +798,7 @@
 
             empData.empId = docId;
             if (empData.role === "ผู้ประกอบการ" || empData.role === "ผปก.") empData.role = "พี่สปริงเคิล";
+            if (empData.branch) empData.branch = normalizeBranch(empData.branch);
             empData.approvalStatus = empData.approvalStatus || "รออนุมัติ";
             empData.registeredDate = empData.registeredDate || new Date().toISOString();
 
@@ -959,7 +985,7 @@
                         empId: d.empId || "-",
                         name: d.name || "-",
                         role: d.role || "-",
-                        branch: d.branch || "-",
+                        branch: normalizeBranch(d.branch || "-") || "-",
                         carNumber: d.carNumber || "-",
                         device: d.deviceInfo || d.device || "-",
                         token: d.token || doc.id,
